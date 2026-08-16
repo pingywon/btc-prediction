@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTC 15 — Above or Below</title>
+<style>
+  :root {
+    --felt-1: #04140c;
+    --felt-2: #071f14;
+    --ink: #d9f5e8;
+    --dim: #7fa694;
+    --yes: #33ff9e;
+    --yes-dim: #14603f;
+    --no: #ff4d7a;
+    --no-dim: #6b1a34;
+    --gold: #e8c468;
+    --panel: rgba(6, 28, 19, 0.72);
+    --panel-border: rgba(232, 196, 104, 0.35);
+    --radius: 14px;
+    --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: radial-gradient(ellipse at 50% -10%, var(--felt-2), var(--felt-1) 70%);
+    color: var(--ink);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: overlay;
+  }
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 640px; margin: 0 auto;
+    padding: clamp(0.75rem, 3vw, 1.5rem);
+    display: flex; flex-direction: column; gap: clamp(0.75rem, 2.5vw, 1.1rem);
+  }
+  header { text-align: center; padding-top: 0.25rem; }
+  header h1 {
+    margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.5rem); letter-spacing: 0.06em;
+    color: var(--gold); text-shadow: 0 0 14px rgba(232,196,104,0.45);
+  }
+  header .sub { color: var(--dim); font-size: clamp(0.7rem, 2.6vw, 0.82rem); margin-top: 0.15rem; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius);
+    padding: clamp(0.8rem, 3vw, 1.1rem);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.3) inset, 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  .plain-sentence {
+    font-size: clamp(0.95rem, 4vw, 1.15rem); line-height: 1.4; text-align: center;
+  }
+  .plain-sentence b { color: var(--gold); }
+  .plain-sentence .locked-tag {
+    color: var(--no); font-weight: bold;
+  }
+
+  .rail-track {
+    position: relative; height: 10px; border-radius: 6px; overflow: hidden;
+    background: rgba(255,255,255,0.06); margin-top: 0.7rem;
+  }
+  .rail-fill {
+    position: absolute; inset: 0 0 0 auto; width: 100%; height: 100%;
+    background: linear-gradient(90deg, var(--yes-dim), var(--gold));
+    transition: width 0.9s linear;
+  }
+  .rail-track.urgent .rail-fill { background: linear-gradient(90deg, var(--no-dim), var(--no)); }
+  .rail-track.urgent { animation: railpulse 1s ease-in-out infinite; }
+  @keyframes railpulse { 0%,100% { box-shadow: 0 0 0 rgba(255,77,122,0); } 50% { box-shadow: 0 0 14px rgba(255,77,122,0.6); } }
+
+  .price-lean-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+  }
+  .live-price { font-size: clamp(1.1rem, 5vw, 1.4rem); font-weight: bold; }
+  .live-price .delta { font-size: 0.72em; color: var(--dim); margin-left: 0.4em; }
+  .live-price .delta.up { color: var(--yes); }
+  .live-price .delta.down { color: var(--no); }
+
+  .lean-gauge { flex: 1 1 160px; min-width: 140px; }
+  .lean-track {
+    position: relative; height: 8px; border-radius: 6px;
+    background: linear-gradient(90deg, var(--no-dim), rgba(255,255,255,0.08), var(--yes-dim));
+  }
+  .lean-chip {
+    position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--gold); border: 2px solid #2a2110;
+    transform: translate(-50%, -50%); transition: left 0.6s ease-out, background 0.3s;
+    box-shadow: 0 0 10px rgba(232,196,104,0.7);
+  }
+  .lean-chip.yes { background: var(--yes); box-shadow: 0 0 10px rgba(51,255,158,0.75); }
+  .lean-chip.no { background: var(--no); box-shadow: 0 0 10px rgba(255,77,122,0.75); }
+  .lean-label { font-size: 0.68rem; color: var(--dim); text-align: center; margin-top: 0.3rem; }
+
+  .strike-panel { text-align: center; }
+  .strike-panel .label { font-size: 0.72rem; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+  .strike-panel .value { font-size: clamp(1.4rem, 7vw, 2rem); color: var(--gold); font-weight: bold; margin-top: 0.15rem; }
+  .strike-panel .suits { letter-spacing: 0.4em; color: var(--dim); font-size: 0.85rem; margin-top: 0.3rem; }
+
+  .vote-row { display: flex; gap: 0.7rem; }
+  .vote-btn {
+    flex: 1; padding: clamp(0.9rem, 4vw, 1.15rem) 0.5rem; border-radius: 12px; border: 2px solid;
+    font-family: var(--mono); font-size: clamp(1rem, 4.5vw, 1.2rem); font-weight: bold; letter-spacing: 0.05em;
+    cursor: pointer; min-height: 44px; -webkit-tap-highlight-color: transparent;
+    background: rgba(0,0,0,0.25); transition: transform 0.12s ease, box-shadow 0.2s;
+  }
+  .vote-btn:active { transform: scale(0.97); }
+  .vote-btn.yes { color: var(--yes); border-color: var(--yes-dim); }
+  .vote-btn.no { color: var(--no); border-color: var(--no-dim); }
+  .vote-btn.selected.yes { background: rgba(51,255,158,0.18); box-shadow: 0 0 16px rgba(51,255,158,0.4); }
+  .vote-btn.selected.no { background: rgba(255,77,122,0.18); box-shadow: 0 0 16px rgba(255,77,122,0.4); }
+  .vote-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .tally-bar { display: flex; height: 8px; border-radius: 6px; overflow: hidden; margin-top: 0.6rem; background: rgba(255,255,255,0.06); }
+  .tally-bar .yes-seg { background: var(--yes); }
+  .tally-bar .no-seg { background: var(--no); }
+  .tally-text { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--dim); margin-top: 0.3rem; }
+  .odds-line { text-align: center; font-size: 0.72rem; color: var(--dim); margin-top: 0.5rem; }
+
+  .banner {
+    text-align: center; padding: 0.7rem; border-radius: var(--radius);
+    border: 1px solid var(--panel-border); font-size: 0.9rem;
+    display: none;
+  }
+  .banner.show { display: block; }
+  .banner.won { color: var(--yes); border-color: var(--yes-dim); background: rgba(51,255,158,0.08); }
+  .banner.lost { color: var(--no); border-color: var(--no-dim); background: rgba(255,77,122,0.08); }
+
+  .bigroad-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+  .bigroad-head h2 { margin: 0; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; }
+  .bigroad-tallies { font-size: 0.78rem; color: var(--dim); }
+  .bigroad-tallies b.yes { color: var(--yes); }
+  .bigroad-tallies b.no { color: var(--no); }
+
+  .bigroad-scroll {
+    overflow-x: auto; padding-bottom: 0.3rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bigroad-grid { display: flex; gap: 4px; width: max-content; }
+  .bigroad-col { display: flex; flex-direction: column; gap: 4px; }
+  .bead {
+    width: 22px; height: 22px; border-radius: 5px; perspective: 200px; cursor: default;
+  }
+  .bead-inner {
+    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+    transition: transform 0.5s ease; border-radius: 5px;
+  }
+  .bead.flip .bead-inner { transform: rotateY(180deg); }
+  .bead-face {
+    position: absolute; inset: 0; border-radius: 5px; backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: bold;
+  }
+  .bead-face.back {
+    background: repeating-linear-gradient(45deg, #1a3327, #1a3327 3px, #133024 3px, #133024 6px);
+    border: 1px solid var(--panel-border);
+  }
+  .bead-face.front { transform: rotateY(180deg); color: #04140c; }
+  .bead-face.front.yes { background: var(--yes); }
+  .bead-face.front.no { background: var(--no); }
+
+  footer { text-align: center; font-size: 0.65rem; color: var(--dim); padding: 0.5rem 0 1.2rem; }
+
+  @keyframes confetti-fall {
+    0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(70px) rotate(260deg); opacity: 0; }
+  }
+  .confetti-bit {
+    position: absolute; top: 0; width: 6px; height: 6px; border-radius: 1px;
+    animation: confetti-fall 900ms ease-in forwards;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>♠ BTC 15 ♦ ABOVE OR BELOW ♣</h1>
+    <div class="sub">mirrors Robinhood's live BTC 15-min market, straight from the exchange</div>
+  </header>
+
+  <div class="panel">
+    <div class="plain-sentence" id="plainSentence">Loading the table…</div>
+    <div class="rail-track" id="railTrack"><div class="rail-fill" id="railFill"></div></div>
+  </div>
+
+  <div class="panel strike-panel">
+    <div class="label">Target Price (this round)</div>
+    <div class="value" id="strikeValue">—</div>
+    <div class="suits">♠ ♥ ♦ ♣</div>
+  </div>
+
+  <div class="panel">
+    <div class="price-lean-row">
+      <div class="live-price">
+        BTC <span id="livePrice">—</span><span class="delta" id="liveDelta"></span>
+      </div>
+      <div class="lean-gauge">
+        <div class="lean-track"><div class="lean-chip" id="leanChip"></div></div>
+        <div class="lean-label" id="leanLabel">reading the table…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="banner"></div>
+
+  <div class="panel">
+    <div class="vote-row">
+      <button class="vote-btn yes" id="btnYes">YES</button>
+      <button class="vote-btn no" id="btnNo">NO</button>
+    </div>
+    <div class="tally-bar"><div class="yes-seg" id="tallyYesSeg" style="width:50%"></div><div class="no-seg" id="tallyNoSeg" style="width:50%"></div></div>
+    <div class="tally-text"><span id="tallyYesText">YES 0</span><span id="tallyNoText">NO 0</span></div>
+    <div class="odds-line" id="oddsLine"></div>
+  </div>
+
+  <div class="panel">
+    <div class="bigroad-head">
+      <h2>24h Big Road</h2>
+      <div class="bigroad-tallies" id="bigroadTallies">YES <b class="yes">0</b> · NO <b class="no">0</b></div>
+    </div>
+    <div class="bigroad-scroll" id="bigroadScroll"><div class="bigroad-grid" id="bigroadGrid"></div></div>
+  </div>
+
+  <footer>live lean is instant-price only, not the settlement rule · settlement = Kalshi's own 60s-average result</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var clockOffsetMs = 0;
+  var lastCurrentTicker = null;
+  var lastSettledTicker = null;
+  var myVoteThisRound = null;
+  var historyCache = [];
+  var polling = true;
+
+  function now() { return Date.now() + clockOffsetMs; }
+  function fmtUSD(n) {
+    if (n === null || n === undefined) return '—';
+    return '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+  function fmtClock(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+  }
+  function fmtTime(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  var state = null;
+
+  function render() {
+    if (!state) return;
+    var t = now() / 1000;
+    var cur = state.current_round;
+
+    if (state.catching_up) {
+      document.getElementById('plainSentence').innerHTML = 'Reconstructing missed rounds…';
+    } else if (cur) {
+      var secLeft = cur.close_time - t;
+      var locked = t >= cur.lock_ts;
+      var sentence = 'BTC needs to be <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
+      sentence += locked
+        ? ' — <span class="locked-tag">LOCKED, ' + fmtClock(secLeft) + ' left</span>'
+        : ' — ' + fmtClock(secLeft) + ' left to bet';
+      document.getElementById('plainSentence').innerHTML = sentence;
+
+      var span = cur.close_time - cur.open_time;
+      var pct = Math.max(0, Math.min(100, (secLeft / span) * 100));
+      var track = document.getElementById('railTrack');
+      document.getElementById('railFill').style.width = pct + '%';
+      track.classList.toggle('urgent', locked);
+
+      document.getElementById('strikeValue').textContent = fmtUSD(cur.floor_strike);
+
+      document.getElementById('btnYes').disabled = locked;
+      document.getElementById('btnNo').disabled = locked;
+      document.getElementById('btnYes').classList.toggle('selected', cur.my_vote === 'yes');
+      document.getElementById('btnNo').classList.toggle('selected', cur.my_vote === 'no');
+
+      var totalVotes = cur.yes_votes + cur.no_votes;
+      var yesPct = totalVotes ? (cur.yes_votes / totalVotes) * 100 : 50;
+      document.getElementById('tallyYesSeg').style.width = yesPct + '%';
+      document.getElementById('tallyNoSeg').style.width = (100 - yesPct) + '%';
+      document.getElementById('tallyYesText').textContent = 'YES ' + cur.yes_votes;
+      document.getElementById('tallyNoText').textContent = 'NO ' + cur.no_votes;
+
+      if (cur.kalshi_yes_price !== null && cur.kalshi_yes_price !== undefined) {
+        var realPct = Math.round(cur.kalshi_yes_price * 100);
+        document.getElementById('oddsLine').textContent =
+          'Real market: ' + realPct + '% YES · This crowd: ' + Math.round(yesPct) + '% YES';
+      }
+    } else {
+      document.getElementById('plainSentence').textContent = 'Waiting for the next round to open…';
+    }
+
+    if (state.live_price !== null) {
+      document.getElementById('livePrice').textContent = fmtUSD(state.live_price);
+    }
+    if (state.lean && cur) {
+      var chip = document.getElementById('leanChip');
+      var pctPos = 50 + (state.lean.direction === 'yes' ? 1 : -1) * state.lean.strength * 45;
+      chip.style.left = pctPos + '%';
+      chip.classList.remove('yes', 'no');
+      chip.classList.add(state.lean.direction);
+      var deltaEl = document.getElementById('liveDelta');
+      var sign = state.lean.delta >= 0 ? '+' : '';
+      deltaEl.textContent = sign + '$' + Math.abs(state.lean.delta).toFixed(0) + (state.lean.direction === 'yes' ? ' above target' : ' below target');
+      deltaEl.className = 'delta ' + (state.lean.direction === 'yes' ? 'up' : 'down');
+      document.getElementById('leanLabel').textContent =
+        'live lean: ' + state.lean.direction.toUpperCase() + ' (instant price, not the settlement rule)';
+    }
+
+    renderBanner();
+  }
+
+  function renderBanner() {
+    var el = document.getElementById('banner');
+    var s = state.last_settled;
+    if (!s) { el.className = 'panel'; return; }
+    if (s.ticker !== lastSettledTicker) {
+      lastSettledTicker = s.ticker;
+      historyDirty = true;
+      if (s.my_outcome === 'won') burstConfetti();
+    }
+    if (s.my_vote) {
+      el.className = 'panel banner show ' + (s.my_outcome === 'won' ? 'won' : 'lost');
+      el.textContent = 'You called ' + s.my_vote.toUpperCase() + ' — round settled ' + s.result.toUpperCase() +
+        ' (' + fmtUSD(s.settlement_value) + ') — you ' + (s.my_outcome === 'won' ? 'WON' : 'lost') + '.';
+    } else {
+      el.className = 'panel banner show';
+      el.textContent = 'Last round settled ' + s.result.toUpperCase() + ' at ' + fmtUSD(s.settlement_value) + '.';
+    }
+  }
+
+  function burstConfetti() {
+    var el = document.getElementById('banner');
+    var colors = ['#33ff9e', '#e8c468', '#ffffff'];
+    for (var i = 0; i < 16; i++) {
+      var bit = document.createElement('div');
+      bit.className = 'confetti-bit';
+      bit.style.left = (Math.random() * 100) + '%';
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDelay = (Math.random() * 150) + 'ms';
+      el.appendChild(bit);
+      (function (b) { setTimeout(function () { b.remove(); }, 1200); })(bit);
+    }
+  }
+
+  var historyDirty = true;
+  var COLUMN_CAP = 6;
+
+  function renderBigRoad(rounds, tallies) {
+    var grid = document.getElementById('bigroadGrid');
+    var isNewTicker = rounds.length && rounds[rounds.length - 1].kalshi_ticker !== renderBigRoad._lastTicker;
+    renderBigRoad._lastTicker = rounds.length ? rounds[rounds.length - 1].kalshi_ticker : renderBigRoad._lastTicker;
+
+    grid.innerHTML = '';
+    var col = null, colResult = null;
+    rounds.forEach(function (r) {
+      if (!col || r.result !== colResult || col.children.length >= COLUMN_CAP) {
+        col = document.createElement('div');
+        col.className = 'bigroad-col';
+        colResult = r.result;
+        grid.appendChild(col);
+      }
+      var bead = document.createElement('div');
+      bead.className = 'bead';
+      bead.title = fmtTime(r.close_time) + ' · target ' + fmtUSD(r.floor_strike) + ' · settled ' + fmtUSD(r.settlement_value) + ' · ' + r.result.toUpperCase();
+      bead.innerHTML =
+        '<div class="bead-inner"><div class="bead-face back"></div>' +
+        '<div class="bead-face front ' + r.result + '">' + (r.result === 'yes' ? 'Y' : 'N') + '</div></div>';
+      col.appendChild(bead);
+      requestAnimationFrame(function () { bead.classList.add('flip'); });
+    });
+
+    document.getElementById('bigroadTallies').innerHTML =
+      'YES <b class="yes">' + tallies.yes + '</b> · NO <b class="no">' + tallies.no + '</b>';
+
+    var scroll = document.getElementById('bigroadScroll');
+    scroll.scrollLeft = scroll.scrollWidth;
+  }
+
+  function loadHistory() {
+    fetch('/api/history?hours=24').then(function (r) { return r.json(); }).then(function (d) {
+      historyCache = d.rounds;
+      renderBigRoad(d.rounds, d.tallies);
+      historyDirty = false;
+    }).catch(function () {});
+  }
+
+  function poll() {
+    if (!polling) return;
+    fetch('/api/state').then(function (r) { return r.json(); }).then(function (d) {
+      clockOffsetMs = (d.now * 1000) - Date.now();
+      state = d;
+      render();
+      if (historyDirty || !historyCache.length) loadHistory();
+    }).catch(function () {});
+  }
+
+  function vote(choice) {
+    fetch('/api/vote', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ choice: choice })
+    }).then(function () { poll(); }).catch(function () {});
+  }
+  document.getElementById('btnYes').addEventListener('click', function () { vote('yes'); });
+  document.getElementById('btnNo').addEventListener('click', function () { vote('no'); });
+
+  document.addEventListener('visibilitychange', function () {
+    polling = !document.hidden;
+    if (polling) poll();
+  });
+
+  setInterval(poll, 3000);
+  setInterval(render, 1000);
+  loadHistory();
+  poll();
+})();
+</script>
+</body>
+</html>
