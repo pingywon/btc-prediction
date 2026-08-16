@@ -199,9 +199,9 @@ def backfill():
             if close_t < cutoff:
                 stop = True
                 break
-            existing = db.query_one("SELECT id FROM rounds WHERE kalshi_ticker=?", (m["ticker"],))
-            if existing:
-                continue
+            existing = db.query_one("SELECT result FROM rounds WHERE kalshi_ticker=?", (m["ticker"],))
+            if existing and existing["result"] is not None:
+                continue  # already correctly settled locally
             db.upsert_round(to_round_row(m))
             inserted += 1
         cursor = data.get("cursor")
@@ -220,6 +220,7 @@ def round_engine():
         STATE["catching_up"] = False
 
     while True:
+        current = None
         try:
             m = fetch_open_round()
             if m:
@@ -228,14 +229,17 @@ def round_engine():
                 with STATE_LOCK:
                     STATE["current_ticker"] = row["kalshi_ticker"]
                 current = row
-            else:
-                current = None
         except Exception as e:  # noqa
             print("[round_engine] open-round fetch failed: %s" % e, file=sys.stderr)
-            current = None
 
-        if current and not current["result"] and time.time() >= current["close_time"]:
-            settle_round(current["kalshi_ticker"])
+        # Scan for anything past close_time still unsettled, rather than trusting
+        # "current" to still be the round that just closed -- Kalshi opens the next
+        # round immediately, so a slow idle-mode wakeup can find the open-round query
+        # already pointing at the NEW round, silently skipping the one that just ended.
+        pending = db.query("SELECT kalshi_ticker FROM rounds WHERE result IS NULL AND close_time <= ?",
+                            (time.time(),))
+        for p in pending:
+            settle_round(p["kalshi_ticker"])
 
         sleep_s = ACTIVE_ROUND_POLL_S
         if not is_active():
@@ -249,7 +253,7 @@ def round_engine():
 def settle_round(ticker):
     for _ in range(20):
         try:
-            data = kalshi_markets("settled", limit=5)
+            data = kalshi_markets("settled", limit=25)
             for m in data.get("markets") or []:
                 if m["ticker"] == ticker and (m.get("result") or ""):
                     db.upsert_round(to_round_row(m))
