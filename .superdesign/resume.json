@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/": {
+      "targetKind": "existing-ui",
+      "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
+      "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
+      "activeDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        "index.html",
+        ".superdesign/design-system.md"
+      ],
+      "fingerprints": {
+        "index.html": "2d45f3984eddb473c3de77a6202f31b3c0dad0417c5383cd6d59b5953298f02a",
+        ".superdesign/design-system.md": "54ddf173869f2974072357cc61644ede1f96952b32cf38c3ea1d2c3ef5541afe"
+      },
+      "components": [],
+      "drafts": {
+        "c18f4d0a-02c7-4a07-8778-b5cfb0307a73": {
+          "title": "BTC 15 - Precise Visual Reproduction",
+          "visualDirection": "baseline: pixel-perfect reproduction of current felt-green/monospace/casino UI",
+          "currentVersion": 1
+        },
+        "470420d5-66a0-409f-ae4a-0fe94fdfd287": {
+          "title": "BTC 15 — Trading Floor Redesign",
+          "visualDirection": "new navy/amber trading-floor style, hero-focused: huge price-vs-target comparison as the dominant top element, full-width Big Road wrapping into rows",
+          "parentDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
+          "currentVersion": 1
+        },
+        "46ff649a-0251-462b-a04d-263431fd95e7": {
+          "title": "BTC 15 — Pro Trading Floor Dashboard",
+          "visualDirection": "new navy/amber trading-floor style, dense terminal layout: compact top band packs sentence+countdown+price-compare+lean+link+stats above the fold, Big Road dominant below, wraps into rows",
+          "parentDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-08-17T15:30:00Z"
+    }
+  }
+}
