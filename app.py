@@ -14,9 +14,9 @@ import sys
 import threading
 import time
 import urllib.parse
-import uuid
 import http.client
-from http.cookies import SimpleCookie
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,14 +30,16 @@ COINBASE_HOST = "api.exchange.coinbase.com"
 KRAKEN_HOST = "api.kraken.com"
 
 LOCK_BUFFER_S = 60          # betting closes this long before close_time
-ACTIVE_WINDOW_S = 45        # a client seen within this long ago counts as "active"
+ACTIVE_WINDOW_S = 12 * 3600  # a visit keeps the app "active" (full-speed polling) for this long
 ACTIVE_ROUND_POLL_S = 15
 ACTIVE_PRICE_POLL_S = 4
-IDLE_CHECK_S = 5            # idle-mode cosmetic-poller cadence (no network call, just re-checks activity)
+IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap, no network call)
+IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 SETTLE_RETRY_S = 3
-BACKFILL_LOOKBACK_S = 26 * 3600  # slightly over 24h so the scoreboard window is never short a round
+BACKFILL_LOOKBACK_S = 365 * 24 * 3600  # 1 year; self-limits to whatever Kalshi's history actually covers
 LEAN_FULL_TILT_USD = 300.0
 TICK_RETENTION_S = 3 * 3600
+MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 
 def lan_ip():
@@ -113,6 +115,17 @@ def to_round_row(m):
     }
 
 
+def robinhood_url(floor_strike, open_time):
+    # Reverse-engineered from real Robinhood pages (not an official API) -- slug is
+    # {thousands}-{cents-of-remainder, zero-padded to 5 digits}, e.g. $65,086.84 -> "65-08684".
+    thousands = int(floor_strike // 1000)
+    remainder_cents = round((floor_strike - thousands * 1000) * 100)
+    slug = "%d-%05d" % (thousands, remainder_cents)
+    dt = datetime.fromtimestamp(open_time, tz=ZoneInfo("America/New_York"))
+    date_part = "%s-%02d-%d" % (MONTH_ABBR[dt.month - 1], dt.day, dt.year)
+    return "https://robinhood.com/us/en/prediction-markets/crypto/events/btc-15-min-%s-target-%s/" % (slug, date_part)
+
+
 class DB:
     def __init__(self, path):
         self.lock = threading.Lock()
@@ -133,9 +146,7 @@ class DB:
                 floor_strike REAL NOT NULL, result TEXT, settlement_value REAL,
                 kalshi_yes_price REAL, kalshi_no_price REAL, created_at REAL NOT NULL)""")
             self.conn.execute("CREATE INDEX IF NOT EXISTS idx_rounds_close ON rounds(close_time)")
-            self.conn.execute("""CREATE TABLE IF NOT EXISTS votes (
-                round_id INTEGER NOT NULL, voter_id TEXT NOT NULL, choice TEXT NOT NULL,
-                ts REAL NOT NULL, UNIQUE(round_id, voter_id))""")
+            self.conn.execute("DROP TABLE IF EXISTS votes")
 
     def execute(self, sql, params=()):
         with self.lock, self.conn:
@@ -188,26 +199,50 @@ def backfill():
     cutoff = time.time() - BACKFILL_LOOKBACK_S
     cursor = None
     inserted = 0
-    for _ in range(50):  # hard cap on pages so a bug can't loop forever
+    skipped = 0
+    # 1 year of 15-min rounds is ~35k; cap well above that so a bug can't loop forever
+    # but a full year's worth of pages can still complete.
+    for _ in range(500):
         data = kalshi_markets("settled", cursor=cursor, limit=100)
         markets = data.get("markets") or []
         if not markets:
             break
         stop = False
         for m in markets:
-            close_t = parse_kalshi_ts(m["close_time"])
-            if close_t < cutoff:
+            close_t = parse_kalshi_ts(m.get("close_time"))
+            if close_t is None or close_t < cutoff:
                 stop = True
                 break
             existing = db.query_one("SELECT result FROM rounds WHERE kalshi_ticker=?", (m["ticker"],))
             if existing and existing["result"] is not None:
                 continue  # already correctly settled locally
-            db.upsert_round(to_round_row(m))
-            inserted += 1
+            try:
+                db.upsert_round(to_round_row(m))
+                inserted += 1
+            except (KeyError, TypeError, ValueError) as e:
+                # Older Kalshi records occasionally don't match the current market
+                # shape (e.g. missing floor_strike) -- skip that one round rather
+                # than aborting the whole sweep; log so a real regression is visible.
+                skipped += 1
+                print("[backfill] skipped %s: %s" % (m.get("ticker", "?"), e), file=sys.stderr)
         cursor = data.get("cursor")
         if stop or not cursor:
             break
+    if skipped:
+        print("[backfill] skipped %d malformed record(s)" % skipped, file=sys.stderr)
     return inserted
+
+
+def refresh_open_round():
+    try:
+        m = fetch_open_round()
+        if m:
+            row = to_round_row(m)
+            db.upsert_round(row)
+            with STATE_LOCK:
+                STATE["current_ticker"] = row["kalshi_ticker"]
+    except Exception as e:  # noqa
+        print("[round_engine] open-round fetch failed: %s" % e, file=sys.stderr)
 
 
 def round_engine():
@@ -219,35 +254,44 @@ def round_engine():
     with STATE_LOCK:
         STATE["catching_up"] = False
 
+    refresh_open_round()
+
+    # The IDLE_CHECK_S loop below always runs so activity changes are noticed within
+    # a few seconds; actual Kalshi calls only fire when "due", at ACTIVE_ROUND_POLL_S
+    # while someone's watching or IDLE_ROUND_RESYNC_S (12h) while nobody is -- so a
+    # long quiet stretch costs ~2 Kalshi calls/day instead of one every 15 minutes.
+    # Seeded to "now" (not 0) since the current round was just fetched above -- the
+    # loop's first iteration shouldn't immediately treat itself as overdue and re-run
+    # the just-finished startup backfill a second time.
+    last_check = time.time()
     while True:
-        current = None
-        try:
-            m = fetch_open_round()
-            if m:
-                row = to_round_row(m)
-                db.upsert_round(row)
-                with STATE_LOCK:
-                    STATE["current_ticker"] = row["kalshi_ticker"]
-                current = row
-        except Exception as e:  # noqa
-            print("[round_engine] open-round fetch failed: %s" % e, file=sys.stderr)
+        active = is_active()
+        interval = ACTIVE_ROUND_POLL_S if active else IDLE_ROUND_RESYNC_S
+        if time.time() - last_check >= interval:
+            last_check = time.time()
+            refresh_open_round()
 
-        # Scan for anything past close_time still unsettled, rather than trusting
-        # "current" to still be the round that just closed -- Kalshi opens the next
-        # round immediately, so a slow idle-mode wakeup can find the open-round query
-        # already pointing at the NEW round, silently skipping the one that just ended.
-        pending = db.query("SELECT kalshi_ticker FROM rounds WHERE result IS NULL AND close_time <= ?",
-                            (time.time(),))
-        for p in pending:
-            settle_round(p["kalshi_ticker"])
-
-        sleep_s = ACTIVE_ROUND_POLL_S
-        if not is_active():
-            if current and current["close_time"]:
-                sleep_s = max(5, (current["close_time"] + LOCK_BUFFER_S + 5) - time.time())
+            if active:
+                # Scan for anything past close_time still unsettled, rather than trusting
+                # "current" to still be the round that just closed -- Kalshi opens the next
+                # round immediately, so a slow wakeup can find the open-round query already
+                # pointing at the NEW round, silently skipping the one that just ended.
+                pending = db.query("SELECT kalshi_ticker FROM rounds WHERE result IS NULL AND close_time <= ?",
+                                    (time.time(),))
+                for p in pending:
+                    settle_round(p["kalshi_ticker"])
             else:
-                sleep_s = 60
-        time.sleep(min(sleep_s, 20 * 60))
+                # Idle: we don't know what happened during the long gap, so bulk-resync
+                # via the same sweep used at startup rather than relying on rows that
+                # were never created while nothing was polling.
+                try:
+                    n = backfill()
+                    if n:
+                        print("[round_engine] idle resync caught %d rounds" % n, file=sys.stderr)
+                except Exception as e:  # noqa
+                    print("[round_engine] idle resync failed: %s" % e, file=sys.stderr)
+
+        time.sleep(IDLE_CHECK_S)
 
 
 def settle_round(ticker):
@@ -310,19 +354,34 @@ def last_settled_row():
     return db.query_one("SELECT * FROM rounds WHERE result IS NOT NULL ORDER BY close_time DESC LIMIT 1")
 
 
-def my_vote_for(round_id, voter_id):
-    if not round_id or not voter_id:
-        return None
-    row = db.query_one("SELECT choice FROM votes WHERE round_id=? AND voter_id=?", (round_id, voter_id))
-    return row["choice"] if row else None
+def compute_road_stats(rows):
+    results = [r["result"] for r in rows]  # already chronological (close_time ASC)
+    if not results:
+        return {"current_streak": None, "longest_streak": None, "chop_rate": None}
 
+    cur_result = results[-1]
+    cur_len = 1
+    for r in reversed(results[:-1]):
+        if r != cur_result:
+            break
+        cur_len += 1
 
-def vote_counts(round_id):
-    rows = db.query("SELECT choice, COUNT(*) c FROM votes WHERE round_id=? GROUP BY choice", (round_id,))
-    counts = {"yes": 0, "no": 0}
-    for r in rows:
-        counts[r["choice"]] = r["c"]
-    return counts
+    longest_result, longest_len = results[0], 1
+    run_result, run_len = results[0], 1
+    for r in results[1:]:
+        run_len = run_len + 1 if r == run_result else 1
+        run_result = r
+        if run_len > longest_len:
+            longest_len, longest_result = run_len, run_result
+
+    flips = sum(1 for a, b in zip(results, results[1:]) if a != b)
+    chop_rate = round(100.0 * flips / (len(results) - 1), 1) if len(results) > 1 else None
+
+    return {
+        "current_streak": {"result": cur_result, "length": cur_len},
+        "longest_streak": {"result": longest_result, "length": longest_len},
+        "chop_rate": chop_rate,
+    }
 
 
 def compute_lean(price, strike):
@@ -346,13 +405,6 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionError):
             pass
 
-    def _voter_id(self):
-        cookies = SimpleCookie(self.headers.get("Cookie", ""))
-        if "bp_vid" in cookies:
-            return cookies["bp_vid"].value, {}
-        vid = uuid.uuid4().hex
-        return vid, {"Set-Cookie": "bp_vid=%s; Path=/; Max-Age=157680000; HttpOnly; SameSite=Lax" % vid}
-
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -367,9 +419,6 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, b'{"error":"not found"}')
 
     def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/vote":
-            return self._api_vote()
         self._send(404, b'{"error":"not found"}')
 
     def _serve_page(self):
@@ -381,36 +430,28 @@ class Handler(BaseHTTPRequestHandler):
 
     def _api_state(self):
         touch_client()
-        voter_id, set_cookie = self._voter_id()
         cur = current_round_row()
         payload = {"now": time.time(), "catching_up": STATE["catching_up"], "current_round": None,
                    "last_settled": None, "live_price": STATE["live_price"],
                    "live_price_source": STATE["live_price_source"], "lean": None,
                    "ticks": STATE["recent_ticks"][-120:]}
         if cur:
-            counts = vote_counts(cur["id"])
             payload["current_round"] = {
                 "ticker": cur["kalshi_ticker"], "floor_strike": cur["floor_strike"],
                 "open_time": cur["open_time"], "close_time": cur["close_time"], "lock_ts": cur["lock_ts"],
                 "locked": time.time() >= cur["lock_ts"],
-                "yes_votes": counts["yes"], "no_votes": counts["no"],
-                "my_vote": my_vote_for(cur["id"], voter_id),
                 "kalshi_yes_price": cur["kalshi_yes_price"], "kalshi_no_price": cur["kalshi_no_price"],
+                "robinhood_url": robinhood_url(cur["floor_strike"], cur["open_time"]),
             }
             payload["lean"] = compute_lean(STATE["live_price"], cur["floor_strike"])
         last = last_settled_row()
         if last:
-            my_vote = my_vote_for(last["id"], voter_id)
             payload["last_settled"] = {
                 "ticker": last["kalshi_ticker"], "result": last["result"],
                 "floor_strike": last["floor_strike"], "settlement_value": last["settlement_value"],
-                "close_time": last["close_time"], "my_vote": my_vote,
-                "my_outcome": ("won" if my_vote == last["result"] else "lost") if my_vote else None,
+                "close_time": last["close_time"],
             }
-        body = json.dumps(payload).encode()
-        headers = {"Content-Type": "application/json"}
-        headers.update(set_cookie)
-        self._send(200, body, extra_headers=headers)
+        self._send(200, json.dumps(payload).encode())
 
     def _api_history(self, qs):
         hours = float((qs.get("hours") or ["24"])[0])
@@ -420,34 +461,8 @@ class Handler(BaseHTTPRequestHandler):
                             ORDER BY close_time ASC""", (cutoff,))
         tallies = {"yes": sum(1 for r in rows if r["result"] == "yes"),
                    "no": sum(1 for r in rows if r["result"] == "no")}
+        tallies.update(compute_road_stats(rows))
         self._send(200, json.dumps({"rounds": rows, "tallies": tallies}).encode())
-
-    def _api_vote(self):
-        length = int(self.headers.get("Content-Length", "0"))
-        try:
-            data = json.loads(self.rfile.read(length) or b"{}")
-        except Exception:  # noqa
-            return self._send(400, b'{"error":"bad json"}')
-        choice = data.get("choice")
-        if choice not in ("yes", "no"):
-            return self._send(400, b'{"error":"choice must be yes or no"}')
-        cur = current_round_row()
-        if not cur:
-            return self._send(409, b'{"error":"no open round"}')
-        if time.time() >= cur["lock_ts"]:
-            return self._send(409, b'{"error":"round is locked"}')
-        voter_id, set_cookie = self._voter_id()
-        try:
-            db.execute("INSERT INTO votes (round_id, voter_id, choice, ts) VALUES (?,?,?,?)",
-                       (cur["id"], voter_id, choice, time.time()))
-        except sqlite3.IntegrityError:
-            pass  # already voted this round; fall through and report current tally
-        counts = vote_counts(cur["id"])
-        body = json.dumps({"ok": True, "my_vote": my_vote_for(cur["id"], voter_id),
-                            "yes_votes": counts["yes"], "no_votes": counts["no"]}).encode()
-        headers = {"Content-Type": "application/json"}
-        headers.update(set_cookie)
-        self._send(200, body, extra_headers=headers)
 
     def log_message(self, *a):
         pass

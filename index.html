@@ -19,6 +19,8 @@
     --panel-border: rgba(232, 196, 104, 0.35);
     --radius: 14px;
     --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Courier New', monospace;
+    --bead: 34px;
+    --bead-gap: 5px;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -39,30 +41,50 @@
     padding: clamp(0.75rem, 3vw, 1.5rem);
     display: flex; flex-direction: column; gap: clamp(0.75rem, 2.5vw, 1.1rem);
   }
+  @media (min-width: 900px) { .wrap { max-width: 920px; } :root { --bead: 40px; --bead-gap: 6px; } }
+  @media (min-width: 1200px) { .wrap { max-width: 1150px; } :root { --bead: 46px; --bead-gap: 7px; } }
+
   header { text-align: center; padding-top: 0.25rem; }
   header h1 {
-    margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.5rem); letter-spacing: 0.06em;
+    margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.6rem); letter-spacing: 0.06em;
     color: var(--gold); text-shadow: 0 0 14px rgba(232,196,104,0.45);
   }
   header .sub { color: var(--dim); font-size: clamp(0.7rem, 2.6vw, 0.82rem); margin-top: 0.15rem; }
 
   .panel {
     background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius);
-    padding: clamp(0.8rem, 3vw, 1.1rem);
+    padding: clamp(0.8rem, 3vw, 1.2rem);
     box-shadow: 0 0 0 1px rgba(0,0,0,0.3) inset, 0 8px 30px rgba(0,0,0,0.35);
   }
 
-  .plain-sentence {
-    font-size: clamp(0.95rem, 4vw, 1.15rem); line-height: 1.4; text-align: center;
+  /* ---- status bar: single row on wide screens, stacked on narrow ---- */
+  .status-bar { display: flex; flex-direction: column; gap: clamp(0.9rem, 3vw, 1.3rem); }
+  .status-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 3vw, 1.6rem);
   }
+  .status-zone { min-width: 0; }
+  .zone-price { flex: 1.4 1 320px; }
+  .zone-lean { flex: 1 1 220px; }
+  .zone-link { flex: 1 1 220px; }
+
+  .price-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.6rem; justify-content: center; }
+  .pc-item { text-align: center; }
+  .pc-label { font-size: 0.65rem; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .pc-value { font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: bold; white-space: nowrap; }
+  .pc-value.now { color: var(--ink); }
+  .pc-value.target { color: var(--gold); }
+  .pc-vs { color: var(--dim); font-size: 0.9rem; padding: 0 0.1rem; }
+  .pc-delta { text-align: center; font-size: 0.75rem; margin-top: 0.2rem; color: var(--dim); }
+  .pc-delta.up { color: var(--yes); }
+  .pc-delta.down { color: var(--no); }
+
+  .plain-sentence { font-size: clamp(0.85rem, 3.4vw, 1rem); line-height: 1.4; text-align: center; }
   .plain-sentence b { color: var(--gold); }
-  .plain-sentence .locked-tag {
-    color: var(--no); font-weight: bold;
-  }
+  .plain-sentence .locked-tag { color: var(--no); font-weight: bold; }
 
   .rail-track {
-    position: relative; height: 10px; border-radius: 6px; overflow: hidden;
-    background: rgba(255,255,255,0.06); margin-top: 0.7rem;
+    position: relative; height: 14px; border-radius: 8px; overflow: hidden;
+    background: rgba(255,255,255,0.06); margin-top: 0.6rem;
   }
   .rail-fill {
     position: absolute; inset: 0 0 0 auto; width: 100%; height: 100%;
@@ -71,88 +93,75 @@
   }
   .rail-track.urgent .rail-fill { background: linear-gradient(90deg, var(--no-dim), var(--no)); }
   .rail-track.urgent { animation: railpulse 1s ease-in-out infinite; }
-  @keyframes railpulse { 0%,100% { box-shadow: 0 0 0 rgba(255,77,122,0); } 50% { box-shadow: 0 0 14px rgba(255,77,122,0.6); } }
+  @keyframes railpulse { 0%,100% { box-shadow: 0 0 0 rgba(255,77,122,0); } 50% { box-shadow: 0 0 16px rgba(255,77,122,0.65); } }
 
-  .price-lean-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
-  }
-  .live-price { font-size: clamp(1.1rem, 5vw, 1.4rem); font-weight: bold; }
-  .live-price .delta { font-size: 0.72em; color: var(--dim); margin-left: 0.4em; }
-  .live-price .delta.up { color: var(--yes); }
-  .live-price .delta.down { color: var(--no); }
-
-  .lean-gauge { flex: 1 1 160px; min-width: 140px; }
+  .lean-block { text-align: center; }
   .lean-track {
-    position: relative; height: 8px; border-radius: 6px;
+    position: relative; height: 16px; border-radius: 10px;
     background: linear-gradient(90deg, var(--no-dim), rgba(255,255,255,0.08), var(--yes-dim));
   }
   .lean-chip {
-    position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; border-radius: 50%;
-    background: var(--gold); border: 2px solid #2a2110;
+    position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--gold); border: 3px solid #2a2110;
     transform: translate(-50%, -50%); transition: left 0.6s ease-out, background 0.3s;
-    box-shadow: 0 0 10px rgba(232,196,104,0.7);
+    box-shadow: 0 0 14px rgba(232,196,104,0.75);
   }
-  .lean-chip.yes { background: var(--yes); box-shadow: 0 0 10px rgba(51,255,158,0.75); }
-  .lean-chip.no { background: var(--no); box-shadow: 0 0 10px rgba(255,77,122,0.75); }
-  .lean-label { font-size: 0.68rem; color: var(--dim); text-align: center; margin-top: 0.3rem; }
+  .lean-chip.yes { background: var(--yes); box-shadow: 0 0 14px rgba(51,255,158,0.8); }
+  .lean-chip.no { background: var(--no); box-shadow: 0 0 14px rgba(255,77,122,0.8); }
+  .lean-label { font-size: 0.72rem; color: var(--dim); margin-top: 0.45rem; }
 
-  .strike-panel { text-align: center; }
-  .strike-panel .label { font-size: 0.72rem; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
-  .strike-panel .value { font-size: clamp(1.4rem, 7vw, 2rem); color: var(--gold); font-weight: bold; margin-top: 0.15rem; }
-  .strike-panel .suits { letter-spacing: 0.4em; color: var(--dim); font-size: 0.85rem; margin-top: 0.3rem; }
-
-  .vote-row { display: flex; gap: 0.7rem; }
-  .vote-btn {
-    flex: 1; padding: clamp(0.9rem, 4vw, 1.15rem) 0.5rem; border-radius: 12px; border: 2px solid;
-    font-family: var(--mono); font-size: clamp(1rem, 4.5vw, 1.2rem); font-weight: bold; letter-spacing: 0.05em;
-    cursor: pointer; min-height: 44px; -webkit-tap-highlight-color: transparent;
-    background: rgba(0,0,0,0.25); transition: transform 0.12s ease, box-shadow 0.2s;
+  .rh-link {
+    display: inline-flex; align-items: center; gap: 0.4rem; justify-content: center;
+    width: 100%; padding: 0.6rem 0.9rem; border-radius: 10px;
+    border: 1px solid var(--panel-border); color: var(--gold); text-decoration: none;
+    font-size: 0.8rem; font-weight: bold; letter-spacing: 0.02em;
+    background: rgba(232,196,104,0.08); transition: background 0.15s;
   }
-  .vote-btn:active { transform: scale(0.97); }
-  .vote-btn.yes { color: var(--yes); border-color: var(--yes-dim); }
-  .vote-btn.no { color: var(--no); border-color: var(--no-dim); }
-  .vote-btn.selected.yes { background: rgba(51,255,158,0.18); box-shadow: 0 0 16px rgba(51,255,158,0.4); }
-  .vote-btn.selected.no { background: rgba(255,77,122,0.18); box-shadow: 0 0 16px rgba(255,77,122,0.4); }
-  .vote-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .rh-link:active { background: rgba(232,196,104,0.18); }
+  .rh-link svg { width: 13px; height: 13px; }
 
-  .tally-bar { display: flex; height: 8px; border-radius: 6px; overflow: hidden; margin-top: 0.6rem; background: rgba(255,255,255,0.06); }
-  .tally-bar .yes-seg { background: var(--yes); }
-  .tally-bar .no-seg { background: var(--no); }
-  .tally-text { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--dim); margin-top: 0.3rem; }
-  .odds-line { text-align: center; font-size: 0.72rem; color: var(--dim); margin-top: 0.5rem; }
-
-  .banner {
-    text-align: center; padding: 0.7rem; border-radius: var(--radius);
-    border: 1px solid var(--panel-border); font-size: 0.9rem;
-    display: none;
+  /* ---- stats strip ---- */
+  .stats-strip { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .stat-tile {
+    flex: 1 1 110px; text-align: center; padding: 0.7rem 0.4rem; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
   }
-  .banner.show { display: block; }
-  .banner.won { color: var(--yes); border-color: var(--yes-dim); background: rgba(51,255,158,0.08); }
-  .banner.lost { color: var(--no); border-color: var(--no-dim); background: rgba(255,77,122,0.08); }
+  .stat-tile .num { font-size: clamp(1.2rem, 4.2vw, 1.7rem); font-weight: bold; }
+  .stat-tile .num.yes { color: var(--yes); }
+  .stat-tile .num.no { color: var(--no); }
+  .stat-tile .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem; }
 
-  .bigroad-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
-  .bigroad-head h2 { margin: 0; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; }
-  .bigroad-tallies { font-size: 0.78rem; color: var(--dim); }
-  .bigroad-tallies b.yes { color: var(--yes); }
-  .bigroad-tallies b.no { color: var(--no); }
+  /* ---- last settled ---- */
+  .last-settled { text-align: center; font-size: 0.82rem; color: var(--dim); padding: 0.7rem clamp(0.8rem, 3vw, 1.2rem); }
+  .last-settled b.yes { color: var(--yes); }
+  .last-settled b.no { color: var(--no); }
+
+  /* ---- big road ---- */
+  .bigroad-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem; }
+  .bigroad-head h2 { margin: 0; font-size: 0.9rem; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; }
+  .timeframe-select { display: flex; gap: 0.3rem; }
+  .tf-btn {
+    font-family: var(--mono); font-size: 0.72rem; padding: 0.35rem 0.65rem; border-radius: 7px;
+    border: 1px solid var(--panel-border); background: transparent; color: var(--dim); cursor: pointer;
+  }
+  .tf-btn.active { color: var(--gold); background: rgba(232,196,104,0.12); border-color: var(--gold); }
 
   .bigroad-scroll {
-    overflow-x: auto; padding-bottom: 0.3rem;
+    overflow-x: auto; padding-bottom: 0.4rem; min-height: calc(var(--bead) * 6 + var(--bead-gap) * 5 + 4px);
     -webkit-overflow-scrolling: touch;
   }
-  .bigroad-grid { display: flex; gap: 4px; width: max-content; }
-  .bigroad-col { display: flex; flex-direction: column; gap: 4px; }
-  .bead {
-    width: 22px; height: 22px; border-radius: 5px; perspective: 200px; cursor: default;
-  }
+  .bigroad-grid { display: flex; gap: var(--bead-gap); width: max-content; }
+  .bigroad-col { display: flex; flex-direction: column; gap: var(--bead-gap); }
+  .bead { width: var(--bead); height: var(--bead); border-radius: 6px; perspective: 200px; cursor: default; }
   .bead-inner {
     position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
-    transition: transform 0.5s ease; border-radius: 5px;
+    transition: transform 0.5s ease; border-radius: 6px;
   }
   .bead.flip .bead-inner { transform: rotateY(180deg); }
   .bead-face {
-    position: absolute; inset: 0; border-radius: 5px; backface-visibility: hidden;
-    display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: bold;
+    position: absolute; inset: 0; border-radius: 6px; backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: calc(var(--bead) * 0.42); font-weight: bold;
   }
   .bead-face.back {
     background: repeating-linear-gradient(45deg, #1a3327, #1a3327 3px, #133024 3px, #133024 6px);
@@ -163,15 +172,6 @@
   .bead-face.front.no { background: var(--no); }
 
   footer { text-align: center; font-size: 0.65rem; color: var(--dim); padding: 0.5rem 0 1.2rem; }
-
-  @keyframes confetti-fall {
-    0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(70px) rotate(260deg); opacity: 0; }
-  }
-  .confetti-bit {
-    position: absolute; top: 0; width: 6px; height: 6px; border-radius: 1px;
-    animation: confetti-fall 900ms ease-in forwards;
-  }
 </style>
 </head>
 <body>
@@ -181,45 +181,52 @@
     <div class="sub">mirrors Robinhood's live BTC 15-min market, straight from the exchange</div>
   </header>
 
-  <div class="panel">
-    <div class="plain-sentence" id="plainSentence">Loading the table…</div>
-    <div class="rail-track" id="railTrack"><div class="rail-fill" id="railFill"></div></div>
-  </div>
-
-  <div class="panel strike-panel">
-    <div class="label">Target Price (this round)</div>
-    <div class="value" id="strikeValue">—</div>
-    <div class="suits">♠ ♥ ♦ ♣</div>
-  </div>
-
-  <div class="panel">
-    <div class="price-lean-row">
-      <div class="live-price">
-        BTC <span id="livePrice">—</span><span class="delta" id="liveDelta"></span>
+  <div class="panel status-bar">
+    <div>
+      <div class="plain-sentence" id="plainSentence">Loading the table…</div>
+      <div class="rail-track" id="railTrack"><div class="rail-fill" id="railFill"></div></div>
+    </div>
+    <div class="status-row">
+      <div class="status-zone zone-price">
+        <div class="price-compare">
+          <div class="pc-item"><div class="pc-label">Now</div><div class="pc-value now" id="livePrice">—</div></div>
+          <div class="pc-vs">vs</div>
+          <div class="pc-item"><div class="pc-label">Target</div><div class="pc-value target" id="strikeValue">—</div></div>
+        </div>
+        <div class="pc-delta" id="liveDelta"></div>
       </div>
-      <div class="lean-gauge">
+      <div class="status-zone zone-lean lean-block">
         <div class="lean-track"><div class="lean-chip" id="leanChip"></div></div>
         <div class="lean-label" id="leanLabel">reading the table…</div>
       </div>
+      <div class="status-zone zone-link">
+        <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
+          View current round on Robinhood
+        </a>
+      </div>
     </div>
   </div>
 
-  <div class="panel" id="banner"></div>
-
-  <div class="panel">
-    <div class="vote-row">
-      <button class="vote-btn yes" id="btnYes">YES</button>
-      <button class="vote-btn no" id="btnNo">NO</button>
-    </div>
-    <div class="tally-bar"><div class="yes-seg" id="tallyYesSeg" style="width:50%"></div><div class="no-seg" id="tallyNoSeg" style="width:50%"></div></div>
-    <div class="tally-text"><span id="tallyYesText">YES 0</span><span id="tallyNoText">NO 0</span></div>
-    <div class="odds-line" id="oddsLine"></div>
+  <div class="panel stats-strip" id="statsStrip">
+    <div class="stat-tile"><div class="num yes" id="statYes">0</div><div class="label">Yes wins</div></div>
+    <div class="stat-tile"><div class="num no" id="statNo">0</div><div class="label">No wins</div></div>
+    <div class="stat-tile"><div class="num" id="statStreak">—</div><div class="label">Current streak</div></div>
+    <div class="stat-tile"><div class="num" id="statLongest">—</div><div class="label">Longest streak</div></div>
+    <div class="stat-tile"><div class="num" id="statChop">—</div><div class="label">Chop rate</div></div>
   </div>
+
+  <div class="panel last-settled" id="lastSettled"></div>
 
   <div class="panel">
     <div class="bigroad-head">
-      <h2>24h Big Road</h2>
-      <div class="bigroad-tallies" id="bigroadTallies">YES <b class="yes">0</b> · NO <b class="no">0</b></div>
+      <h2>Big Road</h2>
+      <div class="timeframe-select" id="timeframeSelect">
+        <button class="tf-btn active" data-hours="24">24H</button>
+        <button class="tf-btn" data-hours="168">7D</button>
+        <button class="tf-btn" data-hours="720">30D</button>
+        <button class="tf-btn" data-hours="8760">1Y</button>
+      </div>
     </div>
     <div class="bigroad-scroll" id="bigroadScroll"><div class="bigroad-grid" id="bigroadGrid"></div></div>
   </div>
@@ -231,11 +238,12 @@
 (function () {
   'use strict';
   var clockOffsetMs = 0;
-  var lastCurrentTicker = null;
   var lastSettledTicker = null;
-  var myVoteThisRound = null;
   var historyCache = [];
+  var historyDirty = true;
+  var currentHours = 24;
   var polling = true;
+  var COLUMN_CAP = 6;
 
   function now() { return Date.now() + clockOffsetMs; }
   function fmtUSD(n) {
@@ -267,7 +275,7 @@
       var sentence = 'BTC needs to be <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
       sentence += locked
         ? ' — <span class="locked-tag">LOCKED, ' + fmtClock(secLeft) + ' left</span>'
-        : ' — ' + fmtClock(secLeft) + ' left to bet';
+        : ' — ' + fmtClock(secLeft) + ' left';
       document.getElementById('plainSentence').innerHTML = sentence;
 
       var span = cur.close_time - cur.open_time;
@@ -277,24 +285,9 @@
       track.classList.toggle('urgent', locked);
 
       document.getElementById('strikeValue').textContent = fmtUSD(cur.floor_strike);
+      document.getElementById('rhLink').href = cur.robinhood_url;
 
-      document.getElementById('btnYes').disabled = locked;
-      document.getElementById('btnNo').disabled = locked;
-      document.getElementById('btnYes').classList.toggle('selected', cur.my_vote === 'yes');
-      document.getElementById('btnNo').classList.toggle('selected', cur.my_vote === 'no');
-
-      var totalVotes = cur.yes_votes + cur.no_votes;
-      var yesPct = totalVotes ? (cur.yes_votes / totalVotes) * 100 : 50;
-      document.getElementById('tallyYesSeg').style.width = yesPct + '%';
-      document.getElementById('tallyNoSeg').style.width = (100 - yesPct) + '%';
-      document.getElementById('tallyYesText').textContent = 'YES ' + cur.yes_votes;
-      document.getElementById('tallyNoText').textContent = 'NO ' + cur.no_votes;
-
-      if (cur.kalshi_yes_price !== null && cur.kalshi_yes_price !== undefined) {
-        var realPct = Math.round(cur.kalshi_yes_price * 100);
-        document.getElementById('oddsLine').textContent =
-          'Real market: ' + realPct + '% YES · This crowd: ' + Math.round(yesPct) + '% YES';
-      }
+      document.getElementById('lastSettled').style.display = '';
     } else {
       document.getElementById('plainSentence').textContent = 'Waiting for the next round to open…';
     }
@@ -311,55 +304,28 @@
       var deltaEl = document.getElementById('liveDelta');
       var sign = state.lean.delta >= 0 ? '+' : '';
       deltaEl.textContent = sign + '$' + Math.abs(state.lean.delta).toFixed(0) + (state.lean.direction === 'yes' ? ' above target' : ' below target');
-      deltaEl.className = 'delta ' + (state.lean.direction === 'yes' ? 'up' : 'down');
+      deltaEl.className = 'pc-delta ' + (state.lean.direction === 'yes' ? 'up' : 'down');
       document.getElementById('leanLabel').textContent =
         'live lean: ' + state.lean.direction.toUpperCase() + ' (instant price, not the settlement rule)';
     }
 
-    renderBanner();
+    renderLastSettled();
   }
 
-  function renderBanner() {
-    var el = document.getElementById('banner');
+  function renderLastSettled() {
+    var el = document.getElementById('lastSettled');
     var s = state.last_settled;
-    if (!s) { el.className = 'panel'; return; }
+    if (!s) { el.textContent = ''; return; }
     if (s.ticker !== lastSettledTicker) {
       lastSettledTicker = s.ticker;
       historyDirty = true;
-      if (s.my_outcome === 'won') burstConfetti();
     }
-    if (s.my_vote) {
-      el.className = 'panel banner show ' + (s.my_outcome === 'won' ? 'won' : 'lost');
-      el.textContent = 'You called ' + s.my_vote.toUpperCase() + ' — round settled ' + s.result.toUpperCase() +
-        ' (' + fmtUSD(s.settlement_value) + ') — you ' + (s.my_outcome === 'won' ? 'WON' : 'lost') + '.';
-    } else {
-      el.className = 'panel banner show';
-      el.textContent = 'Last round settled ' + s.result.toUpperCase() + ' at ' + fmtUSD(s.settlement_value) + '.';
-    }
+    el.innerHTML = 'Last round settled <b class="' + s.result + '">' + s.result.toUpperCase() + '</b> at ' +
+      fmtUSD(s.settlement_value) + ' (target was ' + fmtUSD(s.floor_strike) + ')';
   }
-
-  function burstConfetti() {
-    var el = document.getElementById('banner');
-    var colors = ['#33ff9e', '#e8c468', '#ffffff'];
-    for (var i = 0; i < 16; i++) {
-      var bit = document.createElement('div');
-      bit.className = 'confetti-bit';
-      bit.style.left = (Math.random() * 100) + '%';
-      bit.style.background = colors[i % colors.length];
-      bit.style.animationDelay = (Math.random() * 150) + 'ms';
-      el.appendChild(bit);
-      (function (b) { setTimeout(function () { b.remove(); }, 1200); })(bit);
-    }
-  }
-
-  var historyDirty = true;
-  var COLUMN_CAP = 6;
 
   function renderBigRoad(rounds, tallies) {
     var grid = document.getElementById('bigroadGrid');
-    var isNewTicker = rounds.length && rounds[rounds.length - 1].kalshi_ticker !== renderBigRoad._lastTicker;
-    renderBigRoad._lastTicker = rounds.length ? rounds[rounds.length - 1].kalshi_ticker : renderBigRoad._lastTicker;
-
     grid.innerHTML = '';
     var col = null, colResult = null;
     rounds.forEach(function (r) {
@@ -379,20 +345,35 @@
       requestAnimationFrame(function () { bead.classList.add('flip'); });
     });
 
-    document.getElementById('bigroadTallies').innerHTML =
-      'YES <b class="yes">' + tallies.yes + '</b> · NO <b class="no">' + tallies.no + '</b>';
+    document.getElementById('statYes').textContent = tallies.yes;
+    document.getElementById('statNo').textContent = tallies.no;
+    document.getElementById('statStreak').textContent = tallies.current_streak
+      ? tallies.current_streak.length + ' ' + tallies.current_streak.result.toUpperCase() : '—';
+    document.getElementById('statLongest').textContent = tallies.longest_streak
+      ? tallies.longest_streak.length + ' ' + tallies.longest_streak.result.toUpperCase() : '—';
+    document.getElementById('statChop').textContent = tallies.chop_rate !== null && tallies.chop_rate !== undefined
+      ? tallies.chop_rate + '%' : '—';
 
     var scroll = document.getElementById('bigroadScroll');
     scroll.scrollLeft = scroll.scrollWidth;
   }
 
   function loadHistory() {
-    fetch('/api/history?hours=24').then(function (r) { return r.json(); }).then(function (d) {
+    fetch('/api/history?hours=' + currentHours).then(function (r) { return r.json(); }).then(function (d) {
       historyCache = d.rounds;
       renderBigRoad(d.rounds, d.tallies);
       historyDirty = false;
     }).catch(function () {});
   }
+
+  document.getElementById('timeframeSelect').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tf-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tf-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentHours = Number(btn.dataset.hours);
+    loadHistory();
+  });
 
   function poll() {
     if (!polling) return;
@@ -403,15 +384,6 @@
       if (historyDirty || !historyCache.length) loadHistory();
     }).catch(function () {});
   }
-
-  function vote(choice) {
-    fetch('/api/vote', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ choice: choice })
-    }).then(function () { poll(); }).catch(function () {});
-  }
-  document.getElementById('btnYes').addEventListener('click', function () { vote('yes'); });
-  document.getElementById('btnNo').addEventListener('click', function () { vote('no'); });
 
   document.addEventListener('visibilitychange', function () {
     polling = !document.hidden;
