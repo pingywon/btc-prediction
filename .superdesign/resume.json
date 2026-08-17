@@ -5,7 +5,7 @@
       "targetKind": "existing-ui",
       "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
       "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-      "activeDraftId": "67b0a62d-6428-4480-b021-f41a189c7547",
+      "activeDraftId": "5fe41884-fe25-4109-b804-2ba283a91263",
       "designSystemPath": ".superdesign/design-system.md",
       "contextFiles": [
         "index.html",
@@ -39,9 +39,15 @@
           "visualDirection": "owner selected the hero-focused direction (470420d5) and refined it: removed leftover 'Ledger Equities Desk' style-reference branding, moved lean gauge + round countdown to their own stacked rows below the hero price card, chop-rate tile shows percent + raw flip count, streak/longest-streak tiles color by direction (green YES / red NO), timeframe filters are demonstrably interactive (regenerate sample data on click), Big Road columns carry subtle dim start-time captions",
           "parentDraftId": "470420d5-66a0-409f-ae4a-0fe94fdfd287",
           "currentVersion": 1
+        },
+        "5fe41884-fe25-4109-b804-2ba283a91263": {
+          "title": "BTC 15 — Full-Width Dashboard with Derived Roads",
+          "visualDirection": "iterated from 67b0a62d: per-chip time labels on every Big Road bead (replacing the ambiguous per-column captions), Market Lean simulated update interval set to 5s, disclaimer footer line removed, Big Road repositioned as the full-width final section underneath everything, added a Big Eye Boy derived road below Big Road (small red/blue pattern-repeat markers + legend, sample derivation logic -- real algorithm still TODO for the actual app build). v2 fixed a responsive bug where Live Price and Target Strike overlapped/clipped on mobile -- they now stack into separate rows below ~640px.",
+          "parentDraftId": "67b0a62d-6428-4480-b021-f41a189c7547",
+          "currentVersion": 2
         }
       },
-      "updatedAt": "2026-08-17T16:10:00Z"
+      "updatedAt": "2026-08-17T16:40:00Z"
     }
   }
 }
