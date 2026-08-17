@@ -5,7 +5,7 @@
       "targetKind": "existing-ui",
       "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
       "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-      "activeDraftId": "5fe41884-fe25-4109-b804-2ba283a91263",
+      "activeDraftId": "816bed2c-11f5-4fba-a06c-efaac521c6f2",
       "designSystemPath": ".superdesign/design-system.md",
       "contextFiles": [
         "index.html",
@@ -45,9 +45,15 @@
           "visualDirection": "iterated from 67b0a62d: per-chip time labels on every Big Road bead (replacing the ambiguous per-column captions), Market Lean simulated update interval set to 5s, disclaimer footer line removed, Big Road repositioned as the full-width final section underneath everything, added a Big Eye Boy derived road below Big Road (small red/blue pattern-repeat markers + legend, sample derivation logic -- real algorithm still TODO for the actual app build). v2 fixed a responsive bug where Live Price and Target Strike overlapped/clipped on mobile -- they now stack into separate rows below ~640px.",
           "parentDraftId": "67b0a62d-6428-4480-b021-f41a189c7547",
           "currentVersion": 2
+        },
+        "816bed2c-11f5-4fba-a06c-efaac521c6f2": {
+          "title": "BTC 15 — Accurate Big Road Rendering",
+          "visualDirection": "iterated from 5fe41884: fixed the sample-data fill order to match real baccarat Big Road convention (time increases going down a column and left-to-right across columns -- was backwards before); added the round-over-round dollar price delta as a third line on every chip ('+63'/'-24' style, color-matched to result) plus the full signed-dollar delta in each chip's hover tooltip. This delta is the actual number that determines each round's YES/NO result, since a round's target is the previous round's settlement price (chained).",
+          "parentDraftId": "5fe41884-fe25-4109-b804-2ba283a91263",
+          "currentVersion": 1
         }
       },
-      "updatedAt": "2026-08-17T16:40:00Z"
+      "updatedAt": "2026-08-17T17:05:00Z"
     }
   }
 }
