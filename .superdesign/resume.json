@@ -5,7 +5,7 @@
       "targetKind": "existing-ui",
       "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
       "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-      "activeDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
+      "activeDraftId": "67b0a62d-6428-4480-b021-f41a189c7547",
       "designSystemPath": ".superdesign/design-system.md",
       "contextFiles": [
         "index.html",
@@ -33,9 +33,15 @@
           "visualDirection": "new navy/amber trading-floor style, dense terminal layout: compact top band packs sentence+countdown+price-compare+lean+link+stats above the fold, Big Road dominant below, wraps into rows",
           "parentDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
           "currentVersion": 1
+        },
+        "67b0a62d-6428-4480-b021-f41a189c7547": {
+          "title": "BTC 15 — Professional Trading Floor Dashboard",
+          "visualDirection": "owner selected the hero-focused direction (470420d5) and refined it: removed leftover 'Ledger Equities Desk' style-reference branding, moved lean gauge + round countdown to their own stacked rows below the hero price card, chop-rate tile shows percent + raw flip count, streak/longest-streak tiles color by direction (green YES / red NO), timeframe filters are demonstrably interactive (regenerate sample data on click), Big Road columns carry subtle dim start-time captions",
+          "parentDraftId": "470420d5-66a0-409f-ae4a-0fe94fdfd287",
+          "currentVersion": 1
         }
       },
-      "updatedAt": "2026-08-17T15:30:00Z"
+      "updatedAt": "2026-08-17T16:10:00Z"
     }
   }
 }
