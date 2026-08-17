@@ -357,7 +357,7 @@ def last_settled_row():
 def compute_road_stats(rows):
     results = [r["result"] for r in rows]  # already chronological (close_time ASC)
     if not results:
-        return {"current_streak": None, "longest_streak": None, "chop_rate": None}
+        return {"current_streak": None, "longest_streak": None, "chop_rate": None, "flips": None, "pairs": None}
 
     cur_result = results[-1]
     cur_len = 1
@@ -375,12 +375,15 @@ def compute_road_stats(rows):
             longest_len, longest_result = run_len, run_result
 
     flips = sum(1 for a, b in zip(results, results[1:]) if a != b)
-    chop_rate = round(100.0 * flips / (len(results) - 1), 1) if len(results) > 1 else None
+    pairs = len(results) - 1
+    chop_rate = round(100.0 * flips / pairs, 1) if pairs else None
 
     return {
         "current_streak": {"result": cur_result, "length": cur_len},
         "longest_streak": {"result": longest_result, "length": longest_len},
         "chop_rate": chop_rate,
+        "flips": flips,
+        "pairs": pairs,
     }
 
 
@@ -459,6 +462,10 @@ class Handler(BaseHTTPRequestHandler):
         rows = db.query("""SELECT kalshi_ticker, close_time, floor_strike, settlement_value, result
                             FROM rounds WHERE result IS NOT NULL AND close_time >= ?
                             ORDER BY close_time ASC""", (cutoff,))
+        # floor_strike(N) == settlement_value(N-1) (Kalshi chains rounds), so this delta is both
+        # "price change since the previous round" and the exact number that decided yes/no.
+        for r in rows:
+            r["delta"] = round(r["settlement_value"] - r["floor_strike"], 2)
         tallies = {"yes": sum(1 for r in rows if r["result"] == "yes"),
                    "no": sum(1 for r in rows if r["result"] == "no")}
         tallies.update(compute_road_stats(rows))

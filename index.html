@@ -6,232 +6,345 @@
 <title>BTC 15 — Above or Below</title>
 <style>
   :root {
-    --felt-1: #04140c;
-    --felt-2: #071f14;
-    --ink: #d9f5e8;
-    --dim: #7fa694;
-    --yes: #33ff9e;
-    --yes-dim: #14603f;
-    --no: #ff4d7a;
-    --no-dim: #6b1a34;
-    --gold: #e8c468;
-    --panel: rgba(6, 28, 19, 0.72);
-    --panel-border: rgba(232, 196, 104, 0.35);
-    --radius: 14px;
-    --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Courier New', monospace;
-    --bead: 34px;
-    --bead-gap: 5px;
+    --bg-deep: #071629;
+    --surface-900: #0b1f3a;
+    --surface-850: #0e2746;
+    --surface-800: #122e52;
+    --surface-700: #1a3c66;
+    --cream: #f4ecd8;
+    --soft: #cdd6e3;
+    --dim: #8a98ad;
+    --faint: #5d6b80;
+    --amber: #f0b429;
+    --amber-deep: #d99a12;
+    --amber-soft: #f7d27a;
+    --green: #3fcf8e;
+    --red: #f06d6d;
+    --blue-derived: #3b82f6;
+    --red-derived: #ef4444;
+    --border: rgba(205, 214, 227, 0.10);
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --bead: 52px;
   }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0; min-height: 100%;
-    background: radial-gradient(ellipse at 50% -10%, var(--felt-2), var(--felt-1) 70%);
-    color: var(--ink);
-    font-family: var(--mono);
-    -webkit-font-smoothing: antialiased;
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg-deep); color: var(--cream); font-family: var(--sans);
+    position: relative; overflow-x: hidden;
   }
   body::before {
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
-    mix-blend-mode: overlay;
+    content: ""; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; height: 400px; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(240,180,41,0.05), rgba(63,207,142,0.03), transparent 70%);
   }
-  .wrap {
-    position: relative; z-index: 1;
-    max-width: 640px; margin: 0 auto;
-    padding: clamp(0.75rem, 3vw, 1.5rem);
-    display: flex; flex-direction: column; gap: clamp(0.75rem, 2.5vw, 1.1rem);
-  }
-  @media (min-width: 900px) { .wrap { max-width: 920px; } :root { --bead: 40px; --bead-gap: 6px; } }
-  @media (min-width: 1200px) { .wrap { max-width: 1150px; } :root { --bead: 46px; --bead-gap: 7px; } }
+  .tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
-  header { text-align: center; padding-top: 0.25rem; }
-  header h1 {
-    margin: 0; font-size: clamp(1.1rem, 4.5vw, 1.6rem); letter-spacing: 0.06em;
-    color: var(--gold); text-shadow: 0 0 14px rgba(232,196,104,0.45);
+  .wrap {
+    position: relative; z-index: 1; max-width: 1400px; margin: 0 auto;
+    padding: clamp(0.75rem, 3vw, 1.5rem);
+    display: flex; flex-direction: column; gap: clamp(1.1rem, 3vw, 1.5rem);
   }
-  header .sub { color: var(--dim); font-size: clamp(0.7rem, 2.6vw, 0.82rem); margin-top: 0.15rem; }
 
   .panel {
-    background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius);
-    padding: clamp(0.8rem, 3vw, 1.2rem);
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.3) inset, 0 8px 30px rgba(0,0,0,0.35);
+    background: linear-gradient(160deg, rgba(18,46,82,0.9), rgba(7,22,41,0.9));
+    border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
   }
 
-  /* ---- status bar: single row on wide screens, stacked on narrow ---- */
-  .status-bar { display: flex; flex-direction: column; gap: clamp(0.9rem, 3vw, 1.3rem); }
-  .status-row {
-    display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 3vw, 1.6rem);
+  header.app-header {
+    display: flex; flex-direction: column; gap: 0.75rem; justify-content: space-between;
+    border-bottom: 1px solid rgba(205,214,227,0.05); padding-bottom: 1rem;
   }
-  .status-zone { min-width: 0; }
-  .zone-price { flex: 1.4 1 320px; }
-  .zone-lean { flex: 1 1 220px; }
-  .zone-link { flex: 1 1 220px; }
-
-  .price-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.6rem; justify-content: center; }
-  .pc-item { text-align: center; }
-  .pc-label { font-size: 0.65rem; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
-  .pc-value { font-size: clamp(1.2rem, 4.2vw, 1.6rem); font-weight: bold; white-space: nowrap; }
-  .pc-value.now { color: var(--ink); }
-  .pc-value.target { color: var(--gold); }
-  .pc-vs { color: var(--dim); font-size: 0.9rem; padding: 0 0.1rem; }
-  .pc-delta { text-align: center; font-size: 0.75rem; margin-top: 0.2rem; color: var(--dim); }
-  .pc-delta.up { color: var(--yes); }
-  .pc-delta.down { color: var(--no); }
-
-  .plain-sentence { font-size: clamp(0.85rem, 3.4vw, 1rem); line-height: 1.4; text-align: center; }
-  .plain-sentence b { color: var(--gold); }
-  .plain-sentence .locked-tag { color: var(--no); font-weight: bold; }
-
-  .rail-track {
-    position: relative; height: 14px; border-radius: 8px; overflow: hidden;
-    background: rgba(255,255,255,0.06); margin-top: 0.6rem;
-  }
-  .rail-fill {
-    position: absolute; inset: 0 0 0 auto; width: 100%; height: 100%;
-    background: linear-gradient(90deg, var(--yes-dim), var(--gold));
-    transition: width 0.9s linear;
-  }
-  .rail-track.urgent .rail-fill { background: linear-gradient(90deg, var(--no-dim), var(--no)); }
-  .rail-track.urgent { animation: railpulse 1s ease-in-out infinite; }
-  @keyframes railpulse { 0%,100% { box-shadow: 0 0 0 rgba(255,77,122,0); } 50% { box-shadow: 0 0 16px rgba(255,77,122,0.65); } }
-
-  .lean-block { text-align: center; }
-  .lean-track {
-    position: relative; height: 16px; border-radius: 10px;
-    background: linear-gradient(90deg, var(--no-dim), rgba(255,255,255,0.08), var(--yes-dim));
-  }
-  .lean-chip {
-    position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; border-radius: 50%;
-    background: var(--gold); border: 3px solid #2a2110;
-    transform: translate(-50%, -50%); transition: left 0.6s ease-out, background 0.3s;
-    box-shadow: 0 0 14px rgba(232,196,104,0.75);
-  }
-  .lean-chip.yes { background: var(--yes); box-shadow: 0 0 14px rgba(51,255,158,0.8); }
-  .lean-chip.no { background: var(--no); box-shadow: 0 0 14px rgba(255,77,122,0.8); }
-  .lean-label { font-size: 0.72rem; color: var(--dim); margin-top: 0.45rem; }
-
-  .rh-link {
-    display: inline-flex; align-items: center; gap: 0.4rem; justify-content: center;
-    width: 100%; padding: 0.6rem 0.9rem; border-radius: 10px;
-    border: 1px solid var(--panel-border); color: var(--gold); text-decoration: none;
-    font-size: 0.8rem; font-weight: bold; letter-spacing: 0.02em;
-    background: rgba(232,196,104,0.08); transition: background 0.15s;
-  }
-  .rh-link:active { background: rgba(232,196,104,0.18); }
-  .rh-link svg { width: 13px; height: 13px; }
-
-  /* ---- stats strip ---- */
-  .stats-strip { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-  .stat-tile {
-    flex: 1 1 110px; text-align: center; padding: 0.7rem 0.4rem; border-radius: 10px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
-  }
-  .stat-tile .num { font-size: clamp(1.2rem, 4.2vw, 1.7rem); font-weight: bold; }
-  .stat-tile .num.yes { color: var(--yes); }
-  .stat-tile .num.no { color: var(--no); }
-  .stat-tile .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem; }
-
-  /* ---- last settled ---- */
-  .last-settled { text-align: center; font-size: 0.82rem; color: var(--dim); padding: 0.7rem clamp(0.8rem, 3vw, 1.2rem); }
-  .last-settled b.yes { color: var(--yes); }
-  .last-settled b.no { color: var(--no); }
-
-  /* ---- big road ---- */
-  .bigroad-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.7rem; flex-wrap: wrap; gap: 0.5rem; }
-  .bigroad-head h2 { margin: 0; font-size: 0.9rem; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; }
-  .timeframe-select { display: flex; gap: 0.3rem; }
-  .tf-btn {
-    font-family: var(--mono); font-size: 0.72rem; padding: 0.35rem 0.65rem; border-radius: 7px;
-    border: 1px solid var(--panel-border); background: transparent; color: var(--dim); cursor: pointer;
-  }
-  .tf-btn.active { color: var(--gold); background: rgba(232,196,104,0.12); border-color: var(--gold); }
-
-  .bigroad-scroll {
-    overflow-x: auto; padding-bottom: 0.4rem; min-height: calc(var(--bead) * 6 + var(--bead-gap) * 5 + 4px);
-    -webkit-overflow-scrolling: touch;
-  }
-  .bigroad-grid { display: flex; gap: var(--bead-gap); width: max-content; }
-  .bigroad-col { display: flex; flex-direction: column; gap: var(--bead-gap); }
-  .bead { width: var(--bead); height: var(--bead); border-radius: 6px; perspective: 200px; cursor: default; }
-  .bead-inner {
-    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
-    transition: transform 0.5s ease; border-radius: 6px;
-  }
-  .bead.flip .bead-inner { transform: rotateY(180deg); }
-  .bead-face {
-    position: absolute; inset: 0; border-radius: 6px; backface-visibility: hidden;
+  @media (min-width: 768px) { header.app-header { flex-direction: row; align-items: center; } }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand-tile {
+    width: 36px; height: 36px; background: var(--amber); border-radius: 8px; flex: none;
     display: flex; align-items: center; justify-content: center;
-    font-size: calc(var(--bead) * 0.42); font-weight: bold;
+    color: var(--bg-deep); font-weight: 900; font-style: italic; font-size: 1.1rem;
   }
-  .bead-face.back {
-    background: repeating-linear-gradient(45deg, #1a3327, #1a3327 3px, #133024 3px, #133024 6px);
-    border: 1px solid var(--panel-border);
+  .brand h1 {
+    margin: 0; font-size: 1rem; font-weight: 900; letter-spacing: 0.08em;
+    color: var(--amber); text-transform: uppercase;
   }
-  .bead-face.front { transform: rotateY(180deg); color: #04140c; }
-  .bead-face.front.yes { background: var(--yes); }
-  .bead-face.front.no { background: var(--no); }
+  .brand .sub { margin: 0.1rem 0 0; font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: -0.01em; font-weight: 500; }
+  .header-sentence { font-size: 0.75rem; color: var(--soft); font-weight: 500; text-align: left; }
+  @media (min-width: 768px) { .header-sentence { text-align: right; } }
+  .header-sentence b { color: var(--amber); font-weight: 700; }
+  .header-sentence .locked { color: var(--red); font-weight: 700; }
 
-  footer { text-align: center; font-size: 0.65rem; color: var(--dim); padding: 0.5rem 0 1.2rem; }
+  .top-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+  @media (min-width: 1024px) { .top-grid { display: grid; grid-template-columns: 7fr 5fr; } }
+  .price-col, .side-col { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+
+  .hero-card { padding: clamp(1.1rem, 3vw, 1.5rem); position: relative; overflow: hidden; }
+  .hero-card::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent); opacity: 0.5;
+  }
+  .price-row { display: flex; flex-direction: column; gap: 1.25rem; }
+  @media (min-width: 480px) { .price-row { flex-direction: row; align-items: flex-start; justify-content: space-between; } }
+  .price-block .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
+  .price-block.now .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; }
+  .price-block.target { text-align: left; }
+  @media (min-width: 480px) { .price-block.target { text-align: right; } }
+  .price-block.target .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
+
+  .spread-row {
+    display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    padding: 0.9rem 1rem; margin-top: 1.5rem;
+  }
+  @media (min-width: 480px) { .spread-row { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .spread-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .spread-label { font-size: 0.68rem; color: var(--faint); text-transform: uppercase; font-weight: 700; }
+  .delta-pill {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.7rem;
+    border-radius: 999px; font-weight: 700; font-size: 0.8rem;
+  }
+  .delta-pill.up { background: rgba(63,207,142,0.12); color: var(--green); }
+  .delta-pill.down { background: rgba(240,109,109,0.12); color: var(--red); }
+  .delta-pill svg { width: 9px; height: 9px; }
+  .rh-link {
+    display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 700;
+    color: var(--amber); text-decoration: none; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .rh-link:hover { color: var(--amber-soft); }
+  .rh-link svg { width: 12px; height: 12px; }
+
+  .gauges-card { padding: clamp(1.1rem, 3vw, 1.5rem); display: flex; flex-direction: column; gap: 1.5rem; }
+  @media (min-width: 480px) { .gauges-card { flex-direction: row; } }
+  .gauge { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+  .gauge-head { display: flex; justify-content: space-between; align-items: center; }
+  .gauge-title { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
+  .lean-status { display: flex; align-items: center; gap: 0.35rem; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; }
+  .lean-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .gauge-track { height: 8px; background: var(--surface-800); border-radius: 999px; position: relative; overflow: visible; }
+  #leanChip {
+    position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--cream); border: 2px solid var(--bg-deep);
+    transform: translate(-50%, -50%); transition: left 0.6s ease-out, background 0.3s;
+    box-shadow: 0 0 10px rgba(244,236,216,0.5);
+  }
+  #leanChip.yes { background: var(--green); box-shadow: 0 0 10px rgba(63,207,142,0.6); }
+  #leanChip.no { background: var(--red); box-shadow: 0 0 10px rgba(240,109,109,0.6); }
+  .rail-track { height: 8px; background: var(--surface-800); border-radius: 999px; overflow: hidden; }
+  #railFill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width 0.9s linear; width: 0%; }
+  .rail-track.urgent #railFill { background: linear-gradient(90deg, var(--red-derived), var(--red)); }
+  .gauge-sub { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  @media (min-width: 640px) and (max-width: 1023px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+  .stat-tile {
+    padding: 1rem; border-radius: 12px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; min-height: 84px;
+  }
+  .stat-tile.wide { grid-column: 1 / -1; }
+  .stat-tile .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; }
+  .stat-tile .num { font-size: 1.5rem; font-weight: 900; }
+  .stat-tile .num.yes { color: var(--green); }
+  .stat-tile .num.no { color: var(--red); }
+  .stat-tile .sub { font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; margin-left: 0.4rem; }
+
+  .last-result-card {
+    padding: 1.25rem; flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; gap: 0.6rem; min-height: 120px;
+  }
+  .last-result-card .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
+  .last-result-row { display: flex; align-items: center; gap: 0.75rem; }
+  .last-result-row .lr-word { font-size: 1.6rem; font-weight: 900; }
+  .last-result-row .lr-word.yes { color: var(--green); }
+  .last-result-row .lr-word.no { color: var(--red); }
+  .last-result-row .lr-div { width: 1px; height: 1.7rem; background: rgba(255,255,255,0.1); }
+  .last-result-row .lr-price { font-size: 1.6rem; font-weight: 900; color: var(--soft); }
+  .last-result-card .lr-target { font-size: 0.72rem; color: var(--faint); font-weight: 500; }
+  .last-result-card .lr-target b { color: var(--soft); font-weight: 700; }
+
+  .bigroad-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .bigroad-head {
+    display: flex; flex-direction: column; gap: 0.9rem; justify-content: space-between; margin-bottom: 1.75rem;
+  }
+  @media (min-width: 768px) { .bigroad-head { flex-direction: row; align-items: center; } }
+  .bigroad-title-row { display: flex; align-items: center; gap: 0.75rem; }
+  .bigroad-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(240,180,41,0.1);
+    color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .bigroad-icon svg { width: 17px; height: 17px; }
+  .bigroad-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+  .bigroad-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+
+  .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+  .tf-btn {
+    font-family: var(--sans); font-size: 0.65rem; font-weight: 700; padding: 0.4rem 0.7rem;
+    border-radius: 7px; border: none; background: transparent; color: var(--faint); cursor: pointer;
+  }
+  .tf-btn:hover { background: var(--surface-800); }
+  .tf-btn.active { background: var(--amber); color: var(--bg-deep); }
+
+  .bigroad-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; min-height: 200px; }
+  .bigroad-col { display: flex; flex-direction: column; gap: 8px; }
+  .bead {
+    width: var(--bead); height: calc(var(--bead) + 4px); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    user-select: none; transition: transform 0.15s;
+  }
+  .bead:hover { transform: scale(1.06); }
+  .bead.yes { background: var(--green); color: var(--bg-deep); }
+  .bead.no { background: var(--red); color: var(--bg-deep); }
+  .bead-glyph { font-weight: 900; font-size: 1.05rem; line-height: 1; }
+  .bead-time { font-weight: 700; font-size: 0.58rem; opacity: 0.82; margin-top: 1px; letter-spacing: -0.02em; }
+  .bead-delta { font-weight: 900; font-size: 0.56rem; opacity: 0.92; }
+
+  .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255,255,255,0.05); }
+  .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
+  @media (min-width: 640px) { .derived-head { flex-direction: row; align-items: center; } }
+  .derived-title-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .derived-title-row h3 { margin: 0; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+  .derived-title-row .caption { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; font-style: italic; }
+  .derived-legend { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .legend-item span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .derived-bead { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .derived-bead.repeat { border: 2.5px solid var(--blue-derived); background: transparent; }
+  .derived-bead.break { background: var(--red-derived); }
+  .derived-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  footer.page-foot { padding: 1.5rem 0; display: flex; justify-content: center; opacity: 0.3; }
+  .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-700); border-radius: 3px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>♠ BTC 15 ♦ ABOVE OR BELOW ♣</h1>
-    <div class="sub">mirrors Robinhood's live BTC 15-min market, straight from the exchange</div>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-tile">B</div>
+      <div>
+        <h1>BTC 15 — Above or Below</h1>
+        <p class="sub">mirrors Robinhood's live BTC 15-min market, straight from the exchange</p>
+      </div>
+    </div>
+    <div class="header-sentence" id="headerSentence">Loading the table…</div>
   </header>
 
-  <div class="panel status-bar">
-    <div>
-      <div class="plain-sentence" id="plainSentence">Loading the table…</div>
-      <div class="rail-track" id="railTrack"><div class="rail-fill" id="railFill"></div></div>
-    </div>
-    <div class="status-row">
-      <div class="status-zone zone-price">
-        <div class="price-compare">
-          <div class="pc-item"><div class="pc-label">Now</div><div class="pc-value now" id="livePrice">—</div></div>
-          <div class="pc-vs">vs</div>
-          <div class="pc-item"><div class="pc-label">Target</div><div class="pc-value target" id="strikeValue">—</div></div>
+  <div class="top-grid">
+    <div class="price-col">
+      <div class="panel hero-card">
+        <div class="price-row">
+          <div class="price-block now">
+            <span class="label">Live Bitcoin Price</span>
+            <div class="value tabular" id="livePrice">—</div>
+          </div>
+          <div class="price-block target">
+            <span class="label">Target Strike</span>
+            <div class="value tabular" id="strikeValue">—</div>
+          </div>
         </div>
-        <div class="pc-delta" id="liveDelta"></div>
+        <div class="spread-row">
+          <div class="spread-left">
+            <span class="spread-label">Current Spread</span>
+            <div class="delta-pill" id="spreadPill">
+              <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 0L10 8H0z"/></svg>
+              <span class="tabular" id="spreadValue">—</span>
+            </div>
+          </div>
+          <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
+            VIEW ON ROBINHOOD
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
+          </a>
+        </div>
       </div>
-      <div class="status-zone zone-lean lean-block">
-        <div class="lean-track"><div class="lean-chip" id="leanChip"></div></div>
-        <div class="lean-label" id="leanLabel">reading the table…</div>
+
+      <div class="panel gauges-card">
+        <div class="gauge">
+          <div class="gauge-head">
+            <span class="gauge-title">Market Lean</span>
+            <div class="lean-status">
+              <span class="lean-dot" id="leanDot"></span>
+              <span id="leanBiasLabel" style="color:var(--dim)">—</span>
+            </div>
+          </div>
+          <div class="gauge-track"><div id="leanChip"></div></div>
+          <span class="gauge-sub" id="leanSub">reading the table…</span>
+        </div>
+        <div class="gauge">
+          <div class="gauge-head">
+            <span class="gauge-title">Round Progress</span>
+            <span class="gauge-sub tabular" id="roundRemaining">—</span>
+          </div>
+          <div class="rail-track" id="railTrack"><div id="railFill"></div></div>
+          <span class="gauge-sub" id="roundCloses">&nbsp;</span>
+        </div>
       </div>
-      <div class="status-zone zone-link">
-        <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
-          View current round on Robinhood
-        </a>
+    </div>
+
+    <div class="side-col">
+      <div class="stats-grid">
+        <div class="panel stat-tile"><span class="label">Yes Wins</span><span class="num yes" id="statYes">—</span></div>
+        <div class="panel stat-tile"><span class="label">No Wins</span><span class="num no" id="statNo">—</span></div>
+        <div class="panel stat-tile"><span class="label">Streak</span><span class="num" id="statStreak">—</span></div>
+        <div class="panel stat-tile"><span class="label">Longest</span><span class="num" id="statLongest">—</span></div>
+        <div class="panel stat-tile wide">
+          <span class="label">Chop Rate</span>
+          <div><span class="num tabular" id="statChop">—</span><span class="sub" id="statChopSub"></span></div>
+        </div>
+      </div>
+      <div class="panel last-result-card" id="lastResultCard" style="display:none">
+        <span class="label">Last Round Result</span>
+        <div class="last-result-row">
+          <span class="lr-word" id="lrWord">—</span>
+          <div class="lr-div"></div>
+          <span class="lr-price tabular" id="lrPrice">—</span>
+        </div>
+        <span class="lr-target">Strike target was <b class="tabular" id="lrTarget">—</b></span>
       </div>
     </div>
   </div>
 
-  <div class="panel stats-strip" id="statsStrip">
-    <div class="stat-tile"><div class="num yes" id="statYes">0</div><div class="label">Yes wins</div></div>
-    <div class="stat-tile"><div class="num no" id="statNo">0</div><div class="label">No wins</div></div>
-    <div class="stat-tile"><div class="num" id="statStreak">—</div><div class="label">Current streak</div></div>
-    <div class="stat-tile"><div class="num" id="statLongest">—</div><div class="label">Longest streak</div></div>
-    <div class="stat-tile"><div class="num" id="statChop">—</div><div class="label">Chop rate</div></div>
-  </div>
-
-  <div class="panel last-settled" id="lastSettled"></div>
-
-  <div class="panel">
+  <section class="panel bigroad-section">
     <div class="bigroad-head">
-      <h2>Big Road</h2>
+      <div class="bigroad-title-row">
+        <div class="bigroad-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>
+        </div>
+        <div>
+          <h2>Big Road History</h2>
+          <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
+        </div>
+      </div>
       <div class="timeframe-select" id="timeframeSelect">
+        <button class="tf-btn" data-hours="1">1H</button>
+        <button class="tf-btn" data-hours="2">2H</button>
+        <button class="tf-btn" data-hours="3">3H</button>
+        <button class="tf-btn" data-hours="6">6H</button>
         <button class="tf-btn active" data-hours="24">24H</button>
         <button class="tf-btn" data-hours="168">7D</button>
         <button class="tf-btn" data-hours="720">30D</button>
         <button class="tf-btn" data-hours="8760">1Y</button>
       </div>
     </div>
-    <div class="bigroad-scroll" id="bigroadScroll"><div class="bigroad-grid" id="bigroadGrid"></div></div>
-  </div>
 
-  <footer>live lean is instant-price only, not the settlement rule · settlement = Kalshi's own 60s-average result</footer>
+    <div class="bigroad-grid" id="bigroadGrid"></div>
+
+    <div class="derived-section">
+      <div class="derived-head">
+        <div class="derived-title-row">
+          <h3>Big Eye Boy</h3>
+          <span class="caption">Derivation: pattern repeatability relative to history</span>
+        </div>
+        <div class="derived-legend">
+          <div class="legend-item"><div class="derived-bead break"></div><span>Break (Chaotic)</span></div>
+          <div class="legend-item"><div class="derived-bead repeat"></div><span>Repeat (Predictable)</span></div>
+        </div>
+      </div>
+      <div class="derived-grid" id="derivedRoad"></div>
+    </div>
+  </section>
+
+  <footer class="page-foot"><div class="foot-bar"></div></footer>
 </div>
 
 <script>
@@ -239,7 +352,6 @@
   'use strict';
   var clockOffsetMs = 0;
   var lastSettledTicker = null;
-  var historyCache = [];
   var historyDirty = true;
   var currentHours = 24;
   var polling = true;
@@ -259,6 +371,10 @@
     var d = new Date(tsSec * 1000);
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   }
+  function fmtHHMM(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
 
   var state = null;
 
@@ -268,28 +384,27 @@
     var cur = state.current_round;
 
     if (state.catching_up) {
-      document.getElementById('plainSentence').innerHTML = 'Reconstructing missed rounds…';
+      document.getElementById('headerSentence').innerHTML = 'Reconstructing missed rounds…';
     } else if (cur) {
       var secLeft = cur.close_time - t;
       var locked = t >= cur.lock_ts;
-      var sentence = 'BTC needs to be <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
+      var sentence = 'BTC target <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
       sentence += locked
-        ? ' — <span class="locked-tag">LOCKED, ' + fmtClock(secLeft) + ' left</span>'
-        : ' — ' + fmtClock(secLeft) + ' left';
-      document.getElementById('plainSentence').innerHTML = sentence;
+        ? ' • <span class="locked">LOCKED, ' + fmtClock(secLeft) + '</span> left'
+        : ' • <b>' + fmtClock(secLeft) + '</b> left';
+      document.getElementById('headerSentence').innerHTML = sentence;
 
       var span = cur.close_time - cur.open_time;
       var pct = Math.max(0, Math.min(100, (secLeft / span) * 100));
-      var track = document.getElementById('railTrack');
       document.getElementById('railFill').style.width = pct + '%';
-      track.classList.toggle('urgent', locked);
+      document.getElementById('railTrack').classList.toggle('urgent', locked);
+      document.getElementById('roundRemaining').textContent = fmtClock(secLeft) + ' REMAINING';
+      document.getElementById('roundCloses').textContent = 'Closes in ' + Math.max(0, Math.round(secLeft)) + ' seconds';
 
       document.getElementById('strikeValue').textContent = fmtUSD(cur.floor_strike);
       document.getElementById('rhLink').href = cur.robinhood_url;
-
-      document.getElementById('lastSettled').style.display = '';
     } else {
-      document.getElementById('plainSentence').textContent = 'Waiting for the next round to open…';
+      document.getElementById('headerSentence').textContent = 'Waiting for the next round to open…';
     }
 
     if (state.live_price !== null) {
@@ -301,66 +416,135 @@
       chip.style.left = pctPos + '%';
       chip.classList.remove('yes', 'no');
       chip.classList.add(state.lean.direction);
-      var deltaEl = document.getElementById('liveDelta');
-      var sign = state.lean.delta >= 0 ? '+' : '';
-      deltaEl.textContent = sign + '$' + Math.abs(state.lean.delta).toFixed(0) + (state.lean.direction === 'yes' ? ' above target' : ' below target');
-      deltaEl.className = 'pc-delta ' + (state.lean.direction === 'yes' ? 'up' : 'down');
-      document.getElementById('leanLabel').textContent =
-        'live lean: ' + state.lean.direction.toUpperCase() + ' (instant price, not the settlement rule)';
+
+      var dot = document.getElementById('leanDot');
+      var label = document.getElementById('leanBiasLabel');
+      var pill = document.getElementById('spreadPill');
+      var pillArrow = pill.querySelector('svg');
+      var color = state.lean.direction === 'yes' ? 'var(--green)' : 'var(--red)';
+      dot.style.background = color;
+      label.textContent = state.lean.direction.toUpperCase() + ' BIAS';
+      label.style.color = color;
+      document.getElementById('leanSub').textContent = 'Instant price delta strength: ' + state.lean.strength.toFixed(2);
+
+      var sign = state.lean.delta >= 0 ? '+' : '-';
+      document.getElementById('spreadValue').textContent = sign + '$' + Math.abs(state.lean.delta).toFixed(2);
+      pill.classList.remove('up', 'down');
+      pill.classList.add(state.lean.direction === 'yes' ? 'up' : 'down');
+      pillArrow.style.transform = state.lean.direction === 'yes' ? 'rotate(0deg)' : 'rotate(180deg)';
     }
 
-    renderLastSettled();
+    renderLastResult();
   }
 
-  function renderLastSettled() {
-    var el = document.getElementById('lastSettled');
+  function renderLastResult() {
+    var card = document.getElementById('lastResultCard');
     var s = state.last_settled;
-    if (!s) { el.textContent = ''; return; }
+    if (!s) { card.style.display = 'none'; return; }
     if (s.ticker !== lastSettledTicker) {
       lastSettledTicker = s.ticker;
       historyDirty = true;
     }
-    el.innerHTML = 'Last round settled <b class="' + s.result + '">' + s.result.toUpperCase() + '</b> at ' +
-      fmtUSD(s.settlement_value) + ' (target was ' + fmtUSD(s.floor_strike) + ')';
+    card.style.display = '';
+    var word = document.getElementById('lrWord');
+    word.textContent = s.result.toUpperCase();
+    word.className = 'lr-word ' + s.result;
+    document.getElementById('lrPrice').textContent = fmtUSD(s.settlement_value);
+    document.getElementById('lrTarget').textContent = fmtUSD(s.floor_strike);
+  }
+
+  function buildColumns(rounds) {
+    var columns = [];
+    var col = null, colResult = null;
+    rounds.forEach(function (r) {
+      if (!col || r.result !== colResult || col.length >= COLUMN_CAP) {
+        col = [];
+        colResult = r.result;
+        columns.push(col);
+      }
+      col.push(r);
+    });
+    return columns;
+  }
+
+  // Standard Big Eye Boy derivation: marks start once Big Road reaches at least the
+  // 2nd row of the 2nd column, or the start of the 3rd column. For a continuation
+  // within a column, compare whether the column immediately to the left reaches this
+  // same row. For the first entry of a new column, compare whether the column that
+  // just ended is the same length as the column two before it. Match = "repeat"
+  // (blue hollow), mismatch = "break" (red solid) -- this is a documented, standard
+  // simplification of the real casino rule, not a novel invention.
+  function computeBigEyeBoy(columns) {
+    var marks = [];
+    for (var c = 1; c < columns.length; c++) {
+      var col = columns[c];
+      for (var r = 0; r < col.length; r++) {
+        if (c === 1 && r === 0) continue;
+        var repeat;
+        if (r > 0) {
+          repeat = columns[c - 1].length > r;
+        } else {
+          var prevLen = columns[c - 1].length;
+          var prevPrevLen = c >= 2 ? columns[c - 2].length : null;
+          repeat = prevPrevLen !== null && prevLen === prevPrevLen;
+        }
+        marks.push(repeat);
+      }
+    }
+    return marks;
   }
 
   function renderBigRoad(rounds, tallies) {
     var grid = document.getElementById('bigroadGrid');
     grid.innerHTML = '';
-    var col = null, colResult = null;
-    rounds.forEach(function (r) {
-      if (!col || r.result !== colResult || col.children.length >= COLUMN_CAP) {
-        col = document.createElement('div');
-        col.className = 'bigroad-col';
-        colResult = r.result;
-        grid.appendChild(col);
-      }
-      var bead = document.createElement('div');
-      bead.className = 'bead';
-      bead.title = fmtTime(r.close_time) + ' · target ' + fmtUSD(r.floor_strike) + ' · settled ' + fmtUSD(r.settlement_value) + ' · ' + r.result.toUpperCase();
-      bead.innerHTML =
-        '<div class="bead-inner"><div class="bead-face back"></div>' +
-        '<div class="bead-face front ' + r.result + '">' + (r.result === 'yes' ? 'Y' : 'N') + '</div></div>';
-      col.appendChild(bead);
-      requestAnimationFrame(function () { bead.classList.add('flip'); });
+    var columns = buildColumns(rounds);
+    columns.forEach(function (col) {
+      var colEl = document.createElement('div');
+      colEl.className = 'bigroad-col';
+      col.forEach(function (r) {
+        var bead = document.createElement('div');
+        bead.className = 'bead ' + r.result;
+        var sign = r.delta >= 0 ? '+' : '-';
+        bead.title = 'Time: ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+          ' | Delta: ' + sign + '$' + Math.abs(r.delta).toFixed(2) +
+          ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
+        bead.innerHTML =
+          '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
+          '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
+          '<span class="bead-delta">' + sign + Math.round(Math.abs(r.delta)) + '</span>';
+        colEl.appendChild(bead);
+      });
+      grid.appendChild(colEl);
+    });
+
+    var derived = document.getElementById('derivedRoad');
+    derived.innerHTML = '';
+    computeBigEyeBoy(columns).forEach(function (repeat) {
+      var d = document.createElement('div');
+      d.className = 'derived-bead ' + (repeat ? 'repeat' : 'break');
+      derived.appendChild(d);
     });
 
     document.getElementById('statYes').textContent = tallies.yes;
     document.getElementById('statNo').textContent = tallies.no;
-    document.getElementById('statStreak').textContent = tallies.current_streak
-      ? tallies.current_streak.length + ' ' + tallies.current_streak.result.toUpperCase() : '—';
-    document.getElementById('statLongest').textContent = tallies.longest_streak
-      ? tallies.longest_streak.length + ' ' + tallies.longest_streak.result.toUpperCase() : '—';
+    var streakEl = document.getElementById('statStreak');
+    var longestEl = document.getElementById('statLongest');
+    if (tallies.current_streak) {
+      streakEl.textContent = tallies.current_streak.length + tallies.current_streak.result.toUpperCase().charAt(0);
+      streakEl.className = 'num ' + tallies.current_streak.result;
+    } else { streakEl.textContent = '—'; streakEl.className = 'num'; }
+    if (tallies.longest_streak) {
+      longestEl.textContent = tallies.longest_streak.length + tallies.longest_streak.result.toUpperCase().charAt(0);
+      longestEl.className = 'num ' + tallies.longest_streak.result;
+    } else { longestEl.textContent = '—'; longestEl.className = 'num'; }
     document.getElementById('statChop').textContent = tallies.chop_rate !== null && tallies.chop_rate !== undefined
       ? tallies.chop_rate + '%' : '—';
-
-    var scroll = document.getElementById('bigroadScroll');
-    scroll.scrollLeft = scroll.scrollWidth;
+    document.getElementById('statChopSub').textContent = tallies.flips !== null && tallies.flips !== undefined
+      ? tallies.flips + ' of ' + tallies.pairs + ' flipped' : '';
   }
 
   function loadHistory() {
     fetch('/api/history?hours=' + currentHours).then(function (r) { return r.json(); }).then(function (d) {
-      historyCache = d.rounds;
       renderBigRoad(d.rounds, d.tallies);
       historyDirty = false;
     }).catch(function () {});
@@ -381,7 +565,7 @@
       clockOffsetMs = (d.now * 1000) - Date.now();
       state = d;
       render();
-      if (historyDirty || !historyCache.length) loadHistory();
+      if (historyDirty) loadHistory();
     }).catch(function () {});
   }
 
