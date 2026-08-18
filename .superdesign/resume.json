@@ -5,7 +5,7 @@
       "targetKind": "existing-ui",
       "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
       "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-      "activeDraftId": "816bed2c-11f5-4fba-a06c-efaac521c6f2",
+      "activeDraftId": "46d12b91-43af-415c-b783-b4d713656207",
       "designSystemPath": ".superdesign/design-system.md",
       "contextFiles": [
         "index.html",
@@ -51,9 +51,15 @@
           "visualDirection": "iterated from 5fe41884: fixed the sample-data fill order to match real baccarat Big Road convention (time increases going down a column and left-to-right across columns -- was backwards before); added the round-over-round dollar price delta as a third line on every chip ('+63'/'-24' style, color-matched to result) plus the full signed-dollar delta in each chip's hover tooltip. This delta is the actual number that determines each round's YES/NO result, since a round's target is the previous round's settlement price (chained).",
           "parentDraftId": "5fe41884-fe25-4109-b804-2ba283a91263",
           "currentVersion": 1
+        },
+        "46d12b91-43af-415c-b783-b4d713656207": {
+          "title": "BTC 15 — Fixed JS Syntax Error / Performance Analysis & Personal Predictor",
+          "visualDirection": "iterated from 816bed2c: (1) timeframe clarity -- added a 'Showing <date range>' caption that updates with the selected filter, a 'Results -- Last N' header above the stats grid, and a LEADING badge + highlighted border on whichever of Yes Wins/No Wins is ahead for the selected window; (2) personal pick -- added YES/NO buttons next to the hero card scoped to the CURRENT round only (explicitly not a crowd vote, single-user, no server tally), a personal win/loss record display, buttons disable when the round locks, and a 'Personal Call: X -- CORRECT/INCORRECT' feedback line near Last Round Result (hidden until a pick exists for that round). v1 shipped with a real bug (duplicate `const now` declaration inside updateView() -- SyntaxError that silently broke the entire script, leaving Big Road/Big Eye Boy/leading-badges all empty); v2 fixed it. v3 fixed a mobile overflow where the spread/pick/record/Robinhood-link row didn't wrap and clipped off-screen below ~640px.",
+          "parentDraftId": "816bed2c-11f5-4fba-a06c-efaac521c6f2",
+          "currentVersion": 3
         }
       },
-      "updatedAt": "2026-08-17T17:05:00Z"
+      "updatedAt": "2026-08-18T14:30:00Z"
     }
   }
 }
