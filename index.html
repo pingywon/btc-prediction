@@ -112,6 +112,25 @@
   .rh-link:hover { color: var(--amber-soft); }
   .rh-link svg { width: 12px; height: 12px; }
 
+  .pick-row {
+    display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start;
+    margin-top: 0.75rem;
+  }
+  @media (min-width: 480px) { .pick-row { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .pick-left { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .pick-label { font-size: 0.68rem; color: var(--faint); text-transform: uppercase; font-weight: 700; }
+  .pick-btn {
+    font-family: var(--sans); font-size: 0.7rem; font-weight: 900; padding: 0.35rem 0.9rem;
+    border-radius: 7px; cursor: pointer; background: transparent; letter-spacing: 0.02em;
+  }
+  .pick-btn.yes { border: 1px solid rgba(63,207,142,0.35); color: var(--green); }
+  .pick-btn.no { border: 1px solid rgba(240,109,109,0.35); color: var(--red); }
+  .pick-btn.yes.selected { background: rgba(63,207,142,0.16); }
+  .pick-btn.no.selected { background: rgba(240,109,109,0.16); }
+  .pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pick-record { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .pick-record b { color: var(--soft); font-weight: 900; }
+
   .gauges-card { padding: clamp(1.1rem, 3vw, 1.5rem); display: flex; flex-direction: column; gap: 1.5rem; }
   @media (min-width: 480px) { .gauges-card { flex-direction: row; } }
   .gauge { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -133,11 +152,16 @@
   .rail-track.urgent #railFill { background: linear-gradient(90deg, var(--red-derived), var(--red)); }
   .gauge-sub { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
 
+  .stats-window-head { display: flex; flex-direction: column; gap: 0.1rem; margin-bottom: 0.6rem; }
+  .stats-window-head .win-label { font-size: 0.68rem; color: var(--soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stats-window-head .win-range { font-size: 0.6rem; color: var(--faint); font-weight: 600; }
+
   .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   @media (min-width: 640px) and (max-width: 1023px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
   .stat-tile {
     padding: 1rem; border-radius: 12px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center; min-height: 84px;
+    position: relative; border: 1px solid transparent;
   }
   .stat-tile.wide { grid-column: 1 / -1; }
   .stat-tile .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; }
@@ -145,6 +169,14 @@
   .stat-tile .num.yes { color: var(--green); }
   .stat-tile .num.no { color: var(--red); }
   .stat-tile .sub { font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; margin-left: 0.4rem; }
+  .stat-tile.leading.yes-side { border-color: rgba(63,207,142,0.3); }
+  .stat-tile.leading.no-side { border-color: rgba(240,109,109,0.3); }
+  .leading-badge {
+    position: absolute; top: 6px; right: 6px; font-size: 0.52rem; font-weight: 900;
+    letter-spacing: 0.05em; padding: 0.15rem 0.4rem; border-radius: 999px; display: none;
+  }
+  .stat-tile.leading.yes-side .leading-badge.yes-badge { display: block; background: rgba(63,207,142,0.18); color: var(--green); }
+  .stat-tile.leading.no-side .leading-badge.no-badge { display: block; background: rgba(240,109,109,0.18); color: var(--red); }
 
   .last-result-card {
     padding: 1.25rem; flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -159,6 +191,13 @@
   .last-result-row .lr-price { font-size: 1.6rem; font-weight: 900; color: var(--soft); }
   .last-result-card .lr-target { font-size: 0.72rem; color: var(--faint); font-weight: 500; }
   .last-result-card .lr-target b { color: var(--soft); font-weight: 700; }
+  .personal-feedback {
+    margin-top: 0.3rem; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.05);
+    width: 100%; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; display: none;
+  }
+  .personal-feedback.show { display: block; }
+  .personal-feedback.correct { color: var(--green); }
+  .personal-feedback.incorrect { color: var(--red); }
 
   .bigroad-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
   .bigroad-head {
@@ -257,6 +296,14 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
           </a>
         </div>
+        <div class="pick-row">
+          <div class="pick-left">
+            <span class="pick-label">Personal Pick</span>
+            <button class="pick-btn yes" id="pickYes">YES</button>
+            <button class="pick-btn no" id="pickNo">NO</button>
+          </div>
+          <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
+        </div>
       </div>
 
       <div class="panel gauges-card">
@@ -283,9 +330,19 @@
     </div>
 
     <div class="side-col">
+      <div class="stats-window-head">
+        <span class="win-label" id="statsWindowLabel">Results — Last 24 Hours</span>
+        <span class="win-range" id="statsRangeLabel">&nbsp;</span>
+      </div>
       <div class="stats-grid">
-        <div class="panel stat-tile"><span class="label">Yes Wins</span><span class="num yes" id="statYes">—</span></div>
-        <div class="panel stat-tile"><span class="label">No Wins</span><span class="num no" id="statNo">—</span></div>
+        <div class="panel stat-tile" id="statYesTile">
+          <span class="leading-badge yes-badge">LEADING</span>
+          <span class="label">Yes Wins</span><span class="num yes" id="statYes">—</span>
+        </div>
+        <div class="panel stat-tile" id="statNoTile">
+          <span class="leading-badge no-badge">LEADING</span>
+          <span class="label">No Wins</span><span class="num no" id="statNo">—</span>
+        </div>
         <div class="panel stat-tile"><span class="label">Streak</span><span class="num" id="statStreak">—</span></div>
         <div class="panel stat-tile"><span class="label">Longest</span><span class="num" id="statLongest">—</span></div>
         <div class="panel stat-tile wide">
@@ -301,6 +358,7 @@
           <span class="lr-price tabular" id="lrPrice">—</span>
         </div>
         <span class="lr-target">Strike target was <b class="tabular" id="lrTarget">—</b></span>
+        <div class="personal-feedback" id="personalFeedback"></div>
       </div>
     </div>
   </div>
@@ -376,8 +434,85 @@
     var d = new Date(tsSec * 1000);
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
+  function fmtDateTime(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days', 8760: 'Year' };
 
   var state = null;
+
+  // Personal pick: local to this browser only, never sent to the server -- the
+  // multiplayer crowd-vote version of this was deliberately removed earlier.
+  var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved', MAX_PICKS = 500;
+  function loadJSON(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+  var picks = loadJSON(PICK_KEY, {});
+  var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
+  var resolved = loadJSON(RESOLVED_KEY, []);
+
+  (function prunePicks() {
+    var keys = Object.keys(picks);
+    if (keys.length <= MAX_PICKS) return;
+    keys.sort(function (a, b) { return picks[a].ts - picks[b].ts; });
+    keys.slice(0, keys.length - 400).forEach(function (k) { delete picks[k]; });
+    saveJSON(PICK_KEY, picks);
+    if (resolved.length > MAX_PICKS) { resolved = resolved.slice(resolved.length - 400); saveJSON(RESOLVED_KEY, resolved); }
+  })();
+
+  function makePick(ticker, choice) {
+    if (picks[ticker]) return;
+    picks[ticker] = { choice: choice, ts: Date.now() };
+    saveJSON(PICK_KEY, picks);
+    renderPick();
+  }
+
+  function renderPick() {
+    var yesBtn = document.getElementById('pickYes'), noBtn = document.getElementById('pickNo');
+    document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+    var cur = state && state.current_round;
+    if (!cur) {
+      yesBtn.disabled = true; noBtn.disabled = true;
+      yesBtn.classList.remove('selected'); noBtn.classList.remove('selected');
+      return;
+    }
+    var locked = (now() / 1000) >= cur.lock_ts;
+    var mine = picks[cur.ticker];
+    yesBtn.classList.toggle('selected', !!mine && mine.choice === 'yes');
+    noBtn.classList.toggle('selected', !!mine && mine.choice === 'no');
+    yesBtn.disabled = locked || !!mine;
+    noBtn.disabled = locked || !!mine;
+  }
+
+  document.getElementById('pickYes').addEventListener('click', function () {
+    var cur = state && state.current_round;
+    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'yes');
+  });
+  document.getElementById('pickNo').addEventListener('click', function () {
+    var cur = state && state.current_round;
+    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'no');
+  });
+
+  function resolvePersonalFeedback() {
+    var s = state.last_settled;
+    var fb = document.getElementById('personalFeedback');
+    if (!s) { fb.classList.remove('show'); return; }
+    var mine = picks[s.ticker];
+    if (!mine) { fb.classList.remove('show'); return; }
+    if (resolved.indexOf(s.ticker) === -1) {
+      if (mine.choice === s.result) record.wins++; else record.losses++;
+      resolved.push(s.ticker);
+      saveJSON(RECORD_KEY, record);
+      saveJSON(RESOLVED_KEY, resolved);
+      document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+    }
+    var correct = mine.choice === s.result;
+    fb.textContent = 'Personal call: ' + mine.choice.toUpperCase() + ' — ' + (correct ? 'Correct' : 'Incorrect');
+    fb.className = 'personal-feedback show ' + (correct ? 'correct' : 'incorrect');
+  }
 
   function render() {
     if (!state) return;
@@ -435,6 +570,7 @@
       pillArrow.style.transform = state.lean.direction === 'yes' ? 'rotate(0deg)' : 'rotate(180deg)';
     }
 
+    renderPick();
     renderLastResult();
   }
 
@@ -452,6 +588,7 @@
     word.className = 'lr-word ' + s.result;
     document.getElementById('lrPrice').textContent = fmtUSD(s.settlement_value);
     document.getElementById('lrTarget').textContent = fmtUSD(s.floor_strike);
+    resolvePersonalFeedback();
   }
 
   function buildColumns(rounds) {
@@ -542,6 +679,16 @@
       ? tallies.chop_rate + '%' : '—';
     document.getElementById('statChopSub').textContent = tallies.flips !== null && tallies.flips !== undefined
       ? tallies.flips + ' of ' + tallies.pairs + ' flipped' : '';
+
+    document.getElementById('statsWindowLabel').textContent = 'Results — Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H');
+    var nowSec = now() / 1000;
+    document.getElementById('statsRangeLabel').textContent = fmtDateTime(nowSec - currentHours * 3600) + ' to ' + fmtDateTime(nowSec);
+
+    var yesTile = document.getElementById('statYesTile'), noTile = document.getElementById('statNoTile');
+    yesTile.classList.remove('leading', 'yes-side');
+    noTile.classList.remove('leading', 'no-side');
+    if (tallies.yes > tallies.no) yesTile.classList.add('leading', 'yes-side');
+    else if (tallies.no > tallies.yes) noTile.classList.add('leading', 'no-side');
   }
 
   function loadHistory() {
