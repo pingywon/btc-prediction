@@ -71,7 +71,12 @@
   .header-sentence { font-size: 0.75rem; color: var(--soft); font-weight: 500; text-align: left; }
   @media (min-width: 768px) { .header-sentence { text-align: right; } }
   .header-sentence b { color: var(--amber); font-weight: 700; }
-  .header-sentence .locked { color: var(--red); font-weight: 700; }
+  .round-timer-row { display: flex; align-items: baseline; gap: 0.4rem; justify-content: flex-start; }
+  @media (min-width: 768px) { .round-timer-row { justify-content: flex-end; } }
+  .round-timer-value { font-size: clamp(1.7rem, 5vw, 2.3rem); font-weight: 900; color: var(--amber); letter-spacing: -0.02em; line-height: 1; }
+  .round-timer-value.locked { color: var(--red); animation: timerPulse 1s ease-in-out infinite; }
+  @keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .round-timer-label { font-size: 0.62rem; color: var(--faint); text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em; }
 
   .top-grid { display: flex; flex-direction: column; gap: 1.5rem; }
   @media (min-width: 1024px) { .top-grid { display: grid; grid-template-columns: 7fr 5fr; } }
@@ -89,6 +94,9 @@
   .price-block.target { text-align: left; }
   @media (min-width: 480px) { .price-block.target { text-align: right; } }
   .price-block.target .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
+  .target-delta { font-size: 0.66rem; font-weight: 700; margin-top: 0.3rem; }
+  .target-delta.up { color: var(--green); }
+  .target-delta.down { color: var(--red); }
 
   .spread-row {
     display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start;
@@ -319,6 +327,10 @@
       </div>
     </div>
     <div>
+      <div class="round-timer-row">
+        <span class="round-timer-value tabular" id="roundTimerValue">—</span>
+        <span class="round-timer-label" id="roundTimerLabel">&nbsp;</span>
+      </div>
       <div class="header-sentence" id="headerSentence">Loading the table…</div>
       <div class="conn-issue" id="connIssue"><span class="conn-issue-dot"></span>Connection interrupted — retrying…</div>
     </div>
@@ -335,6 +347,7 @@
           <div class="price-block target">
             <span class="label">Target Strike</span>
             <div class="value tabular" id="strikeValue">—</div>
+            <div class="target-delta tabular" id="targetDelta">&nbsp;</div>
           </div>
         </div>
         <div class="spread-row">
@@ -605,16 +618,23 @@
     var t = now() / 1000;
     var cur = state.current_round;
 
+    var timerValueEl = document.getElementById('roundTimerValue');
+    var timerLabelEl = document.getElementById('roundTimerLabel');
+
     if (state.catching_up) {
       document.getElementById('headerSentence').innerHTML = 'Reconstructing missed rounds…';
+      timerValueEl.textContent = '—';
+      timerLabelEl.textContent = ' ';
+      timerValueEl.classList.remove('locked');
     } else if (cur) {
       var secLeft = cur.close_time - t;
       var locked = t >= cur.lock_ts;
       var sentence = 'BTC target <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
-      sentence += locked
-        ? ' • <span class="locked">LOCKED, ' + fmtClock(secLeft) + '</span> left'
-        : ' • <b>' + fmtClock(secLeft) + '</b> left';
       document.getElementById('headerSentence').innerHTML = sentence;
+
+      timerValueEl.textContent = fmtClock(secLeft);
+      timerValueEl.classList.toggle('locked', locked);
+      timerLabelEl.textContent = locked ? 'locked' : 'left';
 
       var span = cur.close_time - cur.open_time;
       var pct = Math.max(0, Math.min(100, (secLeft / span) * 100));
@@ -627,6 +647,26 @@
       document.getElementById('rhLink').href = cur.robinhood_url;
     } else {
       document.getElementById('headerSentence').textContent = 'Waiting for the next round to open…';
+      timerValueEl.textContent = '—';
+      timerLabelEl.textContent = ' ';
+      timerValueEl.classList.remove('locked');
+    }
+
+    // Kalshi chains rounds automatically (each round's floor_strike is exactly the
+    // previous round's settlement_value), so "how much did the target move into this
+    // round" and "how far did the last round settle from its own target" are the same
+    // number -- computed once here from last_settled, not tied to whether a current
+    // round is open yet.
+    var deltaEl = document.getElementById('targetDelta');
+    var lastS = state.last_settled;
+    if (lastS && lastS.settlement_value !== null && lastS.settlement_value !== undefined) {
+      var targetD = lastS.settlement_value - lastS.floor_strike;
+      var dSign = targetD >= 0 ? '▲ +' : '▼ -';
+      deltaEl.textContent = dSign + '$' + Math.abs(targetD).toFixed(2) + ' vs last round';
+      deltaEl.className = 'target-delta tabular ' + (targetD >= 0 ? 'up' : 'down');
+    } else {
+      deltaEl.textContent = ' ';
+      deltaEl.className = 'target-delta tabular';
     }
 
     if (state.live_price !== null) {
