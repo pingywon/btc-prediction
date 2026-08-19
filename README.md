@@ -15,9 +15,8 @@ Env vars: `PORT` (default 8160), `BIND` (default 0.0.0.0), `BP_DB` (SQLite path,
 ## Endpoints
 
 - `GET /` — the app
-- `GET /api/state` — current round, live price, lean, last settled round
-- `POST /api/vote {"choice":"yes"|"no"}` — cast a vote (one per anonymous cookie per round)
-- `GET /api/history?hours=24` — settled rounds + tallies
+- `GET /api/state` — current round, live price, lean, Kalshi market odds, last settled round
+- `GET /api/history?hours=24` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760)
 - `GET /health`
 
 ## Data sources

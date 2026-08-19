@@ -31,10 +31,11 @@ KRAKEN_HOST = "api.kraken.com"
 
 LOCK_BUFFER_S = 60          # betting closes this long before close_time
 ACTIVE_WINDOW_S = 12 * 3600  # a visit keeps the app "active" (full-speed polling) for this long
-ACTIVE_ROUND_POLL_S = 15
-ACTIVE_PRICE_POLL_S = 4
+ACTIVE_ROUND_POLL_S = 10
+ACTIVE_PRICE_POLL_S = 2
 IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap, no network call)
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
+GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
 SETTLE_RETRY_S = 3
 BACKFILL_LOOKBACK_S = 365 * 24 * 3600  # 1 year; self-limits to whatever Kalshi's history actually covers
 LEAN_FULL_TILT_USD = 300.0
@@ -233,6 +234,18 @@ def backfill():
     return inserted
 
 
+def newest_settled_close_time():
+    # Deliberately excludes the still-open round: refresh_open_round() runs right
+    # before this is checked and always upserts whatever Kalshi currently reports as
+    # open, so MAX(close_time) over ALL rows would almost always land on that live
+    # round's (near-future) close_time and mask an arbitrarily large hole sitting
+    # right behind it. Anchoring on the newest SETTLED row instead measures the thing
+    # that actually broke in production: "how long since we last durably recorded a
+    # finished round," independent of whether the open-round pointer is fresh.
+    row = db.query_one("SELECT MAX(close_time) AS m FROM rounds WHERE result IS NOT NULL")
+    return row["m"] if row and row["m"] is not None else 0.0
+
+
 def refresh_open_round():
     try:
         m = fetch_open_round()
@@ -271,6 +284,24 @@ def round_engine():
             last_check = time.time()
             refresh_open_round()
 
+            # Detect any hole in recent history and self-heal it immediately, rather
+            # than only during the scheduled 12h idle resync. A hole can open for lots
+            # of reasons beyond "nobody was watching" -- a slow wakeup from sleep, a
+            # Kalshi hiccup, or simply the idle->active transition itself (someone
+            # opens the page after a long gap: `active` flips true THIS tick, so the
+            # interval shrinks to ACTIVE_ROUND_POLL_S and this check fires within
+            # seconds instead of waiting up to 12h). Re-running the startup sweep is
+            # cheap when there's nothing new (every existing row just gets skipped),
+            # so gating it on "is there actually a gap" rather than "are we idle"
+            # covers both cases with one mechanism instead of two.
+            if time.time() - newest_settled_close_time() > GAP_BACKFILL_THRESHOLD_S:
+                try:
+                    n = backfill()
+                    if n:
+                        print("[round_engine] gap catch-up backfilled %d rounds" % n, file=sys.stderr)
+                except Exception as e:  # noqa
+                    print("[round_engine] gap catch-up failed: %s" % e, file=sys.stderr)
+
             if active:
                 # Scan for anything past close_time still unsettled, rather than trusting
                 # "current" to still be the round that just closed -- Kalshi opens the next
@@ -280,16 +311,6 @@ def round_engine():
                                     (time.time(),))
                 for p in pending:
                     settle_round(p["kalshi_ticker"])
-            else:
-                # Idle: we don't know what happened during the long gap, so bulk-resync
-                # via the same sweep used at startup rather than relying on rows that
-                # were never created while nothing was polling.
-                try:
-                    n = backfill()
-                    if n:
-                        print("[round_engine] idle resync caught %d rounds" % n, file=sys.stderr)
-                except Exception as e:  # noqa
-                    print("[round_engine] idle resync failed: %s" % e, file=sys.stderr)
 
         time.sleep(IDLE_CHECK_S)
 
@@ -409,17 +430,29 @@ class Handler(BaseHTTPRequestHandler):
             pass
 
     def do_GET(self):
-        parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
-        if path in ("/", "/index.html"):
-            return self._serve_page()
-        if path == "/health":
-            return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
-        if path == "/api/state":
-            return self._api_state()
-        if path == "/api/history":
-            return self._api_history(urllib.parse.parse_qs(parsed.query))
-        self._send(404, b'{"error":"not found"}')
+        # Any unhandled exception below this point previously propagated straight out
+        # of do_GET with no response ever sent -- the client just saw the connection
+        # drop ("empty reply"), which looks exactly like a dead button/silent no-op.
+        # Catch broadly here so a bug in one endpoint always yields a real JSON error
+        # instead of a vanished connection.
+        try:
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path
+            if path in ("/", "/index.html"):
+                return self._serve_page()
+            if path == "/health":
+                return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
+            if path == "/api/state":
+                return self._api_state()
+            if path == "/api/history":
+                return self._api_history(urllib.parse.parse_qs(parsed.query))
+            self._send(404, b'{"error":"not found"}')
+        except Exception as e:  # noqa
+            print("[http] GET %s failed: %s" % (self.path, e), file=sys.stderr)
+            try:
+                self._send(500, json.dumps({"error": "internal error"}).encode())
+            except Exception:  # noqa
+                pass
 
     def do_POST(self):
         self._send(404, b'{"error":"not found"}')
@@ -464,8 +497,13 @@ class Handler(BaseHTTPRequestHandler):
                             ORDER BY close_time ASC""", (cutoff,))
         # floor_strike(N) == settlement_value(N-1) (Kalshi chains rounds), so this delta is both
         # "price change since the previous round" and the exact number that decided yes/no.
+        # A handful of older Kalshi records are settled (result set) but never got an
+        # expiration_value (see to_round_row) -- settlement_value is None for those, so
+        # delta must stay None too instead of crashing the whole request (this previously
+        # took down any timeframe whose window reached back far enough to include one,
+        # e.g. "1Y", with the connection just dropping and the button looking dead).
         for r in rows:
-            r["delta"] = round(r["settlement_value"] - r["floor_strike"], 2)
+            r["delta"] = round(r["settlement_value"] - r["floor_strike"], 2) if r["settlement_value"] is not None else None
         tallies = {"yes": sum(1 for r in rows if r["result"] == "yes"),
                    "no": sum(1 for r in rows if r["result"] == "no")}
         tallies.update(compute_road_stats(rows))

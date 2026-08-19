@@ -255,9 +255,43 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-deep); }
   ::-webkit-scrollbar-thumb { background: var(--surface-700); border-radius: 3px; }
+
+  .top-progress {
+    position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 50;
+    overflow: hidden; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  }
+  .top-progress.active { opacity: 1; }
+  .top-progress-bar {
+    height: 100%; width: 40%;
+    background: linear-gradient(90deg, transparent, var(--amber), var(--green), transparent);
+  }
+  .top-progress.active .top-progress-bar { animation: topProgressSlide 1.1s ease-in-out infinite; }
+  @keyframes topProgressSlide {
+    0% { margin-left: -40%; }
+    100% { margin-left: 100%; }
+  }
+
+  .conn-issue {
+    display: none; align-items: center; gap: 0.4rem; font-size: 0.68rem; font-weight: 700;
+    color: var(--red); text-transform: uppercase; letter-spacing: 0.02em; margin-top: 0.35rem;
+  }
+  .conn-issue.show { display: flex; }
+  .conn-issue-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--red); flex: none;
+    animation: connPulse 1s ease-in-out infinite;
+  }
+  @keyframes connPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .freshness { font-size: 0.56rem; color: var(--faint); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+
+  .odds-track { height: 8px; border-radius: 999px; overflow: hidden; display: flex; background: var(--surface-800); }
+  .odds-fill { height: 100%; transition: width 0.6s ease-out; }
+  .odds-fill.yes { background: var(--green); }
+  .odds-fill.no { background: var(--red); }
 </style>
 </head>
 <body>
+<div class="top-progress" id="topProgress"><div class="top-progress-bar"></div></div>
 <div class="wrap">
   <header class="app-header">
     <div class="brand">
@@ -267,7 +301,10 @@
         <p class="sub">mirrors Robinhood's live BTC 15-min market, straight from the exchange</p>
       </div>
     </div>
-    <div class="header-sentence" id="headerSentence">Loading the table…</div>
+    <div>
+      <div class="header-sentence" id="headerSentence">Loading the table…</div>
+      <div class="conn-issue" id="connIssue"><span class="conn-issue-dot"></span>Connection interrupted — retrying…</div>
+    </div>
   </header>
 
   <div class="top-grid">
@@ -275,7 +312,7 @@
       <div class="panel hero-card">
         <div class="price-row">
           <div class="price-block now">
-            <span class="label">Live Bitcoin Price</span>
+            <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
             <div class="value tabular" id="livePrice">—</div>
           </div>
           <div class="price-block target">
@@ -317,6 +354,17 @@
           </div>
           <div class="gauge-track"><div id="leanChip"></div></div>
           <span class="gauge-sub" id="leanSub">reading the table…</span>
+        </div>
+        <div class="gauge">
+          <div class="gauge-head">
+            <span class="gauge-title">Kalshi Market Odds</span>
+            <span class="gauge-sub tabular" id="oddsSpread">—</span>
+          </div>
+          <div class="odds-track" id="oddsTrack">
+            <div id="oddsYesFill" class="odds-fill yes" style="width:0%"></div>
+            <div id="oddsNoFill" class="odds-fill no" style="width:0%"></div>
+          </div>
+          <span class="gauge-sub" id="oddsSub">real order-book pricing, not a vibe read</span>
         </div>
         <div class="gauge">
           <div class="gauge-head">
@@ -415,6 +463,22 @@
   var currentHours = 24;
   var polling = true;
   var COLUMN_CAP = 6;
+  var lastPriceUpdateMs = null;
+  var pollFailures = 0;
+  var historyReqId = 0;
+  var inFlight = 0;
+
+  function progressStart() {
+    inFlight++;
+    document.getElementById('topProgress').classList.add('active');
+  }
+  function progressDone() {
+    inFlight = Math.max(0, inFlight - 1);
+    if (inFlight === 0) document.getElementById('topProgress').classList.remove('active');
+  }
+  function setConnIssue(show) {
+    document.getElementById('connIssue').classList.toggle('show', !!show);
+  }
 
   function now() { return Date.now() + clockOffsetMs; }
   function fmtUSD(n) {
@@ -546,6 +610,27 @@
     if (state.live_price !== null) {
       document.getElementById('livePrice').textContent = fmtUSD(state.live_price);
     }
+    var freshEl = document.getElementById('priceFreshness');
+    if (lastPriceUpdateMs !== null) {
+      var ageS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = ageS <= 1 ? 'live' : ageS + 's ago';
+    }
+
+    var oddsYes = document.getElementById('oddsYesFill'), oddsNo = document.getElementById('oddsNoFill');
+    if (cur && cur.kalshi_yes_price !== null && cur.kalshi_yes_price !== undefined) {
+      var yesPct = Math.max(0, Math.min(100, cur.kalshi_yes_price * 100));
+      var noPrice = (cur.kalshi_no_price !== null && cur.kalshi_no_price !== undefined)
+        ? cur.kalshi_no_price : (1 - cur.kalshi_yes_price);
+      var noPct = Math.max(0, Math.min(100, noPrice * 100));
+      oddsYes.style.width = yesPct + '%';
+      oddsNo.style.width = noPct + '%';
+      document.getElementById('oddsSpread').textContent = Math.round(yesPct) + '% YES / ' + Math.round(noPct) + '% NO';
+    } else {
+      oddsYes.style.width = '0%';
+      oddsNo.style.width = '0%';
+      document.getElementById('oddsSpread').textContent = '—';
+    }
+
     if (state.lean && cur) {
       var chip = document.getElementById('leanChip');
       var pctPos = 50 + (state.lean.direction === 'yes' ? 1 : -1) * state.lean.strength * 45;
@@ -642,14 +727,19 @@
       col.forEach(function (r) {
         var bead = document.createElement('div');
         bead.className = 'bead ' + r.result;
-        var sign = r.delta >= 0 ? '+' : '-';
+        // A handful of older settled rounds never got a settlement_value from Kalshi
+        // (see app.py's to_round_row) -- delta comes through as null for those, so
+        // treat it as "unknown" rather than letting `null >= 0` silently coerce to a
+        // fake "+0" (JS coerces null to 0 in numeric comparisons/Math.abs).
+        var hasDelta = r.delta !== null && r.delta !== undefined;
+        var sign = hasDelta && r.delta >= 0 ? '+' : '-';
         bead.title = 'Time: ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
-          ' | Delta: ' + sign + '$' + Math.abs(r.delta).toFixed(2) +
+          ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
           ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
         bead.innerHTML =
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
-          '<span class="bead-delta">' + sign + Math.round(Math.abs(r.delta)) + '</span>';
+          '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
         colEl.appendChild(bead);
       });
       grid.appendChild(colEl);
@@ -692,10 +782,21 @@
   }
 
   function loadHistory() {
-    fetch('/api/history?hours=' + currentHours).then(function (r) { return r.json(); }).then(function (d) {
+    // Tag each request with a monotonic id -- if the user flips timeframes quickly
+    // (e.g. 1H then 24H before 1H's response lands), an out-of-order response must
+    // not overwrite the newer selection's data. Only the most-recently-issued
+    // request is allowed to render.
+    var reqId = ++historyReqId;
+    progressStart();
+    fetch('/api/history?hours=' + currentHours).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      progressDone();
+      if (reqId !== historyReqId) return;
       renderBigRoad(d.rounds, d.tallies);
       historyDirty = false;
-    }).catch(function () {});
+    }).catch(function () { progressDone(); });
   }
 
   document.getElementById('timeframeSelect').addEventListener('click', function (e) {
@@ -709,12 +810,27 @@
 
   function poll() {
     if (!polling) return;
-    fetch('/api/state').then(function (r) { return r.json(); }).then(function (d) {
+    progressStart();
+    fetch('/api/state').then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      progressDone();
+      pollFailures = 0;
+      setConnIssue(false);
       clockOffsetMs = (d.now * 1000) - Date.now();
+      lastPriceUpdateMs = Date.now();
       state = d;
       render();
       if (historyDirty) loadHistory();
-    }).catch(function () {});
+    }).catch(function () {
+      progressDone();
+      pollFailures++;
+      // Give a couple of misses the benefit of the doubt (a single dropped poll is
+      // normal on flaky wifi) before surfacing anything -- otherwise this fires on
+      // every transient blip. 3 misses at the 2s poll interval is ~6s of real outage.
+      if (pollFailures >= 3) setConnIssue(true);
+    });
   }
 
   document.addEventListener('visibilitychange', function () {
@@ -722,7 +838,7 @@
     if (polling) poll();
   });
 
-  setInterval(poll, 3000);
+  setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();
   poll();
