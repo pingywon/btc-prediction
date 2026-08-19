@@ -68,15 +68,36 @@
     color: var(--amber); text-transform: uppercase;
   }
   .brand .sub { margin: 0.1rem 0 0; font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: -0.01em; font-weight: 500; }
-  .header-sentence { font-size: 0.75rem; color: var(--soft); font-weight: 500; text-align: left; }
+  .header-sentence { font-size: 0.75rem; color: var(--soft); font-weight: 500; text-align: left; min-height: 1em; }
   @media (min-width: 768px) { .header-sentence { text-align: right; } }
   .header-sentence b { color: var(--amber); font-weight: 700; }
-  .round-timer-row { display: flex; align-items: baseline; gap: 0.4rem; justify-content: flex-start; }
-  @media (min-width: 768px) { .round-timer-row { justify-content: flex-end; } }
-  .round-timer-value { font-size: clamp(1.7rem, 5vw, 2.3rem); font-weight: 900; color: var(--amber); letter-spacing: -0.02em; line-height: 1; }
-  .round-timer-value.locked { color: var(--red); animation: timerPulse 1s ease-in-out infinite; }
-  @keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-  .round-timer-label { font-size: 0.62rem; color: var(--faint); text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em; }
+  .customize-toggle {
+    display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem;
+    font-family: var(--sans); font-size: 0.66rem; font-weight: 800; color: var(--faint);
+    text-transform: uppercase; letter-spacing: 0.02em; background: transparent;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 0.3rem 0.7rem; cursor: pointer;
+  }
+  .customize-toggle svg { width: 12px; height: 12px; }
+  .customize-toggle:hover, .customize-toggle.active { color: var(--amber); border-color: rgba(255,210,63,0.3); }
+
+  .customize-panel { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; border: 1px dashed rgba(255,210,63,0.3); }
+  .customize-head { display: flex; flex-direction: column; gap: 0.15rem; }
+  .customize-title { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); }
+  .customize-sub { font-size: 0.6rem; color: var(--faint); font-weight: 600; }
+  .customize-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  .customize-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0.85rem;
+    background: var(--bg-deep); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
+  }
+  .customize-row.hidden-row { opacity: 0.45; }
+  .customize-name { font-size: 0.7rem; font-weight: 700; color: var(--soft); }
+  .eye-btn {
+    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); background: transparent;
+    color: var(--faint); cursor: pointer;
+  }
+  .eye-btn svg { width: 13px; height: 13px; }
+  .eye-btn:hover { color: var(--amber); border-color: rgba(255,210,63,0.3); }
 
   .top-grid { display: flex; flex-direction: column; gap: 1.5rem; }
   @media (min-width: 1024px) { .top-grid { display: grid; grid-template-columns: 7fr 5fr; } }
@@ -87,16 +108,34 @@
     content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
     background: linear-gradient(90deg, transparent, var(--amber), transparent); opacity: 0.5;
   }
-  .price-row { display: flex; flex-direction: column; gap: 1.25rem; }
-  @media (min-width: 480px) { .price-row { flex-direction: row; align-items: flex-start; justify-content: space-between; } }
-  .price-block .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
-  .price-block.now .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; }
-  .price-block.target { text-align: left; }
-  @media (min-width: 480px) { .price-block.target { text-align: right; } }
-  .price-block.target .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
-  .target-delta { font-size: 0.66rem; font-weight: 700; margin-top: 0.3rem; }
+  .price-hero .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
+  .price-hero .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; line-height: 1; }
+
+  .price-sub-row {
+    display: flex; align-items: center; gap: 1.25rem; margin-top: 1rem; flex-wrap: wrap;
+  }
+  .price-sub-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .price-sub-label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+  .price-sub-divider { width: 1px; align-self: stretch; background: rgba(255,255,255,0.08); }
+  .round-timer-value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 900; color: var(--amber); letter-spacing: -0.02em; line-height: 1; }
+  .round-timer-value.locked { color: var(--red); animation: timerPulse 1s ease-in-out infinite; }
+  @keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .round-timer-label { font-size: 0.58rem; color: var(--faint); text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em; margin-top: 0.1rem; }
+  .price-sub-item .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
+  .target-delta { font-size: 0.64rem; font-weight: 700; margin-top: 0.15rem; }
   .target-delta.up { color: var(--green); }
   .target-delta.down { color: var(--red); }
+
+  .price-chart-wrap { margin-top: 1.1rem; }
+  .price-chart-caption { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
+  .price-chart-caption span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .price-chart-stage { width: 100%; height: 130px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
+  .price-chart-stage svg { width: 100%; height: 100%; display: block; }
+  .price-chart-empty {
+    height: 130px; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    color: var(--faint); font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+  }
 
   .spread-row {
     display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start;
@@ -364,27 +403,49 @@
       </div>
     </div>
     <div>
-      <div class="round-timer-row">
-        <span class="round-timer-value tabular" id="roundTimerValue">—</span>
-        <span class="round-timer-label" id="roundTimerLabel">&nbsp;</span>
-      </div>
-      <div class="header-sentence" id="headerSentence">Loading the table…</div>
+      <div class="header-sentence" id="headerSentence">&nbsp;</div>
       <div class="conn-issue" id="connIssue"><span class="conn-issue-dot"></span>Connection interrupted — retrying…</div>
+      <button class="customize-toggle" id="customizeToggle" title="Show or hide sections on this page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Customize
+      </button>
     </div>
   </header>
 
+  <section class="panel customize-panel" id="customizePanel" style="display:none">
+    <div class="customize-head">
+      <span class="customize-title">Show / Hide Sections</span>
+      <span class="customize-sub">Turn parts of this page on or off &mdash; saved on this device only</span>
+    </div>
+    <div class="customize-list" id="sectionList"></div>
+  </section>
+
   <div class="top-grid">
     <div class="price-col">
-      <div class="panel hero-card">
-        <div class="price-row">
-          <div class="price-block now">
-            <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
-            <div class="value tabular" id="livePrice">—</div>
+      <div class="panel hero-card" data-section="price">
+        <div class="price-hero">
+          <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
+          <div class="value tabular" id="livePrice">—</div>
+          <div class="price-sub-row">
+            <div class="price-sub-item">
+              <span class="price-sub-label" id="roundTimerLabel">Round Closes</span>
+              <span class="round-timer-value tabular" id="roundTimerValue">—</span>
+            </div>
+            <div class="price-sub-divider"></div>
+            <div class="price-sub-item">
+              <span class="price-sub-label">Target Strike</span>
+              <span class="value tabular" id="strikeValue">—</span>
+              <div class="target-delta tabular" id="targetDelta">&nbsp;</div>
+            </div>
           </div>
-          <div class="price-block target">
-            <span class="label">Target Strike</span>
-            <div class="value tabular" id="strikeValue">—</div>
-            <div class="target-delta tabular" id="targetDelta">&nbsp;</div>
+          <div class="price-chart-wrap">
+            <div class="price-chart-caption">
+              <span id="chartRangeLabel">This round's price, live</span>
+              <span>Dashed line = target</span>
+            </div>
+            <div class="price-chart-stage" id="priceChartStage">
+              <svg id="priceChartSvg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>
+            </div>
           </div>
         </div>
         <div class="spread-row">
@@ -410,7 +471,7 @@
         </div>
       </div>
 
-      <div class="panel gauges-card">
+      <div class="panel gauges-card" data-section="gauges">
         <div class="gauge">
           <div class="gauge-head">
             <span class="gauge-title">Market Lean</span>
@@ -444,7 +505,7 @@
       </div>
     </div>
 
-    <div class="side-col">
+    <div class="side-col" data-section="stats">
       <div class="stats-window-head">
         <span class="win-label" id="statsWindowLabel">Results — Last 24 Hours</span>
         <span class="win-range" id="statsRangeLabel">&nbsp;</span>
@@ -478,7 +539,7 @@
     </div>
   </div>
 
-  <section class="panel bigroad-section">
+  <section class="panel bigroad-section" data-section="bigroad">
     <div class="bigroad-head">
       <div class="bigroad-title-row">
         <div class="bigroad-icon">
@@ -524,7 +585,7 @@
     </div>
   </section>
 
-  <section class="panel spread-section">
+  <section class="panel spread-section" data-section="spread">
     <div class="spread-section-head">
       <div class="spread-title-row">
         <div class="spread-icon">
@@ -556,6 +617,60 @@
   var pollFailures = 0;
   var historyReqId = 0;
   var inFlight = 0;
+  var chartRoundTicker = null;
+  var chartReqId = 0;
+  var YES_HEX = '#39ff88', NO_HEX = '#ff3d6e', AMBER_HEX = '#ffd23f';
+
+  function loadJSON(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+  // Which panels show on this page -- client-only, per device. Toggle-only (no
+  // reorder): the panels live in a 2-column grid (.top-grid), so moving them between
+  // containers would fight the responsive layout; show/hide via display:none doesn't.
+  var SECTION_IDS = ['price', 'gauges', 'stats', 'bigroad', 'spread'];
+  var SECTION_LABELS = { price: 'Live Price & Pick', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
+  var SECTION_KEY = 'btc15_section_visibility';
+  var sectionHidden = loadJSON(SECTION_KEY, {});
+
+  function applySectionVisibility() {
+    SECTION_IDS.forEach(function (id) {
+      var el = document.querySelector('[data-section="' + id + '"]');
+      if (el) el.style.display = sectionHidden[id] ? 'none' : '';
+    });
+  }
+  function renderSectionList() {
+    var list = document.getElementById('sectionList');
+    list.innerHTML = '';
+    SECTION_IDS.forEach(function (id) {
+      var hidden = !!sectionHidden[id];
+      var row = document.createElement('div');
+      row.className = 'customize-row' + (hidden ? ' hidden-row' : '');
+      var name = document.createElement('span');
+      name.className = 'customize-name'; name.textContent = SECTION_LABELS[id];
+      var eye = document.createElement('button');
+      eye.className = 'eye-btn'; eye.title = hidden ? 'Show' : 'Hide';
+      eye.innerHTML = hidden
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.6 21.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.6 21.6 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+      eye.addEventListener('click', function () {
+        sectionHidden[id] = !hidden;
+        saveJSON(SECTION_KEY, sectionHidden);
+        applySectionVisibility();
+        renderSectionList();
+      });
+      row.appendChild(name); row.appendChild(eye);
+      list.appendChild(row);
+    });
+  }
+  document.getElementById('customizeToggle').addEventListener('click', function () {
+    var panel = document.getElementById('customizePanel');
+    var showing = panel.style.display === 'none';
+    panel.style.display = showing ? '' : 'none';
+    this.classList.toggle('active', showing);
+    if (showing) renderSectionList();
+  });
 
   function progressStart() {
     inFlight++;
@@ -595,13 +710,85 @@
 
   var state = null;
 
+  // Live price vs. this round's target -- ticks are durably stored server-side (3h
+  // retention), so this queries them directly rather than relying on the in-memory
+  // ring buffer /api/state exposes (only ~10 minutes, not enough for a full round).
+  function loadPriceChart(cur) {
+    var stage = document.getElementById('priceChartStage');
+    if (!cur) {
+      stage.innerHTML = '<div class="price-chart-empty">Waiting for a round to open</div>';
+      document.getElementById('chartRangeLabel').textContent = 'This round’s price, live';
+      chartRoundTicker = null;
+      return;
+    }
+    if (cur.ticker !== chartRoundTicker) {
+      chartRoundTicker = cur.ticker;
+      stage.innerHTML = '<svg id="priceChartSvg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>';
+    }
+    var reqId = ++chartReqId;
+    fetch('/api/ticks?since=' + cur.open_time).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (reqId !== chartReqId) return;
+      renderPriceChart(d.ticks, cur);
+    }).catch(function () {});
+  }
+
+  function renderPriceChart(ticks, cur) {
+    var stage = document.getElementById('priceChartStage');
+    var svgEl = document.getElementById('priceChartSvg');
+    if (!ticks.length || !svgEl) {
+      stage.innerHTML = '<div class="price-chart-empty">No live ticks recorded for this round yet</div>';
+      return;
+    }
+    var ns = 'http://www.w3.org/2000/svg';
+    svgEl.innerHTML = '';
+    var W = 600, H = 130, PAD = 6;
+    var strike = cur.floor_strike;
+    var prices = ticks.map(function (t) { return t[1]; });
+    var minP = Math.min(strike, Math.min.apply(null, prices));
+    var maxP = Math.max(strike, Math.max.apply(null, prices));
+    var span = Math.max(0.01, maxP - minP);
+    minP -= span * 0.15; maxP += span * 0.15; span = maxP - minP;
+    var t0 = cur.open_time, t1 = Math.max(cur.close_time, ticks[ticks.length - 1][0]);
+    var xScale = function (ts) { return PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2); };
+    var yScale = function (p) { return H - PAD - ((p - minP) / span) * (H - PAD * 2); };
+
+    var strikeY = yScale(strike);
+    var strikeLine = document.createElementNS(ns, 'line');
+    strikeLine.setAttribute('x1', PAD); strikeLine.setAttribute('x2', W - PAD);
+    strikeLine.setAttribute('y1', strikeY); strikeLine.setAttribute('y2', strikeY);
+    strikeLine.setAttribute('stroke', AMBER_HEX);
+    strikeLine.setAttribute('stroke-width', '1.5');
+    strikeLine.setAttribute('stroke-dasharray', '5,4');
+    strikeLine.setAttribute('opacity', '0.7');
+    svgEl.appendChild(strikeLine);
+
+    for (var i = 1; i < ticks.length; i++) {
+      var seg = document.createElementNS(ns, 'line');
+      seg.setAttribute('x1', xScale(ticks[i - 1][0])); seg.setAttribute('y1', yScale(ticks[i - 1][1]));
+      seg.setAttribute('x2', xScale(ticks[i][0])); seg.setAttribute('y2', yScale(ticks[i][1]));
+      seg.setAttribute('stroke', ticks[i][1] >= strike ? YES_HEX : NO_HEX);
+      seg.setAttribute('stroke-width', '2.5');
+      seg.setAttribute('stroke-linecap', 'round');
+      svgEl.appendChild(seg);
+    }
+
+    var last = ticks[ticks.length - 1];
+    var dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', xScale(last[0])); dot.setAttribute('cy', yScale(last[1])); dot.setAttribute('r', 4);
+    dot.setAttribute('fill', last[1] >= strike ? YES_HEX : NO_HEX);
+    dot.setAttribute('stroke', 'var(--bg-deep)'); dot.setAttribute('stroke-width', '1.5');
+    svgEl.appendChild(dot);
+
+    document.getElementById('chartRangeLabel').textContent =
+      fmtHHMM(cur.open_time) + '–' + fmtHHMM(cur.close_time) + ' · target ' + fmtUSD(strike);
+  }
+
   // Personal pick: local to this browser only, never sent to the server -- the
   // multiplayer crowd-vote version of this was deliberately removed earlier.
   var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved', MAX_PICKS = 500;
-  function loadJSON(key, fallback) {
-    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
-  }
-  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
 
   var picks = loadJSON(PICK_KEY, {});
   var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
@@ -678,17 +865,16 @@
     if (state.catching_up) {
       document.getElementById('headerSentence').innerHTML = 'Reconstructing missed rounds…';
       timerValueEl.textContent = '—';
-      timerLabelEl.textContent = ' ';
+      timerLabelEl.textContent = 'Round Closes';
       timerValueEl.classList.remove('locked');
     } else if (cur) {
       var secLeft = cur.close_time - t;
       var locked = t >= cur.lock_ts;
-      var sentence = 'BTC target <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
-      document.getElementById('headerSentence').innerHTML = sentence;
+      document.getElementById('headerSentence').innerHTML = ' ';
 
       timerValueEl.textContent = fmtClock(secLeft);
       timerValueEl.classList.toggle('locked', locked);
-      timerLabelEl.textContent = locked ? 'locked' : 'left';
+      timerLabelEl.textContent = locked ? 'Locked' : 'Round Closes';
 
       var span = cur.close_time - cur.open_time;
       var pct = Math.max(0, Math.min(100, (secLeft / span) * 100));
@@ -702,7 +888,7 @@
     } else {
       document.getElementById('headerSentence').textContent = 'Waiting for the next round to open…';
       timerValueEl.textContent = '—';
-      timerLabelEl.textContent = ' ';
+      timerLabelEl.textContent = 'Round Closes';
       timerValueEl.classList.remove('locked');
     }
 
@@ -1002,6 +1188,7 @@
       lastPriceUpdateMs = Date.now();
       state = d;
       render();
+      loadPriceChart(d.current_round);
       if (historyDirty) loadHistory();
     }).catch(function () {
       progressDone();
@@ -1018,6 +1205,7 @@
     if (polling) poll();
   });
 
+  applySectionVisibility();
   setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();

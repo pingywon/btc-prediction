@@ -459,12 +459,16 @@ class Handler(BaseHTTPRequestHandler):
             path = parsed.path
             if path in ("/", "/index.html"):
                 return self._serve_page("index.html")
+            if path in ("/algo", "/algo.html"):
+                return self._serve_page("algo.html")
             if path == "/health":
                 return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":
                 return self._api_state()
             if path == "/api/history":
                 return self._api_history(urllib.parse.parse_qs(parsed.query))
+            if path == "/api/ticks":
+                return self._api_ticks(urllib.parse.parse_qs(parsed.query))
             self._send(404, b'{"error":"not found"}')
         except Exception as e:  # noqa
             print("[http] GET %s failed: %s" % (self.path, e), file=sys.stderr)
@@ -527,6 +531,15 @@ class Handler(BaseHTTPRequestHandler):
                    "no": sum(1 for r in rows if r["result"] == "no")}
         tallies.update(compute_road_stats(rows))
         self._send(200, json.dumps({"rounds": rows, "tallies": tallies}).encode())
+
+    def _api_ticks(self, qs):
+        # The in-memory ring buffer (STATE["recent_ticks"]) only holds ~10 minutes and
+        # resets on restart -- not enough to chart a full 15-minute round. Ticks are
+        # also durably written to the DB (3h retention), so read from there instead;
+        # a single round's window is always comfortably inside that retention.
+        since = float((qs.get("since") or ["0"])[0])
+        rows = db.query("SELECT ts, price FROM ticks WHERE ts >= ? ORDER BY ts ASC", (since,))
+        self._send(200, json.dumps({"ticks": [[r["ts"], r["price"]] for r in rows]}).encode())
 
     def log_message(self, *a):
         pass
