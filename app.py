@@ -459,8 +459,6 @@ class Handler(BaseHTTPRequestHandler):
             path = parsed.path
             if path in ("/", "/index.html"):
                 return self._serve_page("index.html")
-            if path in ("/wheel", "/wheel.html"):
-                return self._serve_page("wheel.html")
             if path == "/health":
                 return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":

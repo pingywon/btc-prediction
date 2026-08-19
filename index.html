@@ -4,26 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BTC 15 — Above or Below</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23071629%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23f0b429%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23f0b429%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%233fcf8e%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23f06d6d%27/%3E %3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2305060a%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23ffd23f%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23ffd23f%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%2339ff88%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23ff3d6e%27/%3E %3C/svg%3E">
 <style>
   :root {
-    --bg-deep: #071629;
-    --surface-900: #0b1f3a;
-    --surface-850: #0e2746;
-    --surface-800: #122e52;
-    --surface-700: #1a3c66;
-    --cream: #f4ecd8;
-    --soft: #cdd6e3;
-    --dim: #8a98ad;
-    --faint: #5d6b80;
-    --amber: #f0b429;
-    --amber-deep: #d99a12;
-    --amber-soft: #f7d27a;
-    --green: #3fcf8e;
-    --red: #f06d6d;
-    --blue-derived: #3b82f6;
-    --red-derived: #ef4444;
-    --border: rgba(205, 214, 227, 0.10);
+    --bg-deep: #05060a;
+    --surface-900: #0d0f16;
+    --surface-850: #12151f;
+    --surface-800: #171b28;
+    --surface-700: #232838;
+    --cream: #f5f7fa;
+    --soft: #c7ccd9;
+    --dim: #7d8399;
+    --faint: #4b5066;
+    --amber: #ffd23f;
+    --amber-deep: #e6ac00;
+    --amber-soft: #ffe28a;
+    --green: #39ff88;
+    --red: #ff3d6e;
+    --blue-derived: #22e6ff;
+    --red-derived: #ff5252;
+    --border: rgba(255, 255, 255, 0.09);
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --bead: 52px;
   }
@@ -35,8 +35,8 @@
   }
   body::before {
     content: ""; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
-    width: 100%; height: 400px; pointer-events: none; z-index: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(240,180,41,0.05), rgba(63,207,142,0.03), transparent 70%);
+    width: 100%; height: 420px; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(255,210,63,0.07), rgba(57,255,136,0.04), transparent 70%);
   }
   .tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 
@@ -47,9 +47,9 @@
   }
 
   .panel {
-    background: linear-gradient(160deg, rgba(18,46,82,0.9), rgba(7,22,41,0.9));
-    border: 1px solid var(--border); border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    background: linear-gradient(160deg, rgba(23,27,40,0.92), rgba(5,6,10,0.94));
+    border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.02);
   }
 
   header.app-header {
@@ -220,13 +220,6 @@
   .bigroad-icon svg { width: 17px; height: 17px; }
   .bigroad-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
   .bigroad-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
-  .wheel-teaser {
-    display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem;
-    font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
-    color: var(--amber); text-decoration: none; padding: 0.3rem 0.65rem; border-radius: 999px;
-    background: rgba(240,180,41,0.08); border: 1px solid rgba(240,180,41,0.25);
-  }
-  .wheel-teaser:hover { background: rgba(240,180,41,0.14); }
 
   .bigroad-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
@@ -248,10 +241,11 @@
 
   .bigroad-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; min-height: 200px; }
   .bigroad-col { display: flex; flex-direction: column; gap: 8px; }
+  .bigroad-col.dragon-tail { box-shadow: 0 0 0 2px var(--amber), 0 0 12px rgba(255,210,63,0.4); border-radius: 8px; padding: 3px; margin: -3px; }
   .bead {
     width: var(--bead); height: calc(var(--bead) + 4px); border-radius: 6px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    user-select: none; transition: transform 0.15s;
+    user-select: none; transition: transform 0.15s; position: relative;
   }
   .bead:hover { transform: scale(1.06); }
   .bead.yes { background: var(--green); color: var(--bg-deep); }
@@ -259,6 +253,13 @@
   .bead-glyph { font-weight: 900; font-size: 1.05rem; line-height: 1; }
   .bead-time { font-weight: 700; font-size: 0.58rem; opacity: 0.82; margin-top: 1px; letter-spacing: -0.02em; }
   .bead-delta { font-weight: 900; font-size: 0.56rem; opacity: 0.92; }
+  .bead-pick-badge {
+    position: absolute; bottom: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-deep);
+  }
+  .bead-pick-badge svg { width: 9px; height: 9px; }
+  .bead-pick-badge.hit { background: var(--amber); color: var(--bg-deep); }
+  .bead-pick-badge.miss { background: var(--surface-700); color: var(--faint); }
 
   .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255,255,255,0.05); }
   .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
@@ -273,6 +274,42 @@
   .derived-bead.repeat { border: 2.5px solid var(--blue-derived); background: transparent; }
   .derived-bead.break { background: var(--red-derived); }
   .derived-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .spread-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .spread-section-head { display: flex; flex-direction: column; gap: 0.5rem; justify-content: space-between; margin-bottom: 1.25rem; }
+  @media (min-width: 768px) { .spread-section-head { flex-direction: row; align-items: center; } }
+  .spread-title-row { display: flex; align-items: center; gap: 0.75rem; }
+  .spread-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(255,210,63,0.1);
+    color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .spread-icon svg { width: 17px; height: 17px; }
+  .spread-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+  .spread-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+  .spread-range { font-size: 0.62rem; color: var(--dim); font-weight: 600; white-space: nowrap; }
+
+  .spread-list {
+    display: flex; flex-direction: column; max-height: 420px; overflow-y: auto;
+    border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+  }
+  .spread-row-item {
+    display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .spread-row-item:last-child { border-bottom: none; }
+  .spread-row-item:nth-child(odd) { background: rgba(255,255,255,0.015); }
+  .spread-time { font-size: 0.66rem; color: var(--soft); font-weight: 700; flex: none; width: 108px; }
+  .spread-bar-wrap {
+    flex: 1; height: 6px; background: var(--surface-800); border-radius: 999px;
+    position: relative; overflow: hidden; margin: 0 0.25rem; min-width: 40px;
+  }
+  .spread-bar { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .spread-bar.up { background: var(--green); left: 50%; }
+  .spread-bar.down { background: var(--red); right: 50%; }
+  .spread-amount { font-size: 0.74rem; font-weight: 900; flex: none; width: 92px; text-align: right; }
+  .spread-amount.up { color: var(--green); }
+  .spread-amount.down { color: var(--red); }
+  .spread-empty { padding: 2rem 1rem; text-align: center; color: var(--faint); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
 
   footer.page-foot { padding: 1.5rem 0; display: flex; justify-content: center; opacity: 0.3; }
   .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; }
@@ -449,19 +486,20 @@
         </div>
         <div>
           <h2>Big Road History</h2>
-          <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
-          <a class="wheel-teaser" href="/wheel">New: Try the Wheel Room (beta) &rarr;</a>
+          <p class="sub">Vertical columns represent consecutive YES/NO streaks &middot; check/&times; badge = your call</p>
         </div>
       </div>
       <div class="bigroad-controls">
         <div class="timeframe-select" id="timeframeSelect">
+          <button class="tf-btn" data-hours="0.5">30M</button>
           <button class="tf-btn" data-hours="1">1H</button>
           <button class="tf-btn" data-hours="2">2H</button>
           <button class="tf-btn" data-hours="3">3H</button>
           <button class="tf-btn" data-hours="6">6H</button>
+          <button class="tf-btn" data-hours="8">8H</button>
+          <button class="tf-btn" data-hours="12">12H</button>
           <button class="tf-btn active" data-hours="24">24H</button>
           <button class="tf-btn" data-hours="168">7D</button>
-          <button class="tf-btn" data-hours="720">30D</button>
         </div>
         <button class="refresh-btn" id="refreshBtn" title="Refresh now" aria-label="Refresh now">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>
@@ -484,6 +522,22 @@
       </div>
       <div class="derived-grid" id="derivedRoad"></div>
     </div>
+  </section>
+
+  <section class="panel spread-section">
+    <div class="spread-section-head">
+      <div class="spread-title-row">
+        <div class="spread-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>
+        </div>
+        <div>
+          <h2>Round-to-Round Spread</h2>
+          <p class="sub">How much price moved during each settled round &middot; green up, red down</p>
+        </div>
+      </div>
+      <span class="spread-range" id="spreadRange">&nbsp;</span>
+    </div>
+    <div class="spread-list" id="spreadList"></div>
   </section>
 
   <footer class="page-foot"><div class="foot-bar"></div></footer>
@@ -537,7 +591,7 @@
     var d = new Date(tsSec * 1000);
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
-  var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days' };
+  var WINDOW_LABELS = { 0.5: '30 Minutes', 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 8: '8 Hours', 12: '12 Hours', 24: '24 Hours', 168: '7 Days' };
 
   var state = null;
 
@@ -786,6 +840,9 @@
     columns.forEach(function (col) {
       var colEl = document.createElement('div');
       colEl.className = 'bigroad-col';
+      // Dragon Tail: the real casino term for a column that's earned its way to the
+      // 6-row cap -- a genuine hot/cold streak, distinct from an ordinary column.
+      if (col.length >= COLUMN_CAP) colEl.classList.add('dragon-tail');
       col.forEach(function (r) {
         var bead = document.createElement('div');
         bead.className = 'bead ' + r.result;
@@ -795,13 +852,30 @@
         // fake "+0" (JS coerces null to 0 in numeric comparisons/Math.abs).
         var hasDelta = r.delta !== null && r.delta !== undefined;
         var sign = hasDelta && r.delta >= 0 ? '+' : '-';
-        bead.title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+        var title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
           ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
           ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
         bead.innerHTML =
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
           '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
+        // Mark a round you personally called, right on its own cell -- a small corner
+        // badge (not a ring) so it never visually collides with the Dragon Tail ring
+        // that highlights the whole column above. picks is keyed by /api/state's
+        // `ticker` field; /api/history rows carry the identical string as
+        // `kalshi_ticker` -- same value, different field name across the two endpoints.
+        var mine = picks[r.kalshi_ticker];
+        if (mine) {
+          var hit = mine.choice === r.result;
+          title += ' | Your call: ' + mine.choice.toUpperCase() + ' (' + (hit ? 'correct' : 'incorrect') + ')';
+          var badge = document.createElement('span');
+          badge.className = 'bead-pick-badge ' + (hit ? 'hit' : 'miss');
+          badge.innerHTML = hit
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+          bead.appendChild(badge);
+        }
+        bead.title = title;
         colEl.appendChild(bead);
       });
       grid.appendChild(colEl);
@@ -843,6 +917,37 @@
     else if (tallies.no > tallies.yes) noTile.classList.add('leading', 'no-side');
   }
 
+  // Round-to-round spread: settlement_value - floor_strike, per round, in a scrollable
+  // reviewable ledger (newest first). This is derived from data already stored for
+  // every round (no new backend recording needed) -- as far back as the timeframe
+  // filter reaches, capped by the app's 30-day retention window.
+  function renderSpreadHistory(rounds) {
+    var list = document.getElementById('spreadList');
+    list.innerHTML = '';
+    var withDelta = rounds.filter(function (r) { return r.delta !== null && r.delta !== undefined; });
+    if (!withDelta.length) {
+      list.innerHTML = '<div class="spread-empty">No settled rounds with a recorded spread in this window yet</div>';
+      document.getElementById('spreadRange').textContent = '';
+      return;
+    }
+    var maxAbs = withDelta.reduce(function (m, r) { return Math.max(m, Math.abs(r.delta)); }, 0.01);
+    withDelta.slice().reverse().forEach(function (r) {
+      var up = r.delta >= 0;
+      var barPct = Math.min(50, (Math.abs(r.delta) / maxAbs) * 50);
+      var row = document.createElement('div');
+      row.className = 'spread-row-item';
+      row.title = 'Round ' + fmtHHMM(r.close_time - 900) + '-' + fmtHHMM(r.close_time) +
+        ': target ' + fmtUSD(r.floor_strike) + ' → settled ' + fmtUSD(r.settlement_value);
+      row.innerHTML =
+        '<span class="spread-time">' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time) + '</span>' +
+        '<div class="spread-bar-wrap"><div class="spread-bar ' + (up ? 'up' : 'down') + '" style="width:' + barPct + '%"></div></div>' +
+        '<span class="spread-amount ' + (up ? 'up' : 'down') + '">' + (up ? '▲ +' : '▼ -') + '$' + Math.abs(r.delta).toFixed(2) + '</span>';
+      list.appendChild(row);
+    });
+    document.getElementById('spreadRange').textContent =
+      'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + withDelta.length + ' rounds recorded';
+  }
+
   function loadHistory() {
     // Tag each request with a monotonic id -- if the user flips timeframes quickly
     // (e.g. 1H then 24H before 1H's response lands), an out-of-order response must
@@ -857,6 +962,7 @@
       progressDone();
       if (reqId !== historyReqId) return;
       renderBigRoad(d.rounds, d.tallies);
+      renderSpreadHistory(d.rounds);
       historyDirty = false;
     }).catch(function () { progressDone(); });
   }
