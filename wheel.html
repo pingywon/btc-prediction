@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTC 15 — The Wheel Room</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%23071629%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23f0b429%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23f0b429%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%233fcf8e%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23f06d6d%27/%3E %3C/svg%3E">
+<style>
+  :root {
+    --bg-deep: #071629;
+    --surface-900: #0b1f3a;
+    --surface-850: #0e2746;
+    --surface-800: #122e52;
+    --surface-700: #1a3c66;
+    --cream: #f4ecd8;
+    --soft: #cdd6e3;
+    --dim: #8a98ad;
+    --faint: #5d6b80;
+    --amber: #f0b429;
+    --amber-deep: #d99a12;
+    --amber-soft: #f7d27a;
+    --green: #3fcf8e;
+    --red: #f06d6d;
+    --blue-derived: #3b82f6;
+    --red-derived: #ef4444;
+    --border: rgba(205, 214, 227, 0.10);
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg-deep); color: var(--cream); font-family: var(--sans);
+    position: relative; overflow-x: hidden;
+  }
+  body::before {
+    content: ""; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; height: 400px; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(240,180,41,0.06), rgba(63,207,142,0.03), transparent 70%);
+  }
+  .tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  .wrap {
+    position: relative; z-index: 1; max-width: 1400px; margin: 0 auto;
+    padding: clamp(0.75rem, 3vw, 1.5rem);
+    display: flex; flex-direction: column; gap: clamp(1.1rem, 3vw, 1.5rem);
+  }
+
+  .panel {
+    background: linear-gradient(160deg, rgba(18,46,82,0.9), rgba(7,22,41,0.9));
+    border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  header.app-header {
+    display: flex; flex-direction: column; gap: 0.75rem; justify-content: space-between;
+    border-bottom: 1px solid rgba(205,214,227,0.05); padding-bottom: 1rem;
+  }
+  @media (min-width: 768px) { header.app-header { flex-direction: row; align-items: center; } }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand-tile {
+    width: 36px; height: 36px; background: var(--amber); border-radius: 8px; flex: none;
+    display: flex; align-items: center; justify-content: center; color: var(--bg-deep);
+  }
+  .brand-tile svg { width: 20px; height: 20px; }
+  .brand h1 {
+    margin: 0; font-size: 1rem; font-weight: 900; letter-spacing: 0.08em;
+    color: var(--amber); text-transform: uppercase;
+  }
+  .brand .sub { margin: 0.1rem 0 0; font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: -0.01em; font-weight: 500; }
+  .header-sentence { font-size: 0.75rem; color: var(--soft); font-weight: 500; text-align: left; }
+  @media (min-width: 768px) { .header-sentence { text-align: right; } }
+  .header-sentence b { color: var(--amber); font-weight: 700; }
+  .header-sentence .locked { color: var(--red); font-weight: 700; }
+  .classic-link {
+    display: block; margin-top: 0.3rem; font-size: 0.68rem; font-weight: 800; color: var(--faint);
+    text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; text-align: left;
+  }
+  @media (min-width: 768px) { .classic-link { text-align: right; } }
+  .classic-link:hover { color: var(--amber); }
+
+  .wheel-section { padding: clamp(1.1rem, 3vw, 1.75rem); display: flex; flex-direction: column; align-items: center; gap: 1.1rem; }
+  .wheel-stage { position: relative; width: min(100%, 360px); aspect-ratio: 1 / 1; }
+  .wheel-stage svg { width: 100%; height: 100%; }
+  .wheel-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; pointer-events: none; text-align: center;
+  }
+  .wc-label { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+  .wc-value { font-size: clamp(1.5rem, 6vw, 2rem); font-weight: 900; margin-top: 0.2rem; }
+  .wc-value.yes { color: var(--green); }
+  .wc-value.no { color: var(--red); }
+  .wc-sub { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; margin-top: 0.15rem; }
+  .wheel-caption { font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .wheel-legend { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-item span { font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .legend-dot.yes { background: var(--green); }
+  .legend-dot.no { background: var(--red); }
+  .legend-dot.newest { background: transparent; border: 2px solid var(--amber); }
+
+  .heat-panel { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .heat-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+  .heat-title { font-size: 0.68rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+  .heat-badge {
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase; padding: 0.25rem 0.7rem;
+    border-radius: 999px; background: var(--surface-800); color: var(--faint); letter-spacing: 0.02em;
+  }
+  .heat-badge.yes { color: var(--green); background: rgba(63,207,142,0.14); }
+  .heat-badge.no { color: var(--red); background: rgba(240,109,109,0.14); }
+  .heat-badge.hot { animation: heatPulse 1.1s ease-in-out infinite; }
+  @keyframes heatPulse { 0%, 100% { box-shadow: 0 0 0 rgba(240,180,41,0); } 50% { box-shadow: 0 0 14px rgba(240,180,41,0.55); } }
+  .heat-dots { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .heat-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-800); border: 1px solid rgba(255,255,255,0.06); flex: none; }
+  .heat-dot.lit.yes { background: var(--green); box-shadow: 0 0 8px rgba(63,207,142,0.5); }
+  .heat-dot.lit.no { background: var(--red); box-shadow: 0 0 8px rgba(240,109,109,0.5); }
+
+  .boards-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .boards-head { display: flex; flex-direction: column; gap: 0.9rem; justify-content: space-between; margin-bottom: 1.25rem; }
+  @media (min-width: 768px) { .boards-head { flex-direction: row; align-items: center; } }
+  .boards-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+  .boards-title-row .sub { margin: 0.15rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .boards-range { margin: 0.3rem 0 0; font-size: 0.6rem; color: var(--dim); font-weight: 600; }
+
+  .bigroad-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+  .refresh-btn {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: var(--bg-deep);
+    color: var(--faint); cursor: pointer; flex: none;
+  }
+  .refresh-btn:hover { color: var(--amber); border-color: rgba(240,180,41,0.3); }
+  .refresh-btn svg { width: 14px; height: 14px; }
+  .refresh-btn.spinning svg { animation: refreshSpin 0.7s linear infinite; }
+  @keyframes refreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .tf-btn {
+    font-family: var(--sans); font-size: 0.65rem; font-weight: 700; padding: 0.4rem 0.7rem;
+    border-radius: 7px; border: none; background: transparent; color: var(--faint); cursor: pointer;
+  }
+  .tf-btn:hover { background: var(--surface-800); }
+  .tf-btn.active { background: var(--amber); color: var(--bg-deep); }
+
+  .road-row { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.85rem 0; border-top: 1px solid rgba(255,255,255,0.05); }
+  .road-row:first-of-type { border-top: none; padding-top: 0; }
+  .road-label { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+  .road-name { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; color: var(--soft); }
+  .road-caption { font-size: 0.58rem; color: var(--faint); font-weight: 600; text-transform: uppercase; }
+  .road-strip { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; min-height: 24px; align-items: flex-start; }
+  .road-col { display: flex; flex-direction: column; gap: 3px; flex: none; }
+  .road-cell {
+    width: 21px; height: 21px; border-radius: 5px; flex: none; display: flex; align-items: center;
+    justify-content: center; font-size: 0.58rem; font-weight: 900; user-select: none;
+  }
+  .road-cell.yes { background: var(--green); color: var(--bg-deep); }
+  .road-cell.no { background: var(--red); color: var(--bg-deep); }
+  .road-col.dragon-tail { box-shadow: 0 0 0 2px var(--amber), 0 0 12px rgba(240,180,41,0.45); border-radius: 7px; }
+  .derived-strip { align-items: center; }
+  .derived-dot { width: 15px; height: 15px; border-radius: 50%; flex: none; }
+  .derived-dot.repeat { border: 2.5px solid var(--blue-derived); background: transparent; }
+  .derived-dot.break { background: var(--red-derived); }
+  .derived-slash { width: 15px; height: 15px; flex: none; position: relative; }
+  .derived-slash::before {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 13px; height: 2.5px;
+    background: var(--red-derived); transform: translate(-50%,-50%) rotate(45deg); border-radius: 2px;
+  }
+  .derived-slash.repeat::before { background: var(--blue-derived); transform: translate(-50%,-50%) rotate(-45deg); }
+  .road-empty { font-size: 0.62rem; color: var(--faint); font-weight: 600; padding: 0.3rem 0; }
+
+  .flip-overlay {
+    position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 60;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .flip-overlay.show { opacity: 1; }
+  .flip-card { width: 170px; height: 100px; perspective: 900px; }
+  .flip-inner {
+    position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(.4,.2,.2,1);
+  }
+  .flip-overlay.show .flip-inner { transform: rotateY(180deg); }
+  .flip-front, .flip-back {
+    position: absolute; inset: 0; backface-visibility: hidden; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.55);
+  }
+  .flip-front { background: linear-gradient(160deg, var(--surface-800), var(--surface-900)); border: 1px solid var(--border); }
+  .flip-front span { font-size: 1.8rem; font-weight: 900; color: var(--faint); }
+  .flip-back { transform: rotateY(180deg); border: 1px solid rgba(240,180,41,0.35); }
+  .flip-back.yes { background: linear-gradient(160deg, rgba(63,207,142,0.28), var(--surface-900)); }
+  .flip-back.no { background: linear-gradient(160deg, rgba(240,109,109,0.28), var(--surface-900)); }
+  .flip-result { font-size: 1.3rem; font-weight: 900; }
+  .flip-price { font-size: 0.72rem; color: var(--soft); font-weight: 700; margin-top: 0.25rem; }
+  .flip-label { font-size: 0.56rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.15rem; }
+
+  footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+  .foot-link { font-size: 0.68rem; font-weight: 800; color: var(--amber); text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; }
+  .foot-link:hover { color: var(--amber-soft); }
+  .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; opacity: 0.3; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-700); border-radius: 3px; }
+
+  .top-progress {
+    position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 50;
+    overflow: hidden; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  }
+  .top-progress.active { opacity: 1; }
+  .top-progress-bar { height: 100%; width: 40%; background: linear-gradient(90deg, transparent, var(--amber), var(--green), transparent); }
+  .top-progress.active .top-progress-bar { animation: topProgressSlide 1.1s ease-in-out infinite; }
+  @keyframes topProgressSlide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"><div class="top-progress-bar"></div></div>
+<div class="flip-overlay" id="flipOverlay">
+  <div class="flip-card">
+    <div class="flip-inner">
+      <div class="flip-front"><span>?</span></div>
+      <div class="flip-back" id="flipBack">
+        <span class="flip-result" id="flipResult">—</span>
+        <span class="flip-price tabular" id="flipPrice">—</span>
+        <span class="flip-label">Just settled</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/>
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+        </svg>
+      </div>
+      <div>
+        <h1>The Wheel Room</h1>
+        <p class="sub">a casino-floor cut of the same live BTC 15 data &middot; beta</p>
+      </div>
+    </div>
+    <div>
+      <div class="header-sentence" id="headerSentence">Loading the table&hellip;</div>
+      <a class="classic-link" href="/">&larr; Back to Classic View</a>
+    </div>
+  </header>
+
+  <section class="panel wheel-section">
+    <div class="wheel-stage">
+      <svg id="wheelSvg" viewBox="0 0 320 320"></svg>
+      <div class="wheel-center">
+        <span class="wc-label">Current Streak</span>
+        <span class="wc-value" id="wheelStreak">—</span>
+        <span class="wc-sub" id="wheelStreakSub">&nbsp;</span>
+      </div>
+    </div>
+    <span class="wheel-caption" id="wheelCaption">Last rounds, newest at the top, running clockwise back in time</span>
+    <div class="wheel-legend">
+      <div class="legend-item"><div class="legend-dot yes"></div><span>Above (YES)</span></div>
+      <div class="legend-item"><div class="legend-dot no"></div><span>Below (NO)</span></div>
+      <div class="legend-item"><div class="legend-dot newest"></div><span>Newest round</span></div>
+    </div>
+  </section>
+
+  <section class="panel heat-panel">
+    <div class="heat-head">
+      <span class="heat-title">Heat Check</span>
+      <span class="heat-badge" id="heatBadge">—</span>
+    </div>
+    <div class="heat-dots" id="heatDots"></div>
+  </section>
+
+  <section class="panel boards-section">
+    <div class="boards-head">
+      <div class="boards-title-row">
+        <h2>Casino Floor Boards</h2>
+        <p class="sub">The full set real baccarat tables run side by side</p>
+        <p class="boards-range" id="boardsRange">&nbsp;</p>
+      </div>
+      <div class="bigroad-controls">
+        <div class="timeframe-select" id="timeframeSelect">
+          <button class="tf-btn" data-hours="1">1H</button>
+          <button class="tf-btn" data-hours="2">2H</button>
+          <button class="tf-btn" data-hours="3">3H</button>
+          <button class="tf-btn" data-hours="6">6H</button>
+          <button class="tf-btn active" data-hours="24">24H</button>
+          <button class="tf-btn" data-hours="168">7D</button>
+          <button class="tf-btn" data-hours="720">30D</button>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" title="Refresh now" aria-label="Refresh now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="road-row" data-road="bigroad">
+      <div class="road-label"><span class="road-name">Big Road</span><span class="road-caption">Streaks stack into columns, capped at 6 rows</span></div>
+      <div class="road-strip" id="roadBigRoad"></div>
+    </div>
+    <div class="road-row" data-road="bead">
+      <div class="road-label"><span class="road-name">Bead Plate</span><span class="road-caption">Same rounds, strict chronological order</span></div>
+      <div class="road-strip" id="roadBead"></div>
+    </div>
+    <div class="road-row" data-road="beb">
+      <div class="road-label"><span class="road-name">Big Eye Boy</span><span class="road-caption">1-column-back pattern read &middot; hollow = repeat, solid = break</span></div>
+      <div class="road-strip derived-strip" id="roadBEB"></div>
+    </div>
+    <div class="road-row" data-road="small">
+      <div class="road-label"><span class="road-name">Small Road</span><span class="road-caption">2-column-back pattern read</span></div>
+      <div class="road-strip derived-strip" id="roadSmall"></div>
+    </div>
+    <div class="road-row" data-road="cockroach">
+      <div class="road-label"><span class="road-name">Cockroach Pig</span><span class="road-caption">3-column-back pattern read &middot; diagonal marks</span></div>
+      <div class="road-strip derived-strip" id="roadCockroach"></div>
+    </div>
+  </section>
+
+  <footer class="page-foot">
+    <a class="foot-link" href="/">&larr; Prefer the classic dashboard? Switch back</a>
+    <div class="foot-bar"></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var clockOffsetMs = 0;
+  var lastSeenSettled = null;
+  var currentHours = 24;
+  var polling = true;
+  var COLUMN_CAP = 6;
+  var WHEEL_MAX = 48;
+  var historyReqId = 0;
+  var inFlight = 0;
+  var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days' };
+  var YES_COLOR = '#3fcf8e', NO_COLOR = '#f06d6d', AMBER = '#f0b429';
+
+  function progressStart() {
+    inFlight++;
+    document.getElementById('topProgress').classList.add('active');
+  }
+  function progressDone() {
+    inFlight = Math.max(0, inFlight - 1);
+    if (inFlight === 0) document.getElementById('topProgress').classList.remove('active');
+  }
+
+  function now() { return Date.now() + clockOffsetMs; }
+  function fmtUSD(n) {
+    if (n === null || n === undefined) return '—';
+    return '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+  function fmtClock(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+  }
+  function fmtTime(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+  function fmtHHMM(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function fmtDateTime(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderHeader(d) {
+    var el = document.getElementById('headerSentence');
+    var cur = d.current_round;
+    if (d.catching_up) { el.innerHTML = 'Reconstructing missed rounds&hellip;'; return; }
+    if (!cur) { el.textContent = 'Waiting for the next round to open…'; return; }
+    var t = now() / 1000;
+    var secLeft = cur.close_time - t;
+    var locked = t >= cur.lock_ts;
+    var sentence = 'BTC target <b>' + fmtUSD(cur.floor_strike) + '</b> or above by ' + fmtTime(cur.close_time);
+    sentence += locked
+      ? ' &middot; <span class="locked">LOCKED, ' + fmtClock(secLeft) + '</span> left'
+      : ' &middot; <b>' + fmtClock(secLeft) + '</b> left';
+    el.innerHTML = sentence;
+  }
+
+  // Card-flip reveal: skip the very first poll (that's just "page just loaded", not a
+  // new event) so the flip only fires for rounds that actually settle while watching.
+  function maybeFlip(s) {
+    if (!s) return;
+    if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
+    if (s.ticker === lastSeenSettled) return;
+    lastSeenSettled = s.ticker;
+    var overlay = document.getElementById('flipOverlay');
+    document.getElementById('flipBack').className = 'flip-back ' + s.result;
+    var word = document.getElementById('flipResult');
+    word.textContent = s.result.toUpperCase();
+    word.style.color = s.result === 'yes' ? 'var(--green)' : 'var(--red)';
+    document.getElementById('flipPrice').textContent = fmtUSD(s.settlement_value);
+    overlay.classList.add('show');
+    setTimeout(function () { overlay.classList.remove('show'); }, 2400);
+  }
+
+  function poll() {
+    if (!polling) return;
+    fetch('/api/state').then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      clockOffsetMs = (d.now * 1000) - Date.now();
+      renderHeader(d);
+      maybeFlip(d.last_settled);
+    }).catch(function () {});
+  }
+
+  function buildColumns(rounds) {
+    var columns = [];
+    var col = null, colResult = null;
+    rounds.forEach(function (r) {
+      if (!col || r.result !== colResult || col.length >= COLUMN_CAP) {
+        col = [];
+        colResult = r.result;
+        columns.push(col);
+      }
+      col.push(r);
+    });
+    return columns;
+  }
+
+  // Bead Plate is the OTHER standard casino board: the same settled rounds in strict
+  // time order, 6 per column, with no streak-grouping -- a genuinely different read of
+  // identical data from Big Road's "same-outcome streaks stack into one column" rule.
+  function buildBeadPlateColumns(rounds) {
+    var columns = [];
+    rounds.forEach(function (r, i) {
+      if (i % COLUMN_CAP === 0) columns.push([]);
+      columns[columns.length - 1].push(r);
+    });
+    return columns;
+  }
+
+  // Big Eye Boy / Small Road / Cockroach Pig are the same derivation at different
+  // column-back offsets (1/2/3) -- a documented, standard simplification of the real
+  // casino rule (continuation rows compare the column `offset` back at the same row;
+  // a new column's first row compares the two columns immediately before its own
+  // offset-back column), already used for Big Eye Boy on the classic page.
+  function computeDerivedRoad(columns, offset) {
+    var marks = [];
+    for (var c = offset; c < columns.length; c++) {
+      var col = columns[c];
+      for (var r = 0; r < col.length; r++) {
+        if (c === offset && r === 0) continue;
+        var repeat;
+        if (r > 0) {
+          repeat = columns[c - offset].length > r;
+        } else {
+          var prevLen = columns[c - offset].length;
+          var prevPrevLen = (c - offset - 1) >= 0 ? columns[c - offset - 1].length : null;
+          repeat = prevPrevLen !== null && prevLen === prevPrevLen;
+        }
+        marks.push(repeat);
+      }
+    }
+    return marks;
+  }
+
+  function cellTitle(r) {
+    var hasDelta = r.delta !== null && r.delta !== undefined;
+    var sign = hasDelta && r.delta >= 0 ? '+' : '-';
+    return 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+      ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
+      ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
+  }
+
+  function renderRoadColumns(containerId, columns, markDragonTail) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    if (!columns.length) { el.innerHTML = '<span class="road-empty">No rounds in this window yet</span>'; return; }
+    columns.forEach(function (col) {
+      var colEl = document.createElement('div');
+      colEl.className = 'road-col';
+      // Dragon Tail only means something on Big Road, where a streak actually earned
+      // its way to the 6-row cap. Bead Plate always fills exactly 6 rows per column by
+      // construction, so every column there would trivially "hit the cap" -- the glow
+      // would be meaningless noise on every cell instead of flagging a real streak.
+      if (markDragonTail && col.length >= COLUMN_CAP) colEl.classList.add('dragon-tail');
+      col.forEach(function (r) {
+        var cell = document.createElement('div');
+        cell.className = 'road-cell ' + r.result;
+        cell.title = cellTitle(r);
+        cell.textContent = r.result === 'yes' ? 'Y' : 'N';
+        colEl.appendChild(cell);
+      });
+      el.appendChild(colEl);
+    });
+  }
+
+  function renderDerivedStrip(containerId, marks, style) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    if (!marks.length) { el.innerHTML = '<span class="road-empty">Not enough history yet in this window</span>'; return; }
+    marks.forEach(function (repeat) {
+      var d = document.createElement('div');
+      d.className = (style === 'slash' ? 'derived-slash' : 'derived-dot') + ' ' + (repeat ? 'repeat' : 'break');
+      el.appendChild(d);
+    });
+  }
+
+  function polarToCartesian(cx, cy, r, angleDeg) {
+    var a = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+  function arcPath(cx, cy, rOuter, rInner, startAngle, endAngle) {
+    var startOuter = polarToCartesian(cx, cy, rOuter, endAngle);
+    var endOuter = polarToCartesian(cx, cy, rOuter, startAngle);
+    var startInner = polarToCartesian(cx, cy, rInner, endAngle);
+    var endInner = polarToCartesian(cx, cy, rInner, startAngle);
+    var largeArc = (endAngle - startAngle) <= 180 ? 0 : 1;
+    return ['M', startOuter.x, startOuter.y,
+      'A', rOuter, rOuter, 0, largeArc, 0, endOuter.x, endOuter.y,
+      'L', endInner.x, endInner.y,
+      'A', rInner, rInner, 0, largeArc, 1, startInner.x, startInner.y, 'Z'].join(' ');
+  }
+
+  // Radial "wheel" read of the same round history the boards below show -- a genuinely
+  // different gestalt (roulette-style ring) rather than another streak-column grid.
+  // Newest round sits at 12 o'clock and gets an amber outline; older rounds proceed
+  // clockwise and fade toward the edge of the ring.
+  function renderWheel(rounds) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var svg = document.getElementById('wheelSvg');
+    svg.innerHTML = '';
+    var recent = rounds.slice(-WHEEL_MAX).reverse();
+    var n = recent.length;
+    var cx = 160, cy = 160, rOuter = 150, rInner = 90;
+    if (n === 0) {
+      document.getElementById('wheelCaption').textContent = 'No settled rounds in this window yet';
+      return;
+    }
+    var seg = 360 / n;
+    var gap = n > 1 ? Math.min(2.2, seg * 0.18) : 0;
+    recent.forEach(function (r, i) {
+      var start = i * seg + gap / 2;
+      var end = (i + 1) * seg - gap / 2;
+      var path = document.createElementNS(ns, 'path');
+      path.setAttribute('d', arcPath(cx, cy, rOuter, rInner, start, end));
+      var age = n > 1 ? i / (n - 1) : 0;
+      path.setAttribute('fill', r.result === 'yes' ? YES_COLOR : NO_COLOR);
+      path.setAttribute('opacity', (1 - age * 0.62).toFixed(2));
+      if (i === 0) {
+        path.setAttribute('stroke', AMBER);
+        path.setAttribute('stroke-width', '2.5');
+      }
+      var t = document.createElementNS(ns, 'title');
+      t.textContent = fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' · ' + r.result.toUpperCase() + ' · ' + fmtUSD(r.settlement_value);
+      path.appendChild(t);
+      svg.appendChild(path);
+    });
+    document.getElementById('wheelCaption').textContent =
+      'Last ' + n + ' round' + (n === 1 ? '' : 's') + ', newest at the top, running clockwise back in time';
+
+    var streakEl = document.getElementById('wheelStreak');
+    var subEl = document.getElementById('wheelStreakSub');
+    var streak = 1, dir = recent[0].result;
+    for (var i = 1; i < recent.length && recent[i].result === dir; i++) streak++;
+    if (n >= 1) {
+      streakEl.textContent = streak + ' ' + dir.toUpperCase();
+      streakEl.className = 'wc-value ' + dir;
+      subEl.textContent = streak === 1 ? 'straight off the last flip' : 'in a row';
+    }
+  }
+
+  function renderHeat(tallies) {
+    var dots = document.getElementById('heatDots');
+    dots.innerHTML = '';
+    var streak = tallies.current_streak;
+    var len = streak ? streak.length : 0;
+    var dir = streak ? streak.result : null;
+    var slots = Math.max(8, len);
+    for (var i = 0; i < slots; i++) {
+      var d = document.createElement('div');
+      d.className = 'heat-dot';
+      if (i < len) d.classList.add('lit', dir);
+      dots.appendChild(d);
+    }
+    var badge = document.getElementById('heatBadge');
+    if (len >= 5) {
+      badge.textContent = 'ON FIRE — ' + len + ' ' + dir.toUpperCase() + ' STRAIGHT';
+      badge.className = 'heat-badge hot ' + dir;
+    } else if (len >= 2) {
+      badge.textContent = len + ' ' + dir.toUpperCase() + ' IN A ROW';
+      badge.className = 'heat-badge ' + dir;
+    } else {
+      badge.textContent = 'NO STREAK YET';
+      badge.className = 'heat-badge';
+    }
+  }
+
+  function renderAll(rounds, tallies) {
+    var columns = buildColumns(rounds);
+    var beadColumns = buildBeadPlateColumns(rounds);
+    renderRoadColumns('roadBigRoad', columns, true);
+    renderRoadColumns('roadBead', beadColumns, false);
+    renderDerivedStrip('roadBEB', computeDerivedRoad(columns, 1), 'dot');
+    renderDerivedStrip('roadSmall', computeDerivedRoad(columns, 2), 'dot');
+    renderDerivedStrip('roadCockroach', computeDerivedRoad(columns, 3), 'slash');
+    renderWheel(rounds);
+    renderHeat(tallies);
+    document.getElementById('boardsRange').textContent =
+      'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + tallies.yes + ' YES / ' + tallies.no + ' NO';
+  }
+
+  function loadHistory() {
+    var reqId = ++historyReqId;
+    progressStart();
+    fetch('/api/history?hours=' + currentHours).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      progressDone();
+      if (reqId !== historyReqId) return;
+      renderAll(d.rounds, d.tallies);
+    }).catch(function () { progressDone(); });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.classList.add('spinning');
+    poll();
+    loadHistory();
+    setTimeout(function () { btn.classList.remove('spinning'); }, 500);
+  });
+
+  document.getElementById('timeframeSelect').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tf-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tf-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentHours = Number(btn.dataset.hours);
+    loadHistory();
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    polling = !document.hidden;
+    if (polling) poll();
+  });
+
+  setInterval(poll, 3000);
+  loadHistory();
+  poll();
+})();
+</script>
+</body>
+</html>

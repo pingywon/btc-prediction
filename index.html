@@ -212,6 +212,13 @@
   .bigroad-icon svg { width: 17px; height: 17px; }
   .bigroad-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
   .bigroad-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+  .wheel-teaser {
+    display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem;
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--amber); text-decoration: none; padding: 0.3rem 0.65rem; border-radius: 999px;
+    background: rgba(240,180,41,0.08); border: 1px solid rgba(240,180,41,0.25);
+  }
+  .wheel-teaser:hover { background: rgba(240,180,41,0.14); }
 
   .bigroad-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
@@ -430,6 +437,7 @@
         <div>
           <h2>Big Road History</h2>
           <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
+          <a class="wheel-teaser" href="/wheel">New: Try the Wheel Room (beta) &rarr;</a>
         </div>
       </div>
       <div class="bigroad-controls">

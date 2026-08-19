@@ -458,7 +458,9 @@ class Handler(BaseHTTPRequestHandler):
             parsed = urllib.parse.urlparse(self.path)
             path = parsed.path
             if path in ("/", "/index.html"):
-                return self._serve_page()
+                return self._serve_page("index.html")
+            if path in ("/wheel", "/wheel.html"):
+                return self._serve_page("wheel.html")
             if path == "/health":
                 return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":
@@ -476,9 +478,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         self._send(404, b'{"error":"not found"}')
 
-    def _serve_page(self):
+    def _serve_page(self, filename):
         try:
-            with open(os.path.join(HERE, "index.html"), "rb") as f:
+            with open(os.path.join(HERE, filename), "rb") as f:
                 self._send(200, f.read(), "text/html; charset=utf-8")
         except Exception as e:  # noqa
             self._send(500, json.dumps({"error": str(e)}).encode())
