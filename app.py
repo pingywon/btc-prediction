@@ -37,7 +37,8 @@ IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap,
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
 SETTLE_RETRY_S = 3
-BACKFILL_LOOKBACK_S = 365 * 24 * 3600  # 1 year; self-limits to whatever Kalshi's history actually covers
+ROUND_RETENTION_S = 30 * 24 * 3600  # rolling window -- owner doesn't need anything older
+BACKFILL_LOOKBACK_S = ROUND_RETENTION_S
 LEAN_FULL_TILT_USD = 300.0
 TICK_RETENTION_S = 3 * 3600
 MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
@@ -234,6 +235,12 @@ def backfill():
     return inserted
 
 
+def prune_old_rounds():
+    cutoff = time.time() - ROUND_RETENTION_S
+    cur = db.execute("DELETE FROM rounds WHERE close_time < ?", (cutoff,))
+    return cur.rowcount if cur else 0
+
+
 def newest_settled_close_time():
     # Deliberately excludes the still-open round: refresh_open_round() runs right
     # before this is checked and always upserts whatever Kalshi currently reports as
@@ -264,10 +271,15 @@ def round_engine():
         print("[round_engine] backfilled %d rounds" % n, file=sys.stderr)
     except Exception as e:  # noqa
         print("[round_engine] backfill failed: %s" % e, file=sys.stderr)
+    try:
+        prune_old_rounds()
+    except Exception as e:  # noqa
+        print("[round_engine] prune failed: %s" % e, file=sys.stderr)
     with STATE_LOCK:
         STATE["catching_up"] = False
 
     refresh_open_round()
+    last_prune = time.time()
 
     # The IDLE_CHECK_S loop below always runs so activity changes are noticed within
     # a few seconds; actual Kalshi calls only fire when "due", at ACTIVE_ROUND_POLL_S
@@ -301,6 +313,13 @@ def round_engine():
                         print("[round_engine] gap catch-up backfilled %d rounds" % n, file=sys.stderr)
                 except Exception as e:  # noqa
                     print("[round_engine] gap catch-up failed: %s" % e, file=sys.stderr)
+
+            if time.time() - last_prune > 3600:
+                last_prune = time.time()
+                try:
+                    prune_old_rounds()
+                except Exception as e:  # noqa
+                    print("[round_engine] prune failed: %s" % e, file=sys.stderr)
 
             if active:
                 # Scan for anything past close_time still unsettled, rather than trusting

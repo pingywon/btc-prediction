@@ -213,7 +213,17 @@
   .bigroad-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
   .bigroad-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
 
+  .bigroad-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+  .refresh-btn {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: var(--bg-deep);
+    color: var(--faint); cursor: pointer; flex: none;
+  }
+  .refresh-btn:hover { color: var(--amber); border-color: rgba(240,180,41,0.3); }
+  .refresh-btn svg { width: 14px; height: 14px; }
+  .refresh-btn.spinning svg { animation: refreshSpin 0.7s linear infinite; }
+  @keyframes refreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .tf-btn {
     font-family: var(--sans); font-size: 0.65rem; font-weight: 700; padding: 0.4rem 0.7rem;
     border-radius: 7px; border: none; background: transparent; color: var(--faint); cursor: pointer;
@@ -422,15 +432,19 @@
           <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
         </div>
       </div>
-      <div class="timeframe-select" id="timeframeSelect">
-        <button class="tf-btn" data-hours="1">1H</button>
-        <button class="tf-btn" data-hours="2">2H</button>
-        <button class="tf-btn" data-hours="3">3H</button>
-        <button class="tf-btn" data-hours="6">6H</button>
-        <button class="tf-btn active" data-hours="24">24H</button>
-        <button class="tf-btn" data-hours="168">7D</button>
-        <button class="tf-btn" data-hours="720">30D</button>
-        <button class="tf-btn" data-hours="8760">1Y</button>
+      <div class="bigroad-controls">
+        <div class="timeframe-select" id="timeframeSelect">
+          <button class="tf-btn" data-hours="1">1H</button>
+          <button class="tf-btn" data-hours="2">2H</button>
+          <button class="tf-btn" data-hours="3">3H</button>
+          <button class="tf-btn" data-hours="6">6H</button>
+          <button class="tf-btn active" data-hours="24">24H</button>
+          <button class="tf-btn" data-hours="168">7D</button>
+          <button class="tf-btn" data-hours="720">30D</button>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" title="Refresh now" aria-label="Refresh now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>
+        </button>
       </div>
     </div>
 
@@ -502,7 +516,7 @@
     var d = new Date(tsSec * 1000);
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
-  var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days', 8760: 'Year' };
+  var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days' };
 
   var state = null;
 
@@ -733,7 +747,7 @@
         // fake "+0" (JS coerces null to 0 in numeric comparisons/Math.abs).
         var hasDelta = r.delta !== null && r.delta !== undefined;
         var sign = hasDelta && r.delta >= 0 ? '+' : '-';
-        bead.title = 'Time: ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+        bead.title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
           ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
           ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
         bead.innerHTML =
@@ -798,6 +812,18 @@
       historyDirty = false;
     }).catch(function () { progressDone(); });
   }
+
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    // poll()/loadHistory() don't return their fetch promises (they self-manage the
+    // shared top progress bar via progressStart/progressDone), so this spin is just a
+    // short click-acknowledgment, not tied to the actual fetch completing -- the top
+    // progress bar is the real loading indicator.
+    var btn = this;
+    btn.classList.add('spinning');
+    poll();
+    loadHistory();
+    setTimeout(function () { btn.classList.remove('spinning'); }, 500);
+  });
 
   document.getElementById('timeframeSelect').addEventListener('click', function (e) {
     var btn = e.target.closest('.tf-btn');
