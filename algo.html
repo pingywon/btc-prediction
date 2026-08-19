@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BTC 15 — ALGO Desk</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2305060a%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23ffd23f%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23ffd23f%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%2339ff88%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23ff3d6e%27/%3E %3C/svg%3E">
+<style>
+  :root {
+    --bg-deep: #05060a;
+    --surface-900: #0d0f16;
+    --surface-850: #12151f;
+    --surface-800: #171b28;
+    --surface-700: #232838;
+    --cream: #f5f7fa;
+    --soft: #c7ccd9;
+    --dim: #7d8399;
+    --faint: #4b5066;
+    --amber: #ffd23f;
+    --amber-deep: #e6ac00;
+    --amber-soft: #ffe28a;
+    --green: #39ff88;
+    --red: #ff3d6e;
+    --blue-derived: #22e6ff;
+    --red-derived: #ff5252;
+    --border: rgba(255, 255, 255, 0.09);
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --bead: 52px;
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg-deep); color: var(--cream); font-family: var(--sans);
+    position: relative; overflow-x: hidden;
+  }
+  body::before {
+    content: ""; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; height: 420px; pointer-events: none; z-index: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(34,230,255,0.08), rgba(255,210,63,0.04), transparent 70%);
+  }
+  .tabular { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+  .wrap {
+    position: relative; z-index: 1; max-width: 1400px; margin: 0 auto;
+    padding: clamp(0.75rem, 3vw, 1.5rem);
+    display: flex; flex-direction: column; gap: clamp(1.1rem, 3vw, 1.5rem);
+  }
+
+  .panel {
+    background: linear-gradient(160deg, rgba(23,27,40,0.92), rgba(5,6,10,0.94));
+    border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+
+  header.app-header {
+    display: flex; flex-direction: column; gap: 0.75rem; justify-content: space-between;
+    border-bottom: 1px solid rgba(205,214,227,0.05); padding-bottom: 1rem;
+  }
+  @media (min-width: 768px) { header.app-header { flex-direction: row; align-items: center; } }
+  .brand { display: flex; align-items: center; gap: 0.75rem; }
+  .brand-tile {
+    width: 36px; height: 36px; background: var(--blue-derived); border-radius: 8px; flex: none;
+    display: flex; align-items: center; justify-content: center; color: var(--bg-deep);
+  }
+  .brand-tile svg { width: 20px; height: 20px; }
+  .brand h1 { margin: 0; font-size: 1rem; font-weight: 900; letter-spacing: 0.08em; color: var(--blue-derived); text-transform: uppercase; }
+  .brand .sub { margin: 0.1rem 0 0; font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: -0.01em; font-weight: 500; }
+  .classic-link {
+    display: block; font-size: 0.68rem; font-weight: 800; color: var(--faint);
+    text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; text-align: left;
+  }
+  @media (min-width: 768px) { .classic-link { text-align: right; } }
+  .classic-link:hover { color: var(--amber); }
+
+  .price-hero .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
+  .price-hero .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; line-height: 1; }
+  .freshness { font-size: 0.56rem; color: var(--faint); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+
+  .price-sub-row { display: flex; align-items: center; gap: 1.25rem; margin-top: 1rem; flex-wrap: wrap; }
+  .price-sub-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .price-sub-label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.06em; }
+  .price-sub-divider { width: 1px; align-self: stretch; background: rgba(255,255,255,0.08); }
+  .round-timer-value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 900; color: var(--amber); letter-spacing: -0.02em; line-height: 1; }
+  .round-timer-value.locked { color: var(--red); animation: timerPulse 1s ease-in-out infinite; }
+  @keyframes timerPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .price-sub-item .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
+  .target-delta { font-size: 0.64rem; font-weight: 700; margin-top: 0.15rem; }
+  .target-delta.up { color: var(--green); }
+  .target-delta.down { color: var(--red); }
+
+  .price-chart-wrap { margin-top: 1.1rem; }
+  .price-chart-caption { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
+  .price-chart-caption span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .price-chart-stage { width: 100%; height: 130px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
+  .price-chart-stage svg { width: 100%; height: 100%; display: block; }
+  .price-chart-empty {
+    height: 130px; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    color: var(--faint); font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+  }
+
+  .algo-card { padding: clamp(1.1rem, 3vw, 1.5rem); position: relative; overflow: hidden; }
+  .algo-card::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue-derived), transparent); opacity: 0.6;
+  }
+  .algo-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+  .algo-title { display: flex; align-items: center; gap: 0.6rem; }
+  .algo-title-icon {
+    width: 34px; height: 34px; border-radius: 8px; background: rgba(34,230,255,0.12);
+    color: var(--blue-derived); display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .algo-title-icon svg { width: 18px; height: 18px; }
+  .algo-title h2 { margin: 0; font-size: 0.85rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--blue-derived); }
+  .algo-title p { margin: 0.1rem 0 0; font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .algo-pick-badge {
+    display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 999px;
+    font-size: 1rem; font-weight: 900; letter-spacing: 0.04em;
+  }
+  .algo-pick-badge.yes { background: rgba(57,255,136,0.14); color: var(--green); }
+  .algo-pick-badge.no { background: rgba(255,61,110,0.14); color: var(--red); }
+  .algo-pick-badge.pending { background: var(--surface-800); color: var(--faint); font-size: 0.68rem; text-transform: uppercase; }
+  .algo-reason { margin-top: 0.9rem; font-size: 0.74rem; color: var(--soft); line-height: 1.5; }
+  .algo-reason b { color: var(--blue-derived); }
+
+  .scoreboard-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+  .score-tile { padding: 1.1rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center; }
+  .score-tile .who { font-size: 0.64rem; color: var(--dim); text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
+  .score-tile .record { font-size: 1.9rem; font-weight: 900; }
+  .score-tile.algo .record { color: var(--blue-derived); }
+  .score-tile.you .record { color: var(--amber); }
+  .score-tile .winpct { font-size: 0.66rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+
+  .bigroad-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .bigroad-head { display: flex; flex-direction: column; gap: 0.9rem; justify-content: space-between; margin-bottom: 1.75rem; }
+  @media (min-width: 768px) { .bigroad-head { flex-direction: row; align-items: center; } }
+  .bigroad-title-row { display: flex; align-items: center; gap: 0.75rem; }
+  .bigroad-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(255,210,63,0.1);
+    color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .bigroad-icon svg { width: 17px; height: 17px; }
+  .bigroad-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+  .bigroad-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+  .bigroad-legend { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .bigroad-legend .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .bigroad-legend span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .legend-diamond { width: 11px; height: 11px; background: var(--blue-derived); transform: rotate(45deg); flex: none; }
+  .legend-circle { width: 11px; height: 11px; border-radius: 50%; background: var(--amber); flex: none; }
+
+  .bigroad-controls { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .timeframe-select { display: flex; flex-wrap: wrap; gap: 0.2rem; background: var(--bg-deep); padding: 0.25rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+  .refresh-btn {
+    display: flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+    border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); background: var(--bg-deep);
+    color: var(--faint); cursor: pointer; flex: none;
+  }
+  .refresh-btn:hover { color: var(--amber); border-color: rgba(255,210,63,0.3); }
+  .refresh-btn svg { width: 14px; height: 14px; }
+  .refresh-btn.spinning svg { animation: refreshSpin 0.7s linear infinite; }
+  @keyframes refreshSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .tf-btn {
+    font-family: var(--sans); font-size: 0.65rem; font-weight: 700; padding: 0.4rem 0.7rem;
+    border-radius: 7px; border: none; background: transparent; color: var(--faint); cursor: pointer;
+  }
+  .tf-btn:hover { background: var(--surface-800); }
+  .tf-btn.active { background: var(--amber); color: var(--bg-deep); }
+
+  .bigroad-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; min-height: 200px; }
+  .bigroad-col { display: flex; flex-direction: column; gap: 8px; }
+  .bigroad-col.dragon-tail { box-shadow: 0 0 0 2px var(--amber), 0 0 12px rgba(255,210,63,0.4); border-radius: 8px; padding: 3px; margin: -3px; }
+  .bead {
+    width: var(--bead); height: calc(var(--bead) + 4px); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    user-select: none; transition: transform 0.15s; position: relative;
+  }
+  .bead:hover { transform: scale(1.06); }
+  .bead.yes { background: var(--green); color: var(--bg-deep); }
+  .bead.no { background: var(--red); color: var(--bg-deep); }
+  .bead-glyph { font-weight: 900; font-size: 1.05rem; line-height: 1; }
+  .bead-time { font-weight: 700; font-size: 0.58rem; opacity: 0.82; margin-top: 1px; letter-spacing: -0.02em; }
+  .bead-delta { font-weight: 900; font-size: 0.56rem; opacity: 0.92; }
+  .bead-badge-algo, .bead-badge-you {
+    position: absolute; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--bg-deep);
+  }
+  .bead-badge-algo { bottom: -5px; right: -5px; border-radius: 3px; transform: rotate(45deg); }
+  .bead-badge-algo svg { transform: rotate(-45deg); width: 8px; height: 8px; }
+  .bead-badge-you { bottom: -5px; left: -5px; border-radius: 50%; }
+  .bead-badge-you svg { width: 8px; height: 8px; }
+  .bead-badge-algo.hit, .bead-badge-you.hit { background: var(--blue-derived); color: var(--bg-deep); }
+  .bead-badge-algo.miss, .bead-badge-you.miss { background: var(--surface-700); color: var(--faint); }
+  .bead-badge-you.hit { background: var(--amber); }
+
+  .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(255,255,255,0.05); }
+  .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
+  @media (min-width: 640px) { .derived-head { flex-direction: row; align-items: center; } }
+  .derived-title-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .derived-title-row h3 { margin: 0; font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); }
+  .derived-title-row .caption { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; font-style: italic; }
+  .derived-legend { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .legend-item span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .derived-bead { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .derived-bead.repeat { border: 2.5px solid var(--blue-derived); background: transparent; }
+  .derived-bead.break { background: var(--red-derived); }
+  .derived-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .spread-section { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .spread-section-head { display: flex; flex-direction: column; gap: 0.5rem; justify-content: space-between; margin-bottom: 1.25rem; }
+  @media (min-width: 768px) { .spread-section-head { flex-direction: row; align-items: center; } }
+  .spread-title-row { display: flex; align-items: center; gap: 0.75rem; }
+  .spread-icon {
+    width: 32px; height: 32px; border-radius: 8px; background: rgba(255,210,63,0.1);
+    color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .spread-icon svg { width: 17px; height: 17px; }
+  .spread-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+  .spread-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
+  .spread-range { font-size: 0.62rem; color: var(--dim); font-weight: 600; white-space: nowrap; }
+  .spread-list { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+  .spread-row-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .spread-row-item:last-child { border-bottom: none; }
+  .spread-row-item:nth-child(odd) { background: rgba(255,255,255,0.015); }
+  .spread-time { font-size: 0.66rem; color: var(--soft); font-weight: 700; flex: none; width: 108px; }
+  .spread-bar-wrap { flex: 1; height: 6px; background: var(--surface-800); border-radius: 999px; position: relative; overflow: hidden; margin: 0 0.25rem; min-width: 40px; }
+  .spread-bar { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .spread-bar.up { background: var(--green); left: 50%; }
+  .spread-bar.down { background: var(--red); right: 50%; }
+  .spread-amount { font-size: 0.74rem; font-weight: 900; flex: none; width: 92px; text-align: right; }
+  .spread-amount.up { color: var(--green); }
+  .spread-amount.down { color: var(--red); }
+  .spread-empty { padding: 2rem 1rem; text-align: center; color: var(--faint); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+
+  footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+  .foot-link { font-size: 0.68rem; font-weight: 800; color: var(--blue-derived); text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; }
+  .foot-link:hover { color: var(--amber); }
+  .foot-bar { width: 44px; height: 3px; background: var(--blue-derived); border-radius: 999px; opacity: 0.3; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-700); border-radius: 3px; }
+
+  .top-progress {
+    position: fixed; top: 0; left: 0; width: 100%; height: 3px; z-index: 50;
+    overflow: hidden; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  }
+  .top-progress.active { opacity: 1; }
+  .top-progress-bar { height: 100%; width: 40%; background: linear-gradient(90deg, transparent, var(--blue-derived), var(--amber), transparent); }
+  .top-progress.active .top-progress-bar { animation: topProgressSlide 1.1s ease-in-out infinite; }
+  @keyframes topProgressSlide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+</style>
+</head>
+<body>
+<div class="top-progress" id="topProgress"><div class="top-progress-bar"></div></div>
+<div class="wrap">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-tile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 9h.01M9 15c.83.67 1.83 1 3 1s2.17-.33 3-1"/></svg>
+      </div>
+      <div>
+        <h1>ALGO Desk</h1>
+        <p class="sub">an AI calling this same market live, every round &middot; just for fun</p>
+      </div>
+    </div>
+    <a class="classic-link" href="/">&larr; Back to the main dashboard</a>
+  </header>
+
+  <div class="panel algo-card">
+    <div class="algo-head">
+      <div class="algo-title">
+        <div class="algo-title-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h.01M15 9h.01M9 15c.83.67 1.83 1 3 1s2.17-.33 3-1"/></svg>
+        </div>
+        <div>
+          <h2>ALGO's Call — This Round</h2>
+          <p id="algoRoundSentence">Loading the table&hellip;</p>
+        </div>
+      </div>
+      <span class="algo-pick-badge pending" id="algoPickBadge">Watching&hellip;</span>
+    </div>
+    <p class="algo-reason" id="algoReason">&nbsp;</p>
+  </div>
+
+  <div class="scoreboard-strip">
+    <div class="panel score-tile algo">
+      <span class="who">ALGO Record</span>
+      <span class="record tabular" id="algoRecord">0-0</span>
+      <span class="winpct" id="algoWinPct">no calls yet</span>
+    </div>
+    <div class="panel score-tile you">
+      <span class="who">Your Record</span>
+      <span class="record tabular" id="youRecord">0-0</span>
+      <span class="winpct" id="youWinPct">no calls yet</span>
+    </div>
+  </div>
+
+  <div class="panel algo-card">
+    <div class="price-hero">
+      <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
+      <div class="value tabular" id="livePrice">—</div>
+      <div class="price-sub-row">
+        <div class="price-sub-item">
+          <span class="price-sub-label" id="roundTimerLabel">Round Closes</span>
+          <span class="round-timer-value tabular" id="roundTimerValue">—</span>
+        </div>
+        <div class="price-sub-divider"></div>
+        <div class="price-sub-item">
+          <span class="price-sub-label">Target Strike</span>
+          <span class="value tabular" id="strikeValue">—</span>
+          <div class="target-delta tabular" id="targetDelta">&nbsp;</div>
+        </div>
+      </div>
+      <div class="price-chart-wrap">
+        <div class="price-chart-caption">
+          <span id="chartRangeLabel">This round's price, live</span>
+          <span>Dashed line = target</span>
+        </div>
+        <div class="price-chart-stage" id="priceChartStage">
+          <svg id="priceChartSvg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel bigroad-section">
+    <div class="bigroad-head">
+      <div class="bigroad-title-row">
+        <div class="bigroad-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>
+        </div>
+        <div>
+          <h2>Big Road History</h2>
+          <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
+          <div class="bigroad-legend">
+            <div class="legend-item"><div class="legend-diamond"></div><span>ALGO's call</span></div>
+            <div class="legend-item"><div class="legend-circle"></div><span>Your call</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="bigroad-controls">
+        <div class="timeframe-select" id="timeframeSelect">
+          <button class="tf-btn" data-hours="0.5">30M</button>
+          <button class="tf-btn" data-hours="1">1H</button>
+          <button class="tf-btn" data-hours="2">2H</button>
+          <button class="tf-btn" data-hours="3">3H</button>
+          <button class="tf-btn" data-hours="6">6H</button>
+          <button class="tf-btn" data-hours="8">8H</button>
+          <button class="tf-btn" data-hours="12">12H</button>
+          <button class="tf-btn active" data-hours="24">24H</button>
+          <button class="tf-btn" data-hours="168">7D</button>
+        </div>
+        <button class="refresh-btn" id="refreshBtn" title="Refresh now" aria-label="Refresh now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="bigroad-grid" id="bigroadGrid"></div>
+
+    <div class="derived-section">
+      <div class="derived-head">
+        <div class="derived-title-row">
+          <h3>Big Eye Boy</h3>
+          <span class="caption">Derivation: pattern repeatability relative to history</span>
+        </div>
+        <div class="derived-legend">
+          <div class="legend-item"><div class="derived-bead break"></div><span>Break (Chaotic)</span></div>
+          <div class="legend-item"><div class="derived-bead repeat"></div><span>Repeat (Predictable)</span></div>
+        </div>
+      </div>
+      <div class="derived-grid" id="derivedRoad"></div>
+    </div>
+  </section>
+
+  <section class="panel spread-section">
+    <div class="spread-section-head">
+      <div class="spread-title-row">
+        <div class="spread-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>
+        </div>
+        <div>
+          <h2>Round-to-Round Spread</h2>
+          <p class="sub">How much price moved during each settled round &middot; green up, red down</p>
+        </div>
+      </div>
+      <span class="spread-range" id="spreadRange">&nbsp;</span>
+    </div>
+    <div class="spread-list" id="spreadList"></div>
+  </section>
+
+  <footer class="page-foot">
+    <a class="foot-link" href="/">&larr; Back to the main dashboard</a>
+    <div class="foot-bar"></div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var clockOffsetMs = 0;
+  var historyDirty = true;
+  var currentHours = 24;
+  var polling = true;
+  var COLUMN_CAP = 6;
+  var lastPriceUpdateMs = null;
+  var historyReqId = 0;
+  var inFlight = 0;
+  var chartRoundTicker = null;
+  var chartReqId = 0;
+  var lastSeenSettled = null;
+  var YES_HEX = '#39ff88', NO_HEX = '#ff3d6e', AMBER_HEX = '#ffd23f';
+  var state = null;
+
+  function loadJSON(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+  function progressStart() { inFlight++; document.getElementById('topProgress').classList.add('active'); }
+  function progressDone() {
+    inFlight = Math.max(0, inFlight - 1);
+    if (inFlight === 0) document.getElementById('topProgress').classList.remove('active');
+  }
+
+  function now() { return Date.now() + clockOffsetMs; }
+  function fmtUSD(n) {
+    if (n === null || n === undefined) return '—';
+    return '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+  function fmtClock(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + 'm ' + (s < 10 ? '0' : '') + s + 's';
+  }
+  function fmtHHMM(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  var WINDOW_LABELS = { 0.5: '30 Minutes', 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 8: '8 Hours', 12: '12 Hours', 24: '24 Hours', 168: '7 Days' };
+
+  // ALGO's own record, kept entirely separate from the shared personal-pick keys.
+  var AI_PICK_KEY = 'btc15_ai_picks', AI_RECORD_KEY = 'btc15_ai_record', AI_RESOLVED_KEY = 'btc15_ai_resolved';
+  var aiPicks = loadJSON(AI_PICK_KEY, {});
+  var aiRecord = loadJSON(AI_RECORD_KEY, { wins: 0, losses: 0 });
+  var aiResolved = loadJSON(AI_RESOLVED_KEY, []);
+
+  // The user's own picks -- same keys the main dashboard writes to (same origin), read
+  // here only to display and resolve for comparison. Never written to from this page:
+  // there's no pick UI here, this is a read-only mirror.
+  var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved';
+  var picks = loadJSON(PICK_KEY, {});
+  var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
+  var resolved = loadJSON(RESOLVED_KEY, []);
+
+  // ALGO's heuristic: Kalshi's own live market odds ARE a real, crowd-priced
+  // probability -- simplest defensible "statistics and probability" signal available.
+  // Falls back to the live lean (instant price vs. target) when odds are missing or
+  // essentially a coin flip. Computed once per round and locked in immediately, same
+  // immutability pattern as the personal-pick mechanic.
+  function computeAlgoPick(d) {
+    var cur = d.current_round;
+    if (!cur) return null;
+    var yesOdds = cur.kalshi_yes_price, noOdds = cur.kalshi_no_price;
+    if (yesOdds !== null && yesOdds !== undefined) {
+      var effNo = (noOdds !== null && noOdds !== undefined) ? noOdds : (1 - yesOdds);
+      if (Math.abs(yesOdds - effNo) < 0.04 && d.lean) {
+        return { choice: d.lean.direction, reason: 'Kalshi’s odds are almost a coin flip (' + Math.round(yesOdds * 100) + '% YES / ' + Math.round(effNo * 100) + '% NO) — leaning on the live price position instead, currently ' + d.lean.direction.toUpperCase() + '.' };
+      }
+      var choice = yesOdds >= effNo ? 'yes' : 'no';
+      return { choice: choice, reason: 'Kalshi’s own market prices ' + choice.toUpperCase() + ' higher — ' + Math.round(yesOdds * 100) + '% YES / ' + Math.round(effNo * 100) + '% NO on real order-book pricing.' };
+    }
+    if (d.lean) {
+      return { choice: d.lean.direction, reason: 'No live odds yet — going with the current price position, ' + (d.lean.direction === 'yes' ? 'above' : 'below') + ' target.' };
+    }
+    return null;
+  }
+
+  function ensureAlgoPick(d) {
+    var cur = d.current_round;
+    if (!cur || aiPicks[cur.ticker]) return;
+    var locked = (now() / 1000) >= cur.lock_ts;
+    if (locked) return;
+    var call = computeAlgoPick(d);
+    if (!call) return;
+    aiPicks[cur.ticker] = { choice: call.choice, reason: call.reason, ts: Date.now() };
+    saveJSON(AI_PICK_KEY, aiPicks);
+  }
+
+  function resolveRecord(s, storePicks, storeResolved, recordObj, recordKey, resolvedKey) {
+    if (!s) return false;
+    var mine = storePicks[s.ticker];
+    if (!mine || storeResolved.indexOf(s.ticker) !== -1) return false;
+    if (mine.choice === s.result) recordObj.wins++; else recordObj.losses++;
+    storeResolved.push(s.ticker);
+    saveJSON(recordKey, recordObj);
+    saveJSON(resolvedKey, storeResolved);
+    return true;
+  }
+
+  function renderScoreboard() {
+    document.getElementById('algoRecord').textContent = aiRecord.wins + '-' + aiRecord.losses;
+    var aiTotal = aiRecord.wins + aiRecord.losses;
+    document.getElementById('algoWinPct').textContent = aiTotal ? Math.round(aiRecord.wins / aiTotal * 100) + '% correct' : 'no calls yet';
+
+    document.getElementById('youRecord').textContent = record.wins + '-' + record.losses;
+    var youTotal = record.wins + record.losses;
+    document.getElementById('youWinPct').textContent = youTotal ? Math.round(record.wins / youTotal * 100) + '% correct' : 'no calls yet';
+  }
+
+  function renderAlgoCall(d) {
+    var cur = d.current_round;
+    var sentence = document.getElementById('algoRoundSentence');
+    var badge = document.getElementById('algoPickBadge');
+    var reason = document.getElementById('algoReason');
+    if (d.catching_up) { sentence.textContent = 'Reconstructing missed rounds…'; return; }
+    if (!cur) {
+      sentence.textContent = 'Waiting for the next round to open…';
+      badge.className = 'algo-pick-badge pending'; badge.textContent = 'Watching…';
+      reason.textContent = ' ';
+      return;
+    }
+    var t = now() / 1000;
+    var secLeft = cur.close_time - t;
+    var locked = t >= cur.lock_ts;
+    sentence.innerHTML = 'Target <b>' + fmtUSD(cur.floor_strike) + '</b> · ' + (locked ? 'locked, ' : '') + fmtClock(secLeft) + (locked ? ' left to settle' : ' to lock');
+    var mine = aiPicks[cur.ticker];
+    if (mine) {
+      badge.className = 'algo-pick-badge ' + mine.choice;
+      badge.textContent = mine.choice.toUpperCase();
+      reason.innerHTML = '<b>Why:</b> ' + mine.reason;
+    } else {
+      badge.className = 'algo-pick-badge pending';
+      badge.textContent = locked ? 'Sat this one out' : 'Watching…';
+      reason.textContent = locked ? 'Not enough live data landed before lock — ALGO skips a round rather than guess blind.' : ' ';
+    }
+  }
+
+  function loadPriceChart(cur) {
+    var stage = document.getElementById('priceChartStage');
+    if (!cur) {
+      stage.innerHTML = '<div class="price-chart-empty">Waiting for a round to open</div>';
+      document.getElementById('chartRangeLabel').textContent = 'This round’s price, live';
+      chartRoundTicker = null;
+      return;
+    }
+    if (cur.ticker !== chartRoundTicker) {
+      chartRoundTicker = cur.ticker;
+      stage.innerHTML = '<svg id="priceChartSvg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>';
+    }
+    var reqId = ++chartReqId;
+    fetch('/api/ticks?since=' + cur.open_time).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (reqId !== chartReqId) return;
+      renderPriceChart(d.ticks, cur);
+    }).catch(function () {});
+  }
+
+  function renderPriceChart(ticks, cur) {
+    var stage = document.getElementById('priceChartStage');
+    var svgEl = document.getElementById('priceChartSvg');
+    if (!ticks.length || !svgEl) {
+      stage.innerHTML = '<div class="price-chart-empty">No live ticks recorded for this round yet</div>';
+      return;
+    }
+    var ns = 'http://www.w3.org/2000/svg';
+    svgEl.innerHTML = '';
+    var W = 600, H = 130, PAD = 6;
+    var strike = cur.floor_strike;
+    var prices = ticks.map(function (t) { return t[1]; });
+    var minP = Math.min(strike, Math.min.apply(null, prices));
+    var maxP = Math.max(strike, Math.max.apply(null, prices));
+    var span = Math.max(0.01, maxP - minP);
+    minP -= span * 0.15; maxP += span * 0.15; span = maxP - minP;
+    var t0 = cur.open_time, t1 = Math.max(cur.close_time, ticks[ticks.length - 1][0]);
+    var xScale = function (ts) { return PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2); };
+    var yScale = function (p) { return H - PAD - ((p - minP) / span) * (H - PAD * 2); };
+
+    var strikeY = yScale(strike);
+    var strikeLine = document.createElementNS(ns, 'line');
+    strikeLine.setAttribute('x1', PAD); strikeLine.setAttribute('x2', W - PAD);
+    strikeLine.setAttribute('y1', strikeY); strikeLine.setAttribute('y2', strikeY);
+    strikeLine.setAttribute('stroke', AMBER_HEX);
+    strikeLine.setAttribute('stroke-width', '1.5');
+    strikeLine.setAttribute('stroke-dasharray', '5,4');
+    strikeLine.setAttribute('opacity', '0.7');
+    svgEl.appendChild(strikeLine);
+
+    for (var i = 1; i < ticks.length; i++) {
+      var seg = document.createElementNS(ns, 'line');
+      seg.setAttribute('x1', xScale(ticks[i - 1][0])); seg.setAttribute('y1', yScale(ticks[i - 1][1]));
+      seg.setAttribute('x2', xScale(ticks[i][0])); seg.setAttribute('y2', yScale(ticks[i][1]));
+      seg.setAttribute('stroke', ticks[i][1] >= strike ? YES_HEX : NO_HEX);
+      seg.setAttribute('stroke-width', '2.5');
+      seg.setAttribute('stroke-linecap', 'round');
+      svgEl.appendChild(seg);
+    }
+
+    var last = ticks[ticks.length - 1];
+    var dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', xScale(last[0])); dot.setAttribute('cy', yScale(last[1])); dot.setAttribute('r', 4);
+    dot.setAttribute('fill', last[1] >= strike ? YES_HEX : NO_HEX);
+    dot.setAttribute('stroke', 'var(--bg-deep)'); dot.setAttribute('stroke-width', '1.5');
+    svgEl.appendChild(dot);
+
+    document.getElementById('chartRangeLabel').textContent =
+      fmtHHMM(cur.open_time) + '–' + fmtHHMM(cur.close_time) + ' · target ' + fmtUSD(strike);
+  }
+
+  function render() {
+    if (!state) return;
+    var t = now() / 1000;
+    var cur = state.current_round;
+    var timerValueEl = document.getElementById('roundTimerValue');
+    var timerLabelEl = document.getElementById('roundTimerLabel');
+
+    if (state.catching_up || !cur) {
+      timerValueEl.textContent = '—'; timerLabelEl.textContent = 'Round Closes'; timerValueEl.classList.remove('locked');
+    } else {
+      var secLeft = cur.close_time - t;
+      var locked = t >= cur.lock_ts;
+      timerValueEl.textContent = fmtClock(secLeft);
+      timerValueEl.classList.toggle('locked', locked);
+      timerLabelEl.textContent = locked ? 'Locked' : 'Round Closes';
+      document.getElementById('strikeValue').textContent = fmtUSD(cur.floor_strike);
+    }
+
+    var deltaEl = document.getElementById('targetDelta');
+    var lastS = state.last_settled;
+    if (lastS && lastS.settlement_value !== null && lastS.settlement_value !== undefined) {
+      var targetD = lastS.settlement_value - lastS.floor_strike;
+      var dSign = targetD >= 0 ? '▲ +' : '▼ -';
+      deltaEl.textContent = dSign + '$' + Math.abs(targetD).toFixed(2) + ' vs last round';
+      deltaEl.className = 'target-delta tabular ' + (targetD >= 0 ? 'up' : 'down');
+    } else {
+      deltaEl.textContent = ' '; deltaEl.className = 'target-delta tabular';
+    }
+
+    if (state.live_price !== null && state.live_price !== undefined) {
+      document.getElementById('livePrice').textContent = fmtUSD(state.live_price);
+    }
+    var freshEl = document.getElementById('priceFreshness');
+    if (lastPriceUpdateMs !== null) {
+      var ageS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = ageS <= 1 ? 'live' : ageS + 's ago';
+    }
+
+    ensureAlgoPick(state);
+    renderAlgoCall(state);
+    renderScoreboard();
+  }
+
+  // Skip the first poll's settlement (page-just-loaded isn't a new event); resolve
+  // both ALGO's and the user's record independently, then refresh history so the
+  // just-settled round's badges show up without any manual action.
+  function handleSettlement(s) {
+    if (!s) return;
+    if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
+    if (s.ticker === lastSeenSettled) return;
+    lastSeenSettled = s.ticker;
+    var aiChanged = resolveRecord(s, aiPicks, aiResolved, aiRecord, AI_RECORD_KEY, AI_RESOLVED_KEY);
+    var youChanged = resolveRecord(s, picks, resolved, record, RECORD_KEY, RESOLVED_KEY);
+    if (aiChanged || youChanged) renderScoreboard();
+    loadHistory();
+  }
+
+  function buildColumns(rounds) {
+    var columns = [];
+    var col = null, colResult = null;
+    rounds.forEach(function (r) {
+      if (!col || r.result !== colResult || col.length >= COLUMN_CAP) {
+        col = []; colResult = r.result; columns.push(col);
+      }
+      col.push(r);
+    });
+    return columns;
+  }
+
+  function computeBigEyeBoy(columns) {
+    var marks = [];
+    for (var c = 1; c < columns.length; c++) {
+      var col = columns[c];
+      for (var r = 0; r < col.length; r++) {
+        if (c === 1 && r === 0) continue;
+        var repeat;
+        if (r > 0) {
+          repeat = columns[c - 1].length > r;
+        } else {
+          var prevLen = columns[c - 1].length;
+          var prevPrevLen = c >= 2 ? columns[c - 2].length : null;
+          repeat = prevPrevLen !== null && prevLen === prevPrevLen;
+        }
+        marks.push(repeat);
+      }
+    }
+    return marks;
+  }
+
+  function renderBigRoad(rounds, tallies) {
+    var grid = document.getElementById('bigroadGrid');
+    grid.innerHTML = '';
+    var columns = buildColumns(rounds);
+    columns.forEach(function (col) {
+      var colEl = document.createElement('div');
+      colEl.className = 'bigroad-col';
+      if (col.length >= COLUMN_CAP) colEl.classList.add('dragon-tail');
+      col.forEach(function (r) {
+        var bead = document.createElement('div');
+        bead.className = 'bead ' + r.result;
+        var hasDelta = r.delta !== null && r.delta !== undefined;
+        var sign = hasDelta && r.delta >= 0 ? '+' : '-';
+        var title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+          ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
+          ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
+        bead.innerHTML =
+          '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
+          '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
+          '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
+        var ai = aiPicks[r.kalshi_ticker];
+        if (ai) {
+          var aiHit = ai.choice === r.result;
+          title += ' | ALGO called: ' + ai.choice.toUpperCase() + ' (' + (aiHit ? 'correct' : 'incorrect') + ')';
+          var aiBadge = document.createElement('span');
+          aiBadge.className = 'bead-badge-algo ' + (aiHit ? 'hit' : 'miss');
+          aiBadge.innerHTML = aiHit
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+          bead.appendChild(aiBadge);
+        }
+        var mine = picks[r.kalshi_ticker];
+        if (mine) {
+          var youHit = mine.choice === r.result;
+          title += ' | You called: ' + mine.choice.toUpperCase() + ' (' + (youHit ? 'correct' : 'incorrect') + ')';
+          var youBadge = document.createElement('span');
+          youBadge.className = 'bead-badge-you ' + (youHit ? 'hit' : 'miss');
+          youBadge.innerHTML = youHit
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+          bead.appendChild(youBadge);
+        }
+        bead.title = title;
+        colEl.appendChild(bead);
+      });
+      grid.appendChild(colEl);
+    });
+
+    var derived = document.getElementById('derivedRoad');
+    derived.innerHTML = '';
+    computeBigEyeBoy(columns).forEach(function (repeat) {
+      var d = document.createElement('div');
+      d.className = 'derived-bead ' + (repeat ? 'repeat' : 'break');
+      derived.appendChild(d);
+    });
+  }
+
+  function renderSpreadHistory(rounds) {
+    var list = document.getElementById('spreadList');
+    list.innerHTML = '';
+    var withDelta = rounds.filter(function (r) { return r.delta !== null && r.delta !== undefined; });
+    if (!withDelta.length) {
+      list.innerHTML = '<div class="spread-empty">No settled rounds with a recorded spread in this window yet</div>';
+      document.getElementById('spreadRange').textContent = '';
+      return;
+    }
+    var maxAbs = withDelta.reduce(function (m, r) { return Math.max(m, Math.abs(r.delta)); }, 0.01);
+    withDelta.slice().reverse().forEach(function (r) {
+      var up = r.delta >= 0;
+      var barPct = Math.min(50, (Math.abs(r.delta) / maxAbs) * 50);
+      var row = document.createElement('div');
+      row.className = 'spread-row-item';
+      row.title = 'Round ' + fmtHHMM(r.close_time - 900) + '-' + fmtHHMM(r.close_time) +
+        ': target ' + fmtUSD(r.floor_strike) + ' → settled ' + fmtUSD(r.settlement_value);
+      row.innerHTML =
+        '<span class="spread-time">' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time) + '</span>' +
+        '<div class="spread-bar-wrap"><div class="spread-bar ' + (up ? 'up' : 'down') + '" style="width:' + barPct + '%"></div></div>' +
+        '<span class="spread-amount ' + (up ? 'up' : 'down') + '">' + (up ? '▲ +' : '▼ -') + '$' + Math.abs(r.delta).toFixed(2) + '</span>';
+      list.appendChild(row);
+    });
+    document.getElementById('spreadRange').textContent =
+      'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + withDelta.length + ' rounds recorded';
+  }
+
+  function loadHistory() {
+    var reqId = ++historyReqId;
+    progressStart();
+    fetch('/api/history?hours=' + currentHours).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      progressDone();
+      if (reqId !== historyReqId) return;
+      renderBigRoad(d.rounds, d.tallies);
+      renderSpreadHistory(d.rounds);
+      historyDirty = false;
+    }).catch(function () { progressDone(); });
+  }
+
+  document.getElementById('refreshBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.classList.add('spinning');
+    poll();
+    loadHistory();
+    setTimeout(function () { btn.classList.remove('spinning'); }, 500);
+  });
+
+  document.getElementById('timeframeSelect').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tf-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tf-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentHours = Number(btn.dataset.hours);
+    loadHistory();
+  });
+
+  function poll() {
+    if (!polling) return;
+    progressStart();
+    fetch('/api/state').then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      progressDone();
+      clockOffsetMs = (d.now * 1000) - Date.now();
+      lastPriceUpdateMs = Date.now();
+      state = d;
+      render();
+      loadPriceChart(d.current_round);
+      handleSettlement(d.last_settled);
+      if (historyDirty) loadHistory();
+    }).catch(function () { progressDone(); });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    polling = !document.hidden;
+    if (polling) poll();
+  });
+
+  setInterval(poll, 2000);
+  setInterval(render, 1000);
+  loadHistory();
+  poll();
+})();
+</script>
+</body>
+</html>
