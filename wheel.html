@@ -77,6 +77,97 @@
   }
   @media (min-width: 768px) { .classic-link { text-align: right; } }
   .classic-link:hover { color: var(--amber); }
+  .customize-toggle {
+    display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem;
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 800; color: var(--faint);
+    text-transform: uppercase; letter-spacing: 0.02em; background: transparent;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 0.3rem 0.7rem; cursor: pointer;
+  }
+  .customize-toggle svg { width: 12px; height: 12px; }
+  .customize-toggle:hover, .customize-toggle.active { color: var(--amber); border-color: rgba(240,180,41,0.3); }
+
+  .hero-card { padding: clamp(1.1rem, 3vw, 1.5rem); position: relative; overflow: hidden; }
+  .hero-card::before {
+    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--amber), transparent); opacity: 0.5;
+  }
+  .price-row { display: flex; flex-direction: column; gap: 1.25rem; }
+  @media (min-width: 480px) { .price-row { flex-direction: row; align-items: flex-start; justify-content: space-between; } }
+  .price-block .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
+  .price-block.now .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; }
+  .price-block.target { text-align: left; }
+  @media (min-width: 480px) { .price-block.target { text-align: right; } }
+  .price-block.target .value { font-size: clamp(1.5rem, 5vw, 1.9rem); font-weight: 700; color: var(--amber); }
+  .freshness { font-size: 0.56rem; color: var(--faint); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+
+  .spread-row {
+    display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+    padding: 0.9rem 1rem; margin-top: 1.5rem;
+  }
+  @media (min-width: 480px) { .spread-row { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .spread-left { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .spread-label { font-size: 0.68rem; color: var(--faint); text-transform: uppercase; font-weight: 700; }
+  .delta-pill {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.7rem;
+    border-radius: 999px; font-weight: 700; font-size: 0.8rem;
+  }
+  .delta-pill.up { background: rgba(63,207,142,0.12); color: var(--green); }
+  .delta-pill.down { background: rgba(240,109,109,0.12); color: var(--red); }
+  .delta-pill svg { width: 9px; height: 9px; }
+  .rh-link {
+    display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 700;
+    color: var(--amber); text-decoration: none; letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .rh-link:hover { color: var(--amber-soft); }
+  .rh-link svg { width: 12px; height: 12px; }
+
+  .pick-row { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; margin-top: 0.75rem; }
+  @media (min-width: 480px) { .pick-row { flex-direction: row; align-items: center; justify-content: space-between; } }
+  .pick-left { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .pick-label { font-size: 0.68rem; color: var(--faint); text-transform: uppercase; font-weight: 700; }
+  .pick-btn {
+    font-family: var(--sans); font-size: 0.7rem; font-weight: 900; padding: 0.35rem 0.9rem;
+    border-radius: 7px; cursor: pointer; background: transparent; letter-spacing: 0.02em;
+  }
+  .pick-btn.yes { border: 1px solid rgba(63,207,142,0.35); color: var(--green); }
+  .pick-btn.no { border: 1px solid rgba(240,109,109,0.35); color: var(--red); }
+  .pick-btn.yes.selected { background: rgba(63,207,142,0.16); }
+  .pick-btn.no.selected { background: rgba(240,109,109,0.16); }
+  .pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .pick-record { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  .pick-record b { color: var(--soft); font-weight: 900; }
+
+  .customize-panel { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; border: 1px dashed rgba(240,180,41,0.3); }
+  .customize-head { display: flex; flex-direction: column; gap: 0.15rem; }
+  .customize-title { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); }
+  .customize-sub { font-size: 0.6rem; color: var(--faint); font-weight: 600; }
+  .customize-subhead { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--dim); letter-spacing: 0.04em; margin-top: 0.2rem; }
+  .customize-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  .customize-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem;
+    background: var(--bg-deep); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
+  }
+  .customize-row.hidden-row { opacity: 0.45; }
+  .customize-name { font-size: 0.68rem; font-weight: 700; color: var(--soft); }
+  .customize-controls { display: flex; align-items: center; gap: 0.3rem; }
+  .ctrl-btn {
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); background: transparent;
+    color: var(--faint); cursor: pointer;
+  }
+  .ctrl-btn svg { width: 12px; height: 12px; }
+  .ctrl-btn:hover { color: var(--amber); border-color: rgba(240,180,41,0.3); }
+  .ctrl-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+  .customize-reset {
+    align-self: flex-start; font-family: var(--sans); font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--faint); background: transparent; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer;
+  }
+  .customize-reset:hover { color: var(--red); border-color: rgba(240,109,109,0.3); }
+
+  .road-cell.picked.hit { box-shadow: 0 0 0 2px var(--amber), 0 0 7px rgba(240,180,41,0.55); }
+  .road-cell.picked.miss { box-shadow: 0 0 0 2px rgba(205,214,227,0.45); }
 
   .wheel-section { padding: clamp(1.1rem, 3vw, 1.75rem); display: flex; flex-direction: column; align-items: center; gap: 1.1rem; }
   .wheel-stage { position: relative; width: min(100%, 360px); aspect-ratio: 1 / 1; }
@@ -219,7 +310,7 @@
       <div class="flip-back" id="flipBack">
         <span class="flip-result" id="flipResult">—</span>
         <span class="flip-price tabular" id="flipPrice">—</span>
-        <span class="flip-label">Just settled</span>
+        <span class="flip-label" id="flipLabel">Just settled</span>
       </div>
     </div>
   </div>
@@ -242,10 +333,59 @@
     <div>
       <div class="header-sentence" id="headerSentence">Loading the table&hellip;</div>
       <a class="classic-link" href="/">&larr; Back to Classic View</a>
+      <button class="customize-toggle" id="customizeToggle" title="Show, hide, and reorder this page's sections">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Customize
+      </button>
     </div>
   </header>
 
-  <section class="panel wheel-section">
+  <section class="panel customize-panel" id="customizePanel" style="display:none">
+    <div class="customize-head">
+      <span class="customize-title">Customize This Page</span>
+      <span class="customize-sub">Show, hide, and reorder sections and boards &mdash; saved on this device only</span>
+    </div>
+    <div class="customize-list" id="sectionList"></div>
+    <div class="customize-subhead">Casino Floor Boards &mdash; which boards to show</div>
+    <div class="customize-list" id="roadList"></div>
+    <button class="customize-reset" id="resetLayoutBtn">Reset to default layout</button>
+  </section>
+
+  <section class="panel hero-card layout-section" data-section="price">
+    <div class="price-row">
+      <div class="price-block now">
+        <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
+        <div class="value tabular" id="livePrice">—</div>
+      </div>
+      <div class="price-block target">
+        <span class="label">Target Strike</span>
+        <div class="value tabular" id="strikeValue">—</div>
+      </div>
+    </div>
+    <div class="spread-row">
+      <div class="spread-left">
+        <span class="spread-label">Current Spread</span>
+        <div class="delta-pill" id="spreadPill">
+          <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 0L10 8H0z"/></svg>
+          <span class="tabular" id="spreadValue">—</span>
+        </div>
+      </div>
+      <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
+        VIEW ON ROBINHOOD
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
+      </a>
+    </div>
+    <div class="pick-row">
+      <div class="pick-left">
+        <span class="pick-label">Personal Pick</span>
+        <button class="pick-btn yes" id="pickYes">YES</button>
+        <button class="pick-btn no" id="pickNo">NO</button>
+      </div>
+      <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
+    </div>
+  </section>
+
+  <section class="panel wheel-section layout-section" data-section="wheel">
     <div class="wheel-stage">
       <svg id="wheelSvg" viewBox="0 0 320 320"></svg>
       <div class="wheel-center">
@@ -262,7 +402,7 @@
     </div>
   </section>
 
-  <section class="panel heat-panel">
+  <section class="panel heat-panel layout-section" data-section="heat">
     <div class="heat-head">
       <span class="heat-title">Heat Check</span>
       <span class="heat-badge" id="heatBadge">—</span>
@@ -270,7 +410,7 @@
     <div class="heat-dots" id="heatDots"></div>
   </section>
 
-  <section class="panel boards-section">
+  <section class="panel boards-section layout-section" data-section="boards">
     <div class="boards-head">
       <div class="boards-title-row">
         <h2>Casino Floor Boards</h2>
@@ -293,25 +433,27 @@
       </div>
     </div>
 
-    <div class="road-row" data-road="bigroad">
-      <div class="road-label"><span class="road-name">Big Road</span><span class="road-caption">Streaks stack into columns, capped at 6 rows</span></div>
-      <div class="road-strip" id="roadBigRoad"></div>
-    </div>
-    <div class="road-row" data-road="bead">
-      <div class="road-label"><span class="road-name">Bead Plate</span><span class="road-caption">Same rounds, strict chronological order</span></div>
-      <div class="road-strip" id="roadBead"></div>
-    </div>
-    <div class="road-row" data-road="beb">
-      <div class="road-label"><span class="road-name">Big Eye Boy</span><span class="road-caption">1-column-back pattern read &middot; hollow = repeat, solid = break</span></div>
-      <div class="road-strip derived-strip" id="roadBEB"></div>
-    </div>
-    <div class="road-row" data-road="small">
-      <div class="road-label"><span class="road-name">Small Road</span><span class="road-caption">2-column-back pattern read</span></div>
-      <div class="road-strip derived-strip" id="roadSmall"></div>
-    </div>
-    <div class="road-row" data-road="cockroach">
-      <div class="road-label"><span class="road-name">Cockroach Pig</span><span class="road-caption">3-column-back pattern read &middot; diagonal marks</span></div>
-      <div class="road-strip derived-strip" id="roadCockroach"></div>
+    <div class="boards-body" id="boardsBody">
+      <div class="road-row" data-road="bigroad">
+        <div class="road-label"><span class="road-name">Big Road</span><span class="road-caption">Streaks stack into columns, capped at 6 rows &middot; amber ring = your pick</span></div>
+        <div class="road-strip" id="roadBigRoad"></div>
+      </div>
+      <div class="road-row" data-road="bead">
+        <div class="road-label"><span class="road-name">Bead Plate</span><span class="road-caption">Same rounds, strict chronological order</span></div>
+        <div class="road-strip" id="roadBead"></div>
+      </div>
+      <div class="road-row" data-road="beb">
+        <div class="road-label"><span class="road-name">Big Eye Boy</span><span class="road-caption">1-column-back pattern read &middot; hollow = repeat, solid = break</span></div>
+        <div class="road-strip derived-strip" id="roadBEB"></div>
+      </div>
+      <div class="road-row" data-road="small">
+        <div class="road-label"><span class="road-name">Small Road</span><span class="road-caption">2-column-back pattern read</span></div>
+        <div class="road-strip derived-strip" id="roadSmall"></div>
+      </div>
+      <div class="road-row" data-road="cockroach">
+        <div class="road-label"><span class="road-name">Cockroach Pig</span><span class="road-caption">3-column-back pattern read &middot; diagonal marks</span></div>
+        <div class="road-strip derived-strip" id="roadCockroach"></div>
+      </div>
     </div>
   </section>
 
@@ -334,6 +476,146 @@
   var inFlight = 0;
   var WINDOW_LABELS = { 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 24: '24 Hours', 168: '7 Days', 720: '30 Days' };
   var YES_COLOR = '#3fcf8e', NO_COLOR = '#f06d6d', AMBER = '#f0b429';
+  var state = null;
+  var lastPriceUpdateMs = null;
+
+  function loadJSON(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+  // Personal pick: SAME localStorage keys the classic page uses (same origin), so a
+  // pick made on either page shows up on both -- one shared record, not two.
+  var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved', MAX_PICKS = 500;
+  var picks = loadJSON(PICK_KEY, {});
+  var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
+  var resolved = loadJSON(RESOLVED_KEY, []);
+
+  (function prunePicks() {
+    var keys = Object.keys(picks);
+    if (keys.length <= MAX_PICKS) return;
+    keys.sort(function (a, b) { return picks[a].ts - picks[b].ts; });
+    keys.slice(0, keys.length - 400).forEach(function (k) { delete picks[k]; });
+    saveJSON(PICK_KEY, picks);
+    if (resolved.length > MAX_PICKS) { resolved = resolved.slice(resolved.length - 400); saveJSON(RESOLVED_KEY, resolved); }
+  })();
+
+  // Page layout: which sections/boards show and in what order. Client-only, per device --
+  // no accounts on this app, so localStorage is the whole story.
+  var LAYOUT_KEY = 'btc15_wheel_layout';
+  var DEFAULT_SECTIONS = ['price', 'wheel', 'heat', 'boards'];
+  var SECTION_LABELS = { price: 'Live Pricing', wheel: 'The Wheel', heat: 'Heat Check', boards: 'Casino Floor Boards' };
+  var DEFAULT_ROADS = ['bigroad', 'bead', 'beb', 'small', 'cockroach'];
+  var ROAD_LABELS = { bigroad: 'Big Road', bead: 'Bead Plate', beb: 'Big Eye Boy', small: 'Small Road', cockroach: 'Cockroach Pig' };
+
+  function defaultLayout() {
+    return {
+      sections: DEFAULT_SECTIONS.map(function (id) { return { id: id, hidden: false }; }),
+      roads: DEFAULT_ROADS.map(function (id) { return { id: id, hidden: false }; })
+    };
+  }
+  // Merge saved layout with the current known ids -- if a section/road existed in an
+  // older saved layout but was renamed/removed, drop it; if new ones were added since
+  // the layout was saved, append them (visible) so an update never hides new content.
+  function mergeLayoutList(saved, defaults) {
+    var savedIds = (saved || []).map(function (s) { return s.id; });
+    var out = (saved || []).filter(function (s) { return defaults.indexOf(s.id) !== -1; });
+    defaults.forEach(function (id) { if (savedIds.indexOf(id) === -1) out.push({ id: id, hidden: false }); });
+    return out;
+  }
+  function loadLayout() {
+    var stored = loadJSON(LAYOUT_KEY, null);
+    if (!stored) return defaultLayout();
+    return {
+      sections: mergeLayoutList(stored.sections, DEFAULT_SECTIONS),
+      roads: mergeLayoutList(stored.roads, DEFAULT_ROADS)
+    };
+  }
+  var layout = loadLayout();
+  function saveLayout() { saveJSON(LAYOUT_KEY, layout); }
+
+  var UP_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+  var DOWN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>';
+  var EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.6 21.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.6 21.6 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  // Reorder DOM nodes to match a layout list -- appendChild on an existing node moves
+  // it rather than duplicating it, so this is a plain reorder, not a rebuild.
+  function applySectionOrder() {
+    var wrap = document.querySelector('.wrap');
+    layout.sections.forEach(function (s) {
+      var el = document.querySelector('.layout-section[data-section="' + s.id + '"]');
+      if (!el) return;
+      el.style.display = s.hidden ? 'none' : '';
+      wrap.appendChild(el);
+    });
+    wrap.appendChild(document.getElementById('customizePanel'));
+    wrap.appendChild(document.querySelector('footer.page-foot'));
+  }
+  function applyRoadOrder() {
+    var body = document.getElementById('boardsBody');
+    layout.roads.forEach(function (r) {
+      var el = document.querySelector('.road-row[data-road="' + r.id + '"]');
+      if (!el) return;
+      el.style.display = r.hidden ? 'none' : '';
+      body.appendChild(el);
+    });
+  }
+
+  function renderCustomizeList(containerId, list, labels, onMove, onToggle) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+    list.forEach(function (item, idx) {
+      var row = document.createElement('div');
+      row.className = 'customize-row' + (item.hidden ? ' hidden-row' : '');
+      var up = document.createElement('button');
+      up.className = 'ctrl-btn'; up.title = 'Move up'; up.innerHTML = UP_SVG; up.disabled = idx === 0;
+      up.addEventListener('click', function () { onMove(idx, -1); });
+      var down = document.createElement('button');
+      down.className = 'ctrl-btn'; down.title = 'Move down'; down.innerHTML = DOWN_SVG; down.disabled = idx === list.length - 1;
+      down.addEventListener('click', function () { onMove(idx, 1); });
+      var eye = document.createElement('button');
+      eye.className = 'ctrl-btn eye-btn'; eye.title = item.hidden ? 'Show' : 'Hide';
+      eye.innerHTML = item.hidden ? EYE_OFF_SVG : EYE_SVG;
+      eye.addEventListener('click', function () { onToggle(idx); });
+      var name = document.createElement('span');
+      name.className = 'customize-name'; name.textContent = labels[item.id] || item.id;
+      var controls = document.createElement('div');
+      controls.className = 'customize-controls';
+      controls.appendChild(up); controls.appendChild(down); controls.appendChild(eye);
+      row.appendChild(name); row.appendChild(controls);
+      el.appendChild(row);
+    });
+  }
+
+  function renderCustomizePanel() {
+    renderCustomizeList('sectionList', layout.sections, SECTION_LABELS,
+      function (idx, dir) { moveItem(layout.sections, idx, dir); saveLayout(); applySectionOrder(); renderCustomizePanel(); },
+      function (idx) { layout.sections[idx].hidden = !layout.sections[idx].hidden; saveLayout(); applySectionOrder(); renderCustomizePanel(); });
+    renderCustomizeList('roadList', layout.roads, ROAD_LABELS,
+      function (idx, dir) { moveItem(layout.roads, idx, dir); saveLayout(); applyRoadOrder(); renderCustomizePanel(); },
+      function (idx) { layout.roads[idx].hidden = !layout.roads[idx].hidden; saveLayout(); applyRoadOrder(); renderCustomizePanel(); });
+  }
+  function moveItem(list, idx, dir) {
+    var j = idx + dir;
+    if (j < 0 || j >= list.length) return;
+    var tmp = list[idx]; list[idx] = list[j]; list[j] = tmp;
+  }
+
+  document.getElementById('customizeToggle').addEventListener('click', function () {
+    var panel = document.getElementById('customizePanel');
+    var showing = panel.style.display === 'none';
+    panel.style.display = showing ? '' : 'none';
+    this.classList.toggle('active', showing);
+    if (showing) renderCustomizePanel();
+  });
+  document.getElementById('resetLayoutBtn').addEventListener('click', function () {
+    layout = defaultLayout();
+    saveLayout();
+    applySectionOrder();
+    applyRoadOrder();
+    renderCustomizePanel();
+  });
 
   function progressStart() {
     inFlight++;
@@ -382,21 +664,103 @@
     el.innerHTML = sentence;
   }
 
-  // Card-flip reveal: skip the very first poll (that's just "page just loaded", not a
-  // new event) so the flip only fires for rounds that actually settle while watching.
-  function maybeFlip(s) {
+  function renderPricePanel(d) {
+    var cur = d.current_round;
+    if (d.live_price !== null && d.live_price !== undefined) {
+      document.getElementById('livePrice').textContent = fmtUSD(d.live_price);
+    }
+    var freshEl = document.getElementById('priceFreshness');
+    if (lastPriceUpdateMs !== null) {
+      var ageS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = ageS <= 1 ? 'live' : ageS + 's ago';
+    }
+    if (cur) {
+      document.getElementById('strikeValue').textContent = fmtUSD(cur.floor_strike);
+      document.getElementById('rhLink').href = cur.robinhood_url;
+    }
+    if (d.lean && cur) {
+      var pill = document.getElementById('spreadPill');
+      var pillArrow = pill.querySelector('svg');
+      var sign = d.lean.delta >= 0 ? '+' : '-';
+      document.getElementById('spreadValue').textContent = sign + '$' + Math.abs(d.lean.delta).toFixed(2);
+      pill.classList.remove('up', 'down');
+      pill.classList.add(d.lean.direction === 'yes' ? 'up' : 'down');
+      pillArrow.style.transform = d.lean.direction === 'yes' ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+  }
+
+  function makePick(ticker, choice) {
+    if (picks[ticker]) return;
+    picks[ticker] = { choice: choice, ts: Date.now() };
+    saveJSON(PICK_KEY, picks);
+    renderPick();
+  }
+  function renderPick() {
+    var yesBtn = document.getElementById('pickYes'), noBtn = document.getElementById('pickNo');
+    document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+    var cur = state && state.current_round;
+    if (!cur) {
+      yesBtn.disabled = true; noBtn.disabled = true;
+      yesBtn.classList.remove('selected'); noBtn.classList.remove('selected');
+      return;
+    }
+    var locked = (now() / 1000) >= cur.lock_ts;
+    var mine = picks[cur.ticker];
+    yesBtn.classList.toggle('selected', !!mine && mine.choice === 'yes');
+    noBtn.classList.toggle('selected', !!mine && mine.choice === 'no');
+    yesBtn.disabled = locked || !!mine;
+    noBtn.disabled = locked || !!mine;
+  }
+  document.getElementById('pickYes').addEventListener('click', function () {
+    var cur = state && state.current_round;
+    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'yes');
+  });
+  document.getElementById('pickNo').addEventListener('click', function () {
+    var cur = state && state.current_round;
+    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'no');
+  });
+
+  // Credits win/loss exactly once per round (guarded by `resolved`), independent of
+  // whether the personal-feedback UI shows anything -- keeps the shared record correct
+  // even if this page is the only one open when a picked round settles.
+  function resolvePick(s) {
     if (!s) return;
-    if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
-    if (s.ticker === lastSeenSettled) return;
-    lastSeenSettled = s.ticker;
+    var mine = picks[s.ticker];
+    if (!mine || resolved.indexOf(s.ticker) !== -1) return;
+    if (mine.choice === s.result) record.wins++; else record.losses++;
+    resolved.push(s.ticker);
+    saveJSON(RECORD_KEY, record);
+    saveJSON(RESOLVED_KEY, resolved);
+    document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+  }
+
+  function flipReveal(s, mine) {
     var overlay = document.getElementById('flipOverlay');
     document.getElementById('flipBack').className = 'flip-back ' + s.result;
     var word = document.getElementById('flipResult');
     word.textContent = s.result.toUpperCase();
     word.style.color = s.result === 'yes' ? 'var(--green)' : 'var(--red)';
     document.getElementById('flipPrice').textContent = fmtUSD(s.settlement_value);
+    var label = document.getElementById('flipLabel');
+    label.textContent = mine ? ('Your call: ' + mine.choice.toUpperCase() + ' — ' + (mine.choice === s.result ? 'WIN' : 'LOSS')) : 'Just settled';
     overlay.classList.add('show');
     setTimeout(function () { overlay.classList.remove('show'); }, 2400);
+  }
+
+  // Skip the very first poll (that's just "page just loaded", not a live event) so
+  // resolving/flipping/refreshing only fires for rounds that actually settle while
+  // this tab is open.
+  function handleSettlement(s) {
+    if (!s) return;
+    if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
+    if (s.ticker === lastSeenSettled) return;
+    lastSeenSettled = s.ticker;
+    var mine = picks[s.ticker];
+    resolvePick(s);
+    flipReveal(s, mine);
+    // The Big Road needs this round (and its pick marker, if any) to actually appear --
+    // Wheel Room otherwise only refreshes history on manual refresh or timeframe change.
+    loadHistory();
   }
 
   function poll() {
@@ -406,8 +770,12 @@
       return r.json();
     }).then(function (d) {
       clockOffsetMs = (d.now * 1000) - Date.now();
+      lastPriceUpdateMs = Date.now();
+      state = d;
       renderHeader(d);
-      maybeFlip(d.last_settled);
+      renderPricePanel(d);
+      renderPick();
+      handleSettlement(d.last_settled);
     }).catch(function () {});
   }
 
@@ -465,12 +833,15 @@
   function cellTitle(r) {
     var hasDelta = r.delta !== null && r.delta !== undefined;
     var sign = hasDelta && r.delta >= 0 ? '+' : '-';
-    return 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
+    var title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
       ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
       ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
+    var mine = picks[r.kalshi_ticker];
+    if (mine) title += ' | Your call: ' + mine.choice.toUpperCase() + ' (' + (mine.choice === r.result ? 'correct' : 'incorrect') + ')';
+    return title;
   }
 
-  function renderRoadColumns(containerId, columns, markDragonTail) {
+  function renderRoadColumns(containerId, columns, markDragonTail, markPicks) {
     var el = document.getElementById(containerId);
     el.innerHTML = '';
     if (!columns.length) { el.innerHTML = '<span class="road-empty">No rounds in this window yet</span>'; return; }
@@ -485,6 +856,10 @@
       col.forEach(function (r) {
         var cell = document.createElement('div');
         cell.className = 'road-cell ' + r.result;
+        if (markPicks) {
+          var mine = picks[r.kalshi_ticker];
+          if (mine) cell.classList.add('picked', mine.choice === r.result ? 'hit' : 'miss');
+        }
         cell.title = cellTitle(r);
         cell.textContent = r.result === 'yes' ? 'Y' : 'N';
         colEl.appendChild(cell);
@@ -597,8 +972,8 @@
   function renderAll(rounds, tallies) {
     var columns = buildColumns(rounds);
     var beadColumns = buildBeadPlateColumns(rounds);
-    renderRoadColumns('roadBigRoad', columns, true);
-    renderRoadColumns('roadBead', beadColumns, false);
+    renderRoadColumns('roadBigRoad', columns, true, true);
+    renderRoadColumns('roadBead', beadColumns, false, false);
     renderDerivedStrip('roadBEB', computeDerivedRoad(columns, 1), 'dot');
     renderDerivedStrip('roadSmall', computeDerivedRoad(columns, 2), 'dot');
     renderDerivedStrip('roadCockroach', computeDerivedRoad(columns, 3), 'slash');
@@ -643,6 +1018,8 @@
     if (polling) poll();
   });
 
+  applySectionOrder();
+  applyRoadOrder();
   setInterval(poll, 3000);
   loadHistory();
   poll();
