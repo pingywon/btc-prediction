@@ -538,7 +538,12 @@ class Handler(BaseHTTPRequestHandler):
         # also durably written to the DB (3h retention), so read from there instead;
         # a single round's window is always comfortably inside that retention.
         since = float((qs.get("since") or ["0"])[0])
-        rows = db.query("SELECT ts, price FROM ticks WHERE ts >= ? ORDER BY ts ASC", (since,))
+        until = qs.get("until")
+        if until:
+            rows = db.query("SELECT ts, price FROM ticks WHERE ts >= ? AND ts < ? ORDER BY ts ASC",
+                             (since, float(until[0])))
+        else:
+            rows = db.query("SELECT ts, price FROM ticks WHERE ts >= ? ORDER BY ts ASC", (since,))
         self._send(200, json.dumps({"ticks": [[r["ts"], r["price"]] for r in rows]}).encode())
 
     def log_message(self, *a):

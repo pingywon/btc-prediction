@@ -89,6 +89,16 @@
   .target-delta.down { color: var(--red); }
 
   .price-chart-wrap { margin-top: 1.1rem; }
+  .chart-nav { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+  .chart-nav-btn {
+    font-family: var(--sans); font-size: 0.62rem; font-weight: 800; padding: 0.32rem 0.6rem;
+    border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); background: var(--bg-deep);
+    color: var(--faint); cursor: pointer; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .chart-nav-btn:hover:not(:disabled) { color: var(--amber); border-color: rgba(255,210,63,0.3); }
+  .chart-nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .chart-nav-btn.live-btn.active { background: var(--amber); color: var(--bg-deep); border-color: var(--amber); }
+  .chart-nav-label { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
   .price-chart-caption { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
   .price-chart-caption span { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
   .price-chart-stage { width: 100%; height: 130px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
@@ -445,6 +455,12 @@
             </div>
           </div>
           <div class="price-chart-wrap">
+            <div class="chart-nav">
+              <button class="chart-nav-btn" id="chartPrevBtn" title="Previous round">&#9664; Prev</button>
+              <button class="chart-nav-btn live-btn active" id="chartLiveBtn" title="Jump to live">Live</button>
+              <button class="chart-nav-btn" id="chartNextBtn" title="Next round" disabled>Next &#9654;</button>
+              <span class="chart-nav-label" id="chartNavLabel"></span>
+            </div>
             <div class="price-chart-caption">
               <span id="chartRangeLabel">This round's price, live</span>
               <span>Dashed line = target</span>
@@ -594,6 +610,71 @@
   var lastSeenSettled = null;
   var YES_HEX = '#39ff88', NO_HEX = '#ff3d6e', AMBER_HEX = '#ffd23f';
   var state = null;
+
+  // Chart history-browsing: 'live' mirrors the in-progress round and is stomped every
+  // poll cycle; 'history' pins to one settled round by ticker (not array position) so
+  // a round rolling over mid-browse never silently swaps what's on screen underneath
+  // the user -- only an explicit Prev/Next/Live click changes it.
+  var chartViewMode = 'live';
+  var chartBrowseTicker = null;
+  var historyRounds = [];
+  function browsableRounds() { return historyRounds.slice(Math.max(0, historyRounds.length - 12)); }
+  function updateChartNavUI() {
+    var rounds = browsableRounds();
+    var idx = chartViewMode === 'history' ? rounds.findIndex(function (r) { return r.kalshi_ticker === chartBrowseTicker; }) : rounds.length;
+    document.getElementById('chartPrevBtn').disabled = rounds.length === 0 || idx <= 0;
+    document.getElementById('chartNextBtn').disabled = chartViewMode === 'live';
+    document.getElementById('chartLiveBtn').classList.toggle('active', chartViewMode === 'live');
+    var label = document.getElementById('chartNavLabel');
+    var back = chartViewMode === 'history' && idx !== -1 ? rounds.length - idx : 0;
+    label.textContent = back > 0 ? back + ' round' + (back === 1 ? '' : 's') + ' back' : '';
+  }
+  function chartGoLive() {
+    chartViewMode = 'live';
+    chartBrowseTicker = null;
+    updateChartNavUI();
+    if (state) loadPriceChart(state.current_round);
+  }
+  function chartLoadHistorical(r) {
+    var stage = document.getElementById('priceChartStage');
+    stage.innerHTML = '<svg id="priceChartSvg" viewBox="0 0 600 130" preserveAspectRatio="none"></svg>';
+    var openTime = r.close_time - 900;
+    var reqId = ++chartReqId;
+    fetch('/api/ticks?since=' + openTime + '&until=' + r.close_time).then(function (resp) {
+      if (!resp.ok) throw new Error('http ' + resp.status);
+      return resp.json();
+    }).then(function (d) {
+      if (reqId !== chartReqId) return;
+      // Reuses the same empty-tick-state UI as a fresh live round -- a prune sweep can
+      // occasionally clip the oldest browsable round right at the 3h retention edge,
+      // which is expected here, not a bug worth a separate message for.
+      renderPriceChart(d.ticks, { ticker: r.kalshi_ticker, floor_strike: r.floor_strike, open_time: openTime, close_time: r.close_time });
+    }).catch(function () {});
+  }
+  function chartGoToTicker(ticker) {
+    var r = historyRounds.find(function (x) { return x.kalshi_ticker === ticker; });
+    if (!r) return;
+    chartViewMode = 'history';
+    chartBrowseTicker = ticker;
+    updateChartNavUI();
+    chartLoadHistorical(r);
+  }
+  document.getElementById('chartPrevBtn').addEventListener('click', function () {
+    var rounds = browsableRounds();
+    if (!rounds.length) return;
+    var idx = chartViewMode === 'history' ? rounds.findIndex(function (r) { return r.kalshi_ticker === chartBrowseTicker; }) : rounds.length;
+    var j = idx - 1;
+    if (j < 0) return;
+    chartGoToTicker(rounds[j].kalshi_ticker);
+  });
+  document.getElementById('chartNextBtn').addEventListener('click', function () {
+    if (chartViewMode !== 'history') return;
+    var rounds = browsableRounds();
+    var idx = rounds.findIndex(function (r) { return r.kalshi_ticker === chartBrowseTicker; });
+    if (idx === -1 || idx + 1 >= rounds.length) { chartGoLive(); return; }
+    chartGoToTicker(rounds[idx + 1].kalshi_ticker);
+  });
+  document.getElementById('chartLiveBtn').addEventListener('click', chartGoLive);
 
   function loadJSON(key, fallback) {
     try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
@@ -1120,9 +1201,11 @@
     }).then(function (d) {
       progressDone();
       if (reqId !== historyReqId) return;
+      historyRounds = d.rounds;
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
       historyDirty = false;
+      updateChartNavUI();
     }).catch(function () { progressDone(); });
   }
 
@@ -1155,7 +1238,7 @@
       lastPriceUpdateMs = Date.now();
       state = d;
       render();
-      loadPriceChart(d.current_round);
+      if (chartViewMode === 'live') loadPriceChart(d.current_round);
       handleSettlement(d.last_settled);
       if (historyDirty) loadHistory();
     }).catch(function () { progressDone(); });
@@ -1167,6 +1250,7 @@
   });
 
   applyModuleLayout();
+  updateChartNavUI();
   setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();
