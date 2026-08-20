@@ -461,6 +461,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("index.html")
             if path in ("/algo", "/algo.html"):
                 return self._serve_page("algo.html")
+            if path in ("/fluid", "/fluid.html"):
+                return self._serve_page("fluid.html")
             if path == "/health":
                 return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":
