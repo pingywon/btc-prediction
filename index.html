@@ -178,8 +178,9 @@
   .pick-record { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
   .pick-record b { color: var(--soft); font-weight: 900; }
 
-  .gauges-card { padding: clamp(1.1rem, 3vw, 1.5rem); display: flex; flex-direction: column; gap: 1.5rem; }
-  @media (min-width: 480px) { .gauges-card { flex-direction: row; } }
+  .gauges-card { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .gauges-card .module-body { display: flex; flex-direction: column; gap: 1.5rem; }
+  @media (min-width: 480px) { .gauges-card .module-body { flex-direction: row; } }
   .gauge { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
   .gauge-head { display: flex; justify-content: space-between; align-items: center; }
   .gauge-title { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
@@ -349,6 +350,94 @@
   .spread-amount.up { color: var(--green); }
   .spread-amount.down { color: var(--red); }
   .spread-empty { padding: 2rem 1rem; text-align: center; color: var(--faint); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+  .spread-list.compact { max-height: 180px; }
+  .spread-size-toggle {
+    font-family: var(--sans); font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--faint); background: transparent; border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;
+    padding: 0.25rem 0.6rem; cursor: pointer; flex: none;
+  }
+  .spread-size-toggle:hover { color: var(--amber); border-color: rgba(255,210,63,0.3); }
+
+  /* ---- Modular card system: header controls added inside each existing panel,
+     Classic keeps its 2-column grid shape so reorder stays within two small groups
+     (price-col: price/gauges; bottom stack: bigroad/spread) rather than one free list. ---- */
+  .module-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+    padding: 0.55rem 0.85rem; margin-bottom: 0.9rem;
+    background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+  }
+  .module-title-row { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+  .module-title-row .module-name {
+    font-size: 0.66rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .module-actions { display: flex; align-items: center; gap: 0.25rem; flex: none; }
+  .module-btn {
+    width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); background: transparent;
+    color: var(--faint); cursor: pointer; flex: none;
+  }
+  .module-btn svg { width: 12px; height: 12px; }
+  .module-btn:hover { color: var(--amber); border-color: rgba(255,210,63,0.3); }
+  .module-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+  .module-btn.module-eye.off { color: var(--red); border-color: rgba(255,61,110,0.3); }
+  .module-btn.module-chevron svg { transition: transform 0.18s; }
+  .module-collapsed .module-btn.module-chevron svg { transform: rotate(-90deg); }
+  .module-summary {
+    display: none; padding: 0.65rem 0.9rem; font-size: 0.68rem; color: var(--soft); font-weight: 700;
+    background: rgba(0,0,0,0.18); border: 1px dashed rgba(255,255,255,0.08); border-radius: 10px;
+    letter-spacing: 0.01em; line-height: 1.6;
+  }
+  .module-collapsed .module-summary { display: block; }
+  .module-collapsed .module-body { display: none; }
+  .module-hidden { display: none !important; }
+
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%) translateY(4px) scale(0.94);
+    background: var(--surface-800); color: var(--amber); border: 1px solid var(--amber-deep);
+    padding: 0.4rem 0.7rem; border-radius: 7px; font-size: 0.7rem; font-weight: 800; white-space: nowrap;
+    opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.14s, transform 0.14s;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55); z-index: 60;
+  }
+  [data-tip]:hover::after { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0) scale(1); }
+  @media (hover: none) { [data-tip]::after { display: none; } }
+
+  .module-info {
+    width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--faint); background: transparent;
+    color: var(--faint); font-size: 0.6rem; font-weight: 900; font-style: italic; font-family: Georgia, serif;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none;
+  }
+  .module-info:hover { color: var(--amber); border-color: var(--amber); }
+
+  .tip-modal-backdrop {
+    position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+    padding: 1.25rem; background: rgba(2,3,6,0.72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none; transition: opacity 0.16s;
+  }
+  .tip-modal-backdrop.show { opacity: 1; pointer-events: auto; }
+  .tip-modal {
+    width: min(420px, 100%); background: linear-gradient(160deg, rgba(23,27,40,0.98), rgba(5,6,10,0.98));
+    border: 1px solid rgba(255,210,63,0.25); border-radius: 16px; padding: 1.4rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7); transform: scale(0.92) translateY(6px); transition: transform 0.16s;
+  }
+  .tip-modal-backdrop.show .tip-modal { transform: scale(1) translateY(0); }
+  .tip-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+  .tip-modal-title { font-size: 0.82rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: var(--amber); }
+  .tip-modal-close {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.1); background: transparent;
+    color: var(--faint); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .tip-modal-close:hover { color: var(--red); border-color: rgba(255,61,110,0.4); }
+  .tip-modal-rows { display: flex; flex-direction: column; gap: 0.55rem; }
+  .tip-modal-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.22); border-radius: 8px; }
+  .tip-modal-row .k { font-size: 0.62rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tip-modal-row .v { font-size: 0.78rem; font-weight: 900; color: var(--cream); }
+  .tip-modal-row .v.yes { color: var(--green); }
+  .tip-modal-row .v.no { color: var(--red); }
+  .tip-modal-row .v.hit { color: var(--amber); }
+  .tip-modal-row .v.miss { color: var(--faint); }
 
   footer.page-foot { padding: 1.5rem 0; display: flex; justify-content: center; opacity: 0.3; }
   .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; }
@@ -423,6 +512,20 @@
   <div class="top-grid">
     <div class="price-col">
       <div class="panel hero-card" data-section="price">
+        <div class="module-head">
+          <div class="module-title-row">
+            <span class="module-name">Live Price &amp; Pick</span>
+            <button class="module-info" data-tip-title="Live Price &amp; Pick" data-tip-full="The live BTC price, this round's countdown and target with its round-over-round delta, a chart of price vs. target, the current spread, a link to the real round on Robinhood, and your Personal Pick.">i</button>
+          </div>
+          <div class="module-actions">
+            <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+            <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="module-summary" id="summaryPrice">&nbsp;</div>
+        <div class="module-body">
         <div class="price-hero">
           <span class="label">Live Bitcoin Price<span class="freshness" id="priceFreshness"></span></span>
           <div class="value tabular" id="livePrice">—</div>
@@ -469,9 +572,24 @@
           </div>
           <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
         </div>
+        </div>
       </div>
 
       <div class="panel gauges-card" data-section="gauges">
+        <div class="module-head">
+          <div class="module-title-row">
+            <span class="module-name">Market Gauges</span>
+            <button class="module-info" data-tip-title="Market Gauges" data-tip-full="Market Lean (instant live-price position vs. target), Kalshi's own live order-book odds, and how far through the round you are right now.">i</button>
+          </div>
+          <div class="module-actions">
+            <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+            <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="module-summary" id="summaryGauges">&nbsp;</div>
+        <div class="module-body">
         <div class="gauge">
           <div class="gauge-head">
             <span class="gauge-title">Market Lean</span>
@@ -502,10 +620,23 @@
           <div class="rail-track" id="railTrack"><div id="railFill"></div></div>
           <span class="gauge-sub" id="roundCloses">&nbsp;</span>
         </div>
+        </div>
       </div>
     </div>
 
     <div class="side-col" data-section="stats">
+      <div class="module-head">
+        <div class="module-title-row">
+          <span class="module-name">Results Sidebar</span>
+          <button class="module-info" data-tip-title="Results Sidebar" data-tip-full="YES/NO tallies, current and longest streak, and chop rate for the selected timeframe, plus the last round's result.">i</button>
+        </div>
+        <div class="module-actions">
+          <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <div class="module-summary" id="summaryStats">&nbsp;</div>
+      <div class="module-body">
       <div class="stats-window-head">
         <span class="win-label" id="statsWindowLabel">Results — Last 24 Hours</span>
         <span class="win-range" id="statsRangeLabel">&nbsp;</span>
@@ -536,10 +667,25 @@
         <span class="lr-target">Strike target was <b class="tabular" id="lrTarget">—</b></span>
         <div class="personal-feedback" id="personalFeedback"></div>
       </div>
+      </div>
     </div>
   </div>
 
   <section class="panel bigroad-section" data-section="bigroad">
+    <div class="module-head">
+      <div class="module-title-row">
+        <span class="module-name">Big Road History</span>
+        <button class="module-info" data-tip-title="Big Road History" data-tip-full="Every settled round as a real baccarat streak-column scoreboard. Amber ring = a column that earned the 6-row cap (Dragon Tail). Check/X badge = your own call, correct or incorrect.">i</button>
+      </div>
+      <div class="module-actions">
+        <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+        <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+    </div>
+    <div class="module-summary" id="summaryBigroad">&nbsp;</div>
+    <div class="module-body">
     <div class="bigroad-head">
       <div class="bigroad-title-row">
         <div class="bigroad-icon">
@@ -547,7 +693,7 @@
         </div>
         <div>
           <h2>Big Road History</h2>
-          <p class="sub">Vertical columns represent consecutive YES/NO streaks &middot; check/&times; badge = your call</p>
+          <p class="sub">Vertical columns represent consecutive YES/NO streaks</p>
         </div>
       </div>
       <div class="bigroad-controls">
@@ -574,7 +720,7 @@
       <div class="derived-head">
         <div class="derived-title-row">
           <h3>Big Eye Boy</h3>
-          <span class="caption">Derivation: pattern repeatability relative to history</span>
+          <button class="module-info" data-tip-title="Big Eye Boy" data-tip-full="Shows whether the last two rounds matched the two before them -- steady repeats vs. choppy breaks. Hollow blue = repeat (predictable), solid red = break (chaotic).">i</button>
         </div>
         <div class="derived-legend">
           <div class="legend-item"><div class="derived-bead break"></div><span>Break (Chaotic)</span></div>
@@ -583,9 +729,24 @@
       </div>
       <div class="derived-grid" id="derivedRoad"></div>
     </div>
+    </div>
   </section>
 
   <section class="panel spread-section" data-section="spread">
+    <div class="module-head">
+      <div class="module-title-row">
+        <span class="module-name">Round-to-Round Spread</span>
+        <button class="module-info" data-tip-title="Round-to-Round Spread" data-tip-full="How much price moved during each settled round, newest first -- green when it moved up, red when it moved down, bar length shows relative size.">i</button>
+      </div>
+      <div class="module-actions">
+        <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+        <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+    </div>
+    <div class="module-summary" id="summarySpread">&nbsp;</div>
+    <div class="module-body">
     <div class="spread-section-head">
       <div class="spread-title-row">
         <div class="spread-icon">
@@ -596,12 +757,28 @@
           <p class="sub">How much price moved during each settled round &middot; green up, red down</p>
         </div>
       </div>
-      <span class="spread-range" id="spreadRange">&nbsp;</span>
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <button class="spread-size-toggle" id="spreadSizeToggle" title="Toggle compact/expanded height">Compact</button>
+        <span class="spread-range" id="spreadRange">&nbsp;</span>
+      </div>
     </div>
     <div class="spread-list" id="spreadList"></div>
+    </div>
   </section>
 
   <footer class="page-foot"><div class="foot-bar"></div></footer>
+</div>
+
+<div class="tip-modal-backdrop" id="tipModalBackdrop">
+  <div class="tip-modal">
+    <div class="tip-modal-head">
+      <span class="tip-modal-title" id="tipModalTitle">—</span>
+      <button class="tip-modal-close" id="tipModalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="tip-modal-rows" id="tipModalRows"></div>
+  </div>
 </div>
 
 <script>
@@ -626,25 +803,84 @@
   }
   function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
 
-  // Which panels show on this page -- client-only, per device. Toggle-only (no
-  // reorder): the panels live in a 2-column grid (.top-grid), so moving them between
-  // containers would fight the responsive layout; show/hide via display:none doesn't.
+  // Modular card system. Classic keeps its 2-column desktop grid (.top-grid splits
+  // price-col from side-col), so unlike a free-flowing page, reorder here is scoped to
+  // two small groups rather than one flat list: price-col's two children (price,
+  // gauges) and the bottom stack's two children (bigroad, spread). `stats` sits alone
+  // in side-col -- nothing to reorder it against, so it gets no move buttons.
   var SECTION_IDS = ['price', 'gauges', 'stats', 'bigroad', 'spread'];
   var SECTION_LABELS = { price: 'Live Price & Pick', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
-  var SECTION_KEY = 'btc15_section_visibility';
-  var sectionHidden = loadJSON(SECTION_KEY, {});
+  var GROUP_PRICE = ['price', 'gauges'];
+  var GROUP_BOTTOM = ['bigroad', 'spread'];
+  var MODULE_STATE_KEY = 'btc15_index_modules';
+  function defaultModuleState() { return { hidden: {}, collapsed: {}, orderPrice: GROUP_PRICE.slice(), orderBottom: GROUP_BOTTOM.slice() }; }
+  function loadModuleState() {
+    var saved = loadJSON(MODULE_STATE_KEY, null);
+    if (!saved) return defaultModuleState();
+    var op = (saved.orderPrice || []).filter(function (id) { return GROUP_PRICE.indexOf(id) !== -1; });
+    GROUP_PRICE.forEach(function (id) { if (op.indexOf(id) === -1) op.push(id); });
+    var ob = (saved.orderBottom || []).filter(function (id) { return GROUP_BOTTOM.indexOf(id) !== -1; });
+    GROUP_BOTTOM.forEach(function (id) { if (ob.indexOf(id) === -1) ob.push(id); });
+    return { hidden: saved.hidden || {}, collapsed: saved.collapsed || {}, orderPrice: op, orderBottom: ob };
+  }
+  var moduleState = loadModuleState();
+  function saveModuleState() { saveJSON(MODULE_STATE_KEY, moduleState); }
 
-  function applySectionVisibility() {
+  function applyModuleLayout() {
+    var priceCol = document.querySelector('.price-col');
+    moduleState.orderPrice.forEach(function (id) { var el = priceCol.querySelector('[data-section="' + id + '"]'); if (el) priceCol.appendChild(el); });
+    var wrapEl = document.querySelector('.wrap');
+    var footerEl = document.querySelector('footer.page-foot');
+    moduleState.orderBottom.forEach(function (id) { var el = wrapEl.querySelector('[data-section="' + id + '"]'); if (el) wrapEl.appendChild(el); });
+    if (footerEl) wrapEl.appendChild(footerEl);
+
     SECTION_IDS.forEach(function (id) {
       var el = document.querySelector('[data-section="' + id + '"]');
-      if (el) el.style.display = sectionHidden[id] ? 'none' : '';
+      if (!el) return;
+      el.classList.toggle('module-hidden', !!moduleState.hidden[id]);
+      el.classList.toggle('module-collapsed', !!moduleState.collapsed[id]);
+      var eye = el.querySelector('.module-eye');
+      if (eye) eye.classList.toggle('off', !!moduleState.hidden[id]);
+    });
+    [{ group: GROUP_PRICE, order: moduleState.orderPrice }, { group: GROUP_BOTTOM, order: moduleState.orderBottom }].forEach(function (g) {
+      g.order.forEach(function (id, idx) {
+        var el = document.querySelector('[data-section="' + id + '"]');
+        if (!el) return;
+        var up = el.querySelector('.module-move-up'), down = el.querySelector('.module-move-down');
+        if (up) up.disabled = idx === 0;
+        if (down) down.disabled = idx === g.order.length - 1;
+      });
     });
   }
+  function groupFor(id) { return GROUP_PRICE.indexOf(id) !== -1 ? 'orderPrice' : (GROUP_BOTTOM.indexOf(id) !== -1 ? 'orderBottom' : null); }
+  function moveModule(id, dir) {
+    var key = groupFor(id);
+    if (!key) return;
+    var order = moduleState[key];
+    var idx = order.indexOf(id), j = idx + dir;
+    if (j < 0 || j >= order.length) return;
+    var tmp = order[idx]; order[idx] = order[j]; order[j] = tmp;
+    saveModuleState(); applyModuleLayout();
+  }
+  function toggleModuleHidden(id) { moduleState.hidden[id] = !moduleState.hidden[id]; saveModuleState(); applyModuleLayout(); renderSectionList(); }
+  function toggleModuleCollapsed(id) { moduleState.collapsed[id] = !moduleState.collapsed[id]; saveModuleState(); applyModuleLayout(); }
+  document.addEventListener('click', function (e) {
+    var moduleEl = e.target.closest('[data-section]');
+    if (!moduleEl) return;
+    var id = moduleEl.dataset.section;
+    if (e.target.closest('.module-move-up')) moveModule(id, -1);
+    else if (e.target.closest('.module-move-down')) moveModule(id, 1);
+    else if (e.target.closest('.module-chevron')) toggleModuleCollapsed(id);
+    else if (e.target.closest('.module-eye')) toggleModuleHidden(id);
+  });
+
+  // Existing "Customize" overlay stays as a bulk at-a-glance view -- the per-module
+  // header controls (always visible) are the primary interface now, not this panel.
   function renderSectionList() {
     var list = document.getElementById('sectionList');
     list.innerHTML = '';
     SECTION_IDS.forEach(function (id) {
-      var hidden = !!sectionHidden[id];
+      var hidden = !!moduleState.hidden[id];
       var row = document.createElement('div');
       row.className = 'customize-row' + (hidden ? ' hidden-row' : '');
       var name = document.createElement('span');
@@ -654,12 +890,7 @@
       eye.innerHTML = hidden
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.6 21.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.6 21.6 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
-      eye.addEventListener('click', function () {
-        sectionHidden[id] = !hidden;
-        saveJSON(SECTION_KEY, sectionHidden);
-        applySectionVisibility();
-        renderSectionList();
-      });
+      eye.addEventListener('click', function () { toggleModuleHidden(id); renderSectionList(); });
       row.appendChild(name); row.appendChild(eye);
       list.appendChild(row);
     });
@@ -670,6 +901,54 @@
     panel.style.display = showing ? '' : 'none';
     this.classList.toggle('active', showing);
     if (showing) renderSectionList();
+  });
+
+  // Click tooltip: one shared modal, opened via delegation since beads/rows are torn
+  // down and rebuilt via innerHTML='' every render cycle -- per-element listeners
+  // would leak. Hover (date/time only, desktop) is pure CSS via [data-tip]::after.
+  // Structured row data lives in tipDataStore keyed by ticker rather than serialized
+  // into an HTML attribute; static explainer text uses data-tip-full directly.
+  var tipDataStore = {};
+  function tipRow(k, v, cls) {
+    return '<div class="tip-modal-row"><span class="k">' + k + '</span><span class="v' + (cls ? ' ' + cls : '') + '">' + v + '</span></div>';
+  }
+  function buildRoundDetailRows(r, mine) {
+    var hasDelta = r.delta !== null && r.delta !== undefined;
+    var sign = hasDelta && r.delta >= 0 ? '+' : '-';
+    var rows = '';
+    rows += tipRow('Date', fmtDateShort(r.close_time - 900));
+    rows += tipRow('Time', fmtHHMM(r.close_time - 900) + ' – ' + fmtHHMM(r.close_time));
+    rows += tipRow('Result', r.result.toUpperCase(), r.result);
+    rows += tipRow('Delta', hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable');
+    rows += tipRow('Target', fmtUSD(r.floor_strike));
+    rows += tipRow('Settled', fmtUSD(r.settlement_value));
+    if (mine) rows += tipRow('Your call', mine.choice.toUpperCase(), mine.choice === r.result ? 'hit' : 'miss');
+    return rows;
+  }
+  function openTipModal(title, rowsHtml) {
+    document.getElementById('tipModalTitle').textContent = title;
+    document.getElementById('tipModalRows').innerHTML = rowsHtml;
+    document.getElementById('tipModalBackdrop').classList.add('show');
+  }
+  function closeTipModal() { document.getElementById('tipModalBackdrop').classList.remove('show'); }
+  document.addEventListener('click', function (e) {
+    if (e.target.id === 'tipModalClose' || e.target.closest('#tipModalClose')) { closeTipModal(); return; }
+    if (e.target.id === 'tipModalBackdrop') { closeTipModal(); return; }
+    var idEl = e.target.closest('[data-tip-id]');
+    if (idEl) {
+      var info = tipDataStore[idEl.dataset.tipId];
+      if (info) openTipModal(info.title, info.rows);
+      return;
+    }
+    var fullEl = e.target.closest('[data-tip-full]');
+    if (fullEl) openTipModal(fullEl.dataset.tipTitle || '', '<div class="tip-modal-row" style="display:block"><span class="v" style="font-weight:700">' + fullEl.dataset.tipFull + '</span></div>');
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTipModal(); });
+
+  document.getElementById('spreadSizeToggle').addEventListener('click', function () {
+    var list = document.getElementById('spreadList');
+    var compact = list.classList.toggle('compact');
+    this.textContent = compact ? 'Expanded' : 'Compact';
   });
 
   function progressStart() {
@@ -701,6 +980,10 @@
   function fmtHHMM(tsSec) {
     var d = new Date(tsSec * 1000);
     return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function fmtDateShort(tsSec) {
+    var d = new Date(tsSec * 1000);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
   function fmtDateTime(tsSec) {
     var d = new Date(tsSec * 1000);
@@ -890,6 +1173,10 @@
       timerValueEl.textContent = '—';
       timerLabelEl.textContent = 'Round Closes';
       timerValueEl.classList.remove('locked');
+      // Real gap found in review: this branch used to leave the previous round's
+      // Robinhood href sitting on the link while everything else visibly reset,
+      // instead of clearing it along with the timer/target placeholders.
+      document.getElementById('rhLink').removeAttribute('href');
     }
 
     // Kalshi chains rounds automatically (each round's floor_strike is exactly the
@@ -959,6 +1246,27 @@
 
     renderPick();
     renderLastResult();
+    updateHeroSummaries(state);
+  }
+
+  // Collapsed-state condensed summaries -- reuse data already in hand from the render
+  // pass that just ran, no new polling.
+  function updateHeroSummaries(d) {
+    var cur = d.current_round;
+    var priceEl = document.getElementById('summaryPrice');
+    if (cur && d.live_price !== null && d.live_price !== undefined) {
+      var t = now() / 1000;
+      priceEl.textContent = fmtUSD(d.live_price) + ' · target ' + fmtUSD(cur.floor_strike) + ' · ' + fmtClock(Math.max(0, cur.close_time - t)) + ' left';
+    } else {
+      priceEl.textContent = '—';
+    }
+    var gaugesEl = document.getElementById('summaryGauges');
+    if (d.lean && cur) {
+      gaugesEl.textContent = d.lean.direction.toUpperCase() + ' lean' +
+        (cur.kalshi_yes_price !== null && cur.kalshi_yes_price !== undefined ? ' · Kalshi ' + Math.round(cur.kalshi_yes_price * 100) + '% YES' : '');
+    } else {
+      gaugesEl.textContent = '—';
+    }
   }
 
   function renderLastResult() {
@@ -1038,9 +1346,6 @@
         // fake "+0" (JS coerces null to 0 in numeric comparisons/Math.abs).
         var hasDelta = r.delta !== null && r.delta !== undefined;
         var sign = hasDelta && r.delta >= 0 ? '+' : '-';
-        var title = 'Time: ' + fmtHHMM(r.close_time - 900) + ' - ' + fmtHHMM(r.close_time) + ' | Result: ' + r.result.toUpperCase() +
-          ' | Delta: ' + (hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable') +
-          ' | Target: ' + fmtUSD(r.floor_strike) + ' | Settled: ' + fmtUSD(r.settlement_value);
         bead.innerHTML =
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
@@ -1053,7 +1358,6 @@
         var mine = picks[r.kalshi_ticker];
         if (mine) {
           var hit = mine.choice === r.result;
-          title += ' | Your call: ' + mine.choice.toUpperCase() + ' (' + (hit ? 'correct' : 'incorrect') + ')';
           var badge = document.createElement('span');
           badge.className = 'bead-pick-badge ' + (hit ? 'hit' : 'miss');
           badge.innerHTML = hit
@@ -1061,7 +1365,12 @@
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
           bead.appendChild(badge);
         }
-        bead.title = title;
+        // Hover = date/time only (owner's explicit ask); click = the full detail
+        // popup, structured rows via tipDataStore rather than an HTML attribute.
+        bead.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
+        var tipId = 'bead-' + r.kalshi_ticker;
+        tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, mine) };
+        bead.setAttribute('data-tip-id', tipId);
         colEl.appendChild(bead);
       });
       grid.appendChild(colEl);
@@ -1101,6 +1410,13 @@
     noTile.classList.remove('leading', 'no-side');
     if (tallies.yes > tallies.no) yesTile.classList.add('leading', 'yes-side');
     else if (tallies.no > tallies.yes) noTile.classList.add('leading', 'no-side');
+
+    document.getElementById('summaryStats').textContent =
+      tallies.yes + ' YES / ' + tallies.no + ' NO · ' + (tallies.chop_rate !== null && tallies.chop_rate !== undefined ? tallies.chop_rate + '% chop' : '—');
+    var last6 = rounds.slice(-6);
+    document.getElementById('summaryBigroad').textContent = last6.length
+      ? 'Last ' + last6.length + ': ' + last6.map(function (r) { return r.result === 'yes' ? 'Y' : 'N'; }).join(' ')
+      : 'No settled rounds in this window yet';
   }
 
   // Round-to-round spread: settlement_value - floor_strike, per round, in a scrollable
@@ -1109,11 +1425,13 @@
   // filter reaches, capped by the app's 30-day retention window.
   function renderSpreadHistory(rounds) {
     var list = document.getElementById('spreadList');
+    var summaryEl = document.getElementById('summarySpread');
     list.innerHTML = '';
     var withDelta = rounds.filter(function (r) { return r.delta !== null && r.delta !== undefined; });
     if (!withDelta.length) {
       list.innerHTML = '<div class="spread-empty">No settled rounds with a recorded spread in this window yet</div>';
       document.getElementById('spreadRange').textContent = '';
+      summaryEl.textContent = 'No rounds recorded yet';
       return;
     }
     var maxAbs = withDelta.reduce(function (m, r) { return Math.max(m, Math.abs(r.delta)); }, 0.01);
@@ -1122,8 +1440,10 @@
       var barPct = Math.min(50, (Math.abs(r.delta) / maxAbs) * 50);
       var row = document.createElement('div');
       row.className = 'spread-row-item';
-      row.title = 'Round ' + fmtHHMM(r.close_time - 900) + '-' + fmtHHMM(r.close_time) +
-        ': target ' + fmtUSD(r.floor_strike) + ' → settled ' + fmtUSD(r.settlement_value);
+      row.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
+      var tipId = 'spread-' + r.kalshi_ticker;
+      tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, picks[r.kalshi_ticker]) };
+      row.setAttribute('data-tip-id', tipId);
       row.innerHTML =
         '<span class="spread-time">' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time) + '</span>' +
         '<div class="spread-bar-wrap"><div class="spread-bar ' + (up ? 'up' : 'down') + '" style="width:' + barPct + '%"></div></div>' +
@@ -1132,6 +1452,9 @@
     });
     document.getElementById('spreadRange').textContent =
       'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + withDelta.length + ' rounds recorded';
+    var lastR = withDelta[withDelta.length - 1];
+    var lastUp = lastR.delta >= 0;
+    summaryEl.textContent = 'Last round ' + (lastUp ? '▲ +' : '▼ -') + '$' + Math.abs(lastR.delta).toFixed(2) + ' vs target';
   }
 
   function loadHistory() {
@@ -1205,7 +1528,7 @@
     if (polling) poll();
   });
 
-  applySectionVisibility();
+  applyModuleLayout();
   setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();
