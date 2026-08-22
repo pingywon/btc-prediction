@@ -215,7 +215,7 @@
   .signal-side.yes { color: var(--green); }
   .signal-side.no { color: var(--red); }
   .signal-pct { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 900; line-height: 1; color: var(--cream); }
-  .signal-pct::before { content: ""; display: inline-block; width: 1px; height: 1.1em; background: rgba(255,255,255,0.14); margin-right: 0.6rem; vertical-align: -0.12em; }
+  .signal-pct::before { content: ""; display: inline-block; width: 1px; height: 1.1em; background: var(--cream); opacity: 0.22; margin-right: 0.6rem; vertical-align: -0.12em; }
   .signal-band {
     font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
     padding: 0.25rem 0.6rem; border-radius: 999px; white-space: nowrap;
@@ -228,14 +228,13 @@
   .signal-scale { margin-top: 1rem; }
   .signal-track {
     position: relative; height: 8px; border-radius: 999px;
-    background: linear-gradient(90deg, var(--red) 0%, rgba(255,255,255,0.10) 50%, var(--green) 100%);
+    background: linear-gradient(90deg, var(--red) 0%, var(--surface-800) 50%, var(--green) 100%);
   }
-  .signal-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: rgba(255,255,255,0.28); }
+  .signal-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--cream); opacity: 0.32; }
   .signal-marker {
     position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
     background: var(--cream); border: 2px solid var(--bg-deep);
     transform: translate(-50%, -50%); transition: left 0.5s ease-out; left: 50%;
-    box-shadow: 0 0 10px rgba(255,255,255,0.35);
   }
   .signal-scale-labels { display: flex; justify-content: space-between; margin-top: 0.4rem; }
   .signal-scale-labels span { font-size: 0.55rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -245,7 +244,7 @@
   .signal-reason .k { font-size: 0.58rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
   .signal-reason .v { font-size: 0.72rem; color: var(--soft); font-weight: 700; text-align: right; }
   .signal-disclaimer {
-    margin-top: 0.9rem; padding-top: 0.7rem; border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 0.9rem; padding-top: 0.7rem; border-top: 1px solid var(--border);
     font-size: 0.58rem; color: var(--faint); font-weight: 600; font-style: italic; line-height: 1.5;
   }
   .signal-empty { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; padding: 0.6rem 0; }
