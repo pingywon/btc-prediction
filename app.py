@@ -477,6 +477,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("board.html")
             if path in ("/gauge", "/gauge.html"):
                 return self._serve_page("gauge.html")
+            if path in ("/terminal", "/terminal.html"):
+                return self._serve_page("terminal.html")
+            if path in ("/tape", "/tape.html"):
+                return self._serve_page("tape.html")
             if path.startswith("/fonts/"):
                 return self._serve_font(path[len("/fonts/"):])
             if path == "/health":
