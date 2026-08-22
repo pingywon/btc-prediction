@@ -6,6 +6,12 @@
 <title>BTC 15 — Above or Below</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2305060a%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23ffd23f%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23ffd23f%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%2339ff88%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23ff3d6e%27/%3E %3C/svg%3E">
 <style>
+  /* Self-hosted, served by app.py off /fonts/ -- no CDN, no external request.
+     One variable file per family covers the whole weight axis. */
+  @font-face {
+    font-family: 'InterVar'; src: url('/fonts/inter.woff2') format('woff2-variations');
+    font-weight: 100 900; font-display: swap;
+  }
   :root {
     --bg-deep: #05060a;
     --surface-900: #0d0f16;
@@ -24,7 +30,7 @@
     --blue-derived: #22e6ff;
     --red-derived: #ff5252;
     --border: rgba(255, 255, 255, 0.09);
-    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --sans: 'InterVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --bead: 52px;
   }
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
@@ -195,6 +201,54 @@
   }
   .rh-link:hover { color: var(--amber-soft); }
   .rh-link svg { width: 12px; height: 12px; }
+
+  /* Current Spread is its own module now rather than a strip inside the price card,
+     so the card provides the box and the row drops its own. */
+  .spread-now-card { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .spread-now-card .spread-row { margin-top: 0; background: transparent; border: none; padding: 0; }
+
+  /* Round Confidence -- the answer to "is this going to land YES?" */
+  .signal-card { padding: clamp(1.1rem, 3vw, 1.5rem); }
+  .signal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+  .signal-call { display: flex; align-items: baseline; gap: 0.6rem; }
+  .signal-side { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 900; line-height: 1; letter-spacing: -0.01em; }
+  .signal-side.yes { color: var(--green); }
+  .signal-side.no { color: var(--red); }
+  .signal-pct { font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 900; line-height: 1; color: var(--cream); }
+  .signal-pct::before { content: ""; display: inline-block; width: 1px; height: 1.1em; background: rgba(255,255,255,0.14); margin-right: 0.6rem; vertical-align: -0.12em; }
+  .signal-band {
+    font-size: 0.6rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.25rem 0.6rem; border-radius: 999px; white-space: nowrap;
+  }
+  .signal-band.no-likely { background: rgba(255,61,110,0.16); color: var(--red); }
+  .signal-band.leaning-no { background: rgba(255,61,110,0.10); color: #ff8fa8; }
+  .signal-band.leaning-yes { background: rgba(57,255,136,0.10); color: #8effc0; }
+  .signal-band.yes-likely { background: rgba(57,255,136,0.16); color: var(--green); }
+
+  .signal-scale { margin-top: 1rem; }
+  .signal-track {
+    position: relative; height: 8px; border-radius: 999px;
+    background: linear-gradient(90deg, var(--red) 0%, rgba(255,255,255,0.10) 50%, var(--green) 100%);
+  }
+  .signal-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: rgba(255,255,255,0.28); }
+  .signal-marker {
+    position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--cream); border: 2px solid var(--bg-deep);
+    transform: translate(-50%, -50%); transition: left 0.5s ease-out; left: 50%;
+    box-shadow: 0 0 10px rgba(255,255,255,0.35);
+  }
+  .signal-scale-labels { display: flex; justify-content: space-between; margin-top: 0.4rem; }
+  .signal-scale-labels span { font-size: 0.55rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .signal-reasons { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+  .signal-reason { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+  .signal-reason .k { font-size: 0.58rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  .signal-reason .v { font-size: 0.72rem; color: var(--soft); font-weight: 700; text-align: right; }
+  .signal-disclaimer {
+    margin-top: 0.9rem; padding-top: 0.7rem; border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.58rem; color: var(--faint); font-weight: 600; font-style: italic; line-height: 1.5;
+  }
+  .signal-empty { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; padding: 0.6rem 0; }
 
   .pick-row {
     display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start;
@@ -606,19 +660,6 @@
             </div>
           </div>
         </div>
-        <div class="spread-row">
-          <div class="spread-left">
-            <span class="spread-label">Current Spread</span>
-            <div class="delta-pill" id="spreadPill">
-              <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 0L10 8H0z"/></svg>
-              <span class="tabular" id="spreadValue">—</span>
-            </div>
-          </div>
-          <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
-            VIEW ON ROBINHOOD
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
-          </a>
-        </div>
         <div class="pick-row">
           <div class="pick-left">
             <span class="pick-label">Personal Pick</span>
@@ -627,6 +668,71 @@
           </div>
           <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
         </div>
+        </div>
+      </div>
+
+      <div class="panel signal-card" data-section="signal">
+        <div class="module-head">
+          <div class="module-title-row">
+            <span class="module-name">Round Confidence</span>
+            <button class="module-info" data-tip-title="Round Confidence" data-tip-full="An estimate of how this round is likely to resolve. It blends Kalshi's own live order-book pricing, which carries most of the weight because it is a real traded probability, with where price sits relative to the target versus how far price actually moved in comparable recent rounds. It is an estimate, not advice.">i</button>
+          </div>
+          <div class="module-actions">
+            <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+            <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="module-summary" id="summarySignal">&nbsp;</div>
+        <div class="module-body">
+          <div id="signalContent">
+            <div class="signal-top">
+              <div class="signal-call">
+                <span class="signal-side" id="signalSide">—</span>
+                <span class="signal-pct tabular" id="signalPct">—</span>
+              </div>
+              <span class="signal-band" id="signalBand">&nbsp;</span>
+            </div>
+            <div class="signal-scale">
+              <div class="signal-track"><div class="signal-mid"></div><div class="signal-marker" id="signalMarker"></div></div>
+              <div class="signal-scale-labels"><span>Certain No</span><span>Neutral</span><span>Certain Yes</span></div>
+            </div>
+            <div class="signal-reasons" id="signalReasons"></div>
+            <div class="signal-disclaimer">Estimate only, from live market pricing and recent round history. Not advice.</div>
+          </div>
+          <div class="signal-empty" id="signalEmpty" style="display:none">Waiting for a round and live pricing</div>
+        </div>
+      </div>
+
+      <div class="panel spread-now-card" data-section="spread-now">
+        <div class="module-head">
+          <div class="module-title-row">
+            <span class="module-name">Current Spread</span>
+            <button class="module-info" data-tip-title="Current Spread" data-tip-full="How far the live price sits from this round's target right now, and a link straight to the real round on Robinhood. Green means price is above target and this round is currently YES; red means below.">i</button>
+          </div>
+          <div class="module-actions">
+            <button class="module-btn module-move-up" title="Move up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <button class="module-btn module-move-down" title="Move down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></button>
+            <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="module-summary" id="summarySpreadNow">&nbsp;</div>
+        <div class="module-body">
+          <div class="spread-row">
+            <div class="spread-left">
+              <span class="spread-label">vs target</span>
+              <div class="delta-pill" id="spreadPill">
+                <svg viewBox="0 0 10 10" fill="currentColor"><path d="M5 0L10 8H0z"/></svg>
+                <span class="tabular" id="spreadValue">—</span>
+              </div>
+            </div>
+            <a class="rh-link" id="rhLink" href="#" target="_blank" rel="noopener">
+              VIEW ON ROBINHOOD
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -945,9 +1051,9 @@
   // two small groups rather than one flat list: price-col's two children (price,
   // gauges) and the bottom stack's two children (bigroad, spread). `stats` sits alone
   // in side-col -- nothing to reorder it against, so it gets no move buttons.
-  var SECTION_IDS = ['price', 'gauges', 'stats', 'bigroad', 'spread'];
-  var SECTION_LABELS = { price: 'Live Price & Pick', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
-  var GROUP_PRICE = ['price', 'gauges'];
+  var SECTION_IDS = ['price', 'signal', 'spread-now', 'gauges', 'stats', 'bigroad', 'spread'];
+  var SECTION_LABELS = { price: 'Live Price & Pick', signal: 'Round Confidence', 'spread-now': 'Current Spread', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
+  var GROUP_PRICE = ['price', 'signal', 'spread-now', 'gauges'];
   var GROUP_BOTTOM = ['bigroad', 'spread'];
   var MODULE_STATE_KEY = 'btc15_index_modules';
   function defaultModuleState() { return { hidden: {}, collapsed: {}, orderPrice: GROUP_PRICE.slice(), orderBottom: GROUP_BOTTOM.slice() }; }
@@ -1129,6 +1235,121 @@
   var WINDOW_LABELS = { 0.5: '30 Minutes', 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 8: '8 Hours', 12: '12 Hours', 24: '24 Hours', 168: '7 Days' };
 
   var state = null;
+
+  // ---- Round confidence -----------------------------------------------------
+  // Answers the only question this app actually exists to answer: is this round
+  // going to land YES? Two independent reads, blended, both from data already on
+  // hand -- no new endpoint, no new polling.
+  //
+  //   1. Kalshi's own live order book. kalshi_yes_price is a 0-1 probability (a
+  //      dollar price), NOT cents. This is a real traded probability rather than
+  //      an invented score, so it carries most of the weight.
+  //   2. Where price sits relative to the strike, judged against how far price
+  //      actually moves -- using the observed spread of completed-round moves
+  //      rather than an assumed volatility number.
+  //
+  // Deliberately an estimate and labelled as one everywhere it surfaces. Same
+  // honesty rule the derived roads carry: a good-faith model, not a guarantee.
+  var CONF_BANDS = [
+    { max: 0.30, key: 'no-likely', label: 'No likely' },
+    { max: 0.50, key: 'leaning-no', label: 'Leaning no' },
+    { max: 0.70, key: 'leaning-yes', label: 'Leaning yes' },
+    { max: 1.01, key: 'yes-likely', label: 'Yes likely' }
+  ];
+  function confBand(pYes) {
+    for (var i = 0; i < CONF_BANDS.length; i++) { if (pYes < CONF_BANDS[i].max) return CONF_BANDS[i]; }
+    return CONF_BANDS[CONF_BANDS.length - 1];
+  }
+
+  function computeConfidence(s, rounds) {
+    if (!s || !s.current_round) return null;
+    var cur = s.current_round;
+    var reasons = [], parts = [];
+
+    var yes = cur.kalshi_yes_price, no = cur.kalshi_no_price;
+    if (yes !== null && yes !== undefined) {
+      var effNo = (no !== null && no !== undefined) ? no : (1 - yes);
+      var sum = yes + effNo;
+      // The two sides rarely sum to exactly 1 (they are bid-side prices), so
+      // normalise rather than trusting either one alone.
+      var pMkt = sum > 0 ? yes / sum : yes;
+      parts.push({ p: pMkt, w: 0.7 });
+      reasons.push({ k: 'Market odds', v: 'Kalshi prices YES at ' + Math.round(pMkt * 100) + '%' });
+    }
+
+    var price = s.live_price, strike = cur.floor_strike;
+    var moves = [];
+    for (var i = 0; i < (rounds || []).length; i++) {
+      var dv = rounds[i].delta;
+      if (dv !== null && dv !== undefined) moves.push(Math.abs(dv));
+    }
+    // Below ~8 settled rounds the distribution is noise, so skip this read entirely
+    // rather than quoting a percentage off three samples.
+    if (price !== null && price !== undefined && strike !== null && strike !== undefined && moves.length >= 8) {
+      var tLeft = Math.max(0, cur.close_time - now() / 1000);
+      var gap = price - strike;
+      // Every round is exactly 900s. A move across the remaining fraction f of a
+      // round is about sqrt(f) the size of a whole-round move, so scale what would
+      // be needed up to a whole-round equivalent before comparing it against
+      // completed rounds. As time runs out this correctly explodes, and the
+      // current position takes over.
+      var frac = Math.max(0.005, Math.min(1, tLeft / 900));
+      var equiv = Math.abs(gap) / Math.sqrt(frac);
+      var hits = 0;
+      for (var j = 0; j < moves.length; j++) { if (moves[j] >= equiv) hits++; }
+      var pExceed = hits / moves.length;
+      // A move that big also has to go the right way to matter; treat direction as
+      // a coin flip.
+      var pFlip = pExceed / 2;
+      parts.push({ p: gap >= 0 ? (1 - pFlip) : pFlip, w: 0.3 });
+      reasons.push({ k: 'Position', v: fmtUSD(Math.abs(gap)) + (gap >= 0 ? ' above' : ' below') + ' target, ' + fmtClock(tLeft) + ' left' });
+      reasons.push({ k: 'Precedent', v: Math.round(pExceed * 100) + '% of recent rounds moved at least that far' });
+    }
+
+    if (!parts.length) return null;
+    var acc = 0, wSum = 0;
+    for (var k = 0; k < parts.length; k++) { acc += parts[k].p * parts[k].w; wSum += parts[k].w; }
+    var pYes = Math.max(0, Math.min(1, acc / wSum));
+    var side = pYes >= 0.5 ? 'yes' : 'no';
+    return {
+      pYes: pYes,
+      pct: Math.round(100 * (side === 'yes' ? pYes : 1 - pYes)),
+      side: side,
+      band: confBand(pYes),
+      reasons: reasons
+    };
+  }
+
+  function renderConfidence() {
+    var c = computeConfidence(state, historyRounds);
+    var content = document.getElementById('signalContent');
+    var empty = document.getElementById('signalEmpty');
+    var summary = document.getElementById('summarySignal');
+    if (!c) {
+      content.style.display = 'none';
+      empty.style.display = '';
+      summary.textContent = 'Waiting for a round';
+      return;
+    }
+    content.style.display = '';
+    empty.style.display = 'none';
+
+    var sideEl = document.getElementById('signalSide');
+    sideEl.textContent = c.side.toUpperCase();
+    sideEl.className = 'signal-side ' + c.side;
+    document.getElementById('signalPct').textContent = c.pct + '%';
+    var bandEl = document.getElementById('signalBand');
+    bandEl.textContent = c.band.label;
+    bandEl.className = 'signal-band ' + c.band.key;
+    document.getElementById('signalMarker').style.left = (c.pYes * 100).toFixed(1) + '%';
+
+    var rows = '';
+    for (var i = 0; i < c.reasons.length; i++) {
+      rows += '<div class="signal-reason"><span class="k">' + c.reasons[i].k + '</span><span class="v">' + c.reasons[i].v + '</span></div>';
+    }
+    document.getElementById('signalReasons').innerHTML = rows;
+    summary.textContent = c.side.toUpperCase() + ' ' + c.pct + '% · ' + c.band.label;
+  }
 
   // Live price vs. this round's target -- ticks are durably stored server-side (3h
   // retention), so this queries them directly rather than relying on the in-memory
@@ -1383,6 +1604,7 @@
 
     renderPick();
     renderLastResult();
+    renderConfidence();
     updateHeroSummaries(state);
   }
 
@@ -1403,6 +1625,12 @@
         (cur.kalshi_yes_price !== null && cur.kalshi_yes_price !== undefined ? ' · Kalshi ' + Math.round(cur.kalshi_yes_price * 100) + '% YES' : '');
     } else {
       gaugesEl.textContent = '—';
+    }
+    var spreadNowEl = document.getElementById('summarySpreadNow');
+    if (d.lean) {
+      spreadNowEl.textContent = (d.lean.delta >= 0 ? '▲ +' : '▼ -') + '$' + Math.abs(d.lean.delta).toFixed(2) + ' vs target';
+    } else {
+      spreadNowEl.textContent = '—';
     }
   }
 
