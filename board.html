@@ -11,15 +11,16 @@
   @font-face { font-family: 'JetBrainsMonoVar'; src: url('/fonts/jetbrains-mono.woff2') format('woff2-variations'); font-weight: 100 800; font-display: swap; }
 
   :root {
+    --ink-rgb: 255, 255, 255;
     --bg-deep: #0a0a0c;
-    --surface-900: rgba(255,255,255,0.03);
-    --surface-850: rgba(255,255,255,0.05);
-    --surface-800: rgba(255,255,255,0.07);
-    --surface-700: rgba(255,255,255,0.12);
+    --surface-900: rgba(var(--ink-rgb), 0.03);
+    --surface-850: rgba(var(--ink-rgb), 0.05);
+    --surface-800: rgba(var(--ink-rgb), 0.07);
+    --surface-700: rgba(var(--ink-rgb), 0.12);
     --cream: #f4f7fb;
-    --soft: rgba(244,247,251,0.72);
-    --dim: rgba(244,247,251,0.45);
-    --faint: rgba(244,247,251,0.30);
+    --soft: rgba(var(--ink-rgb), 0.72);
+    --dim: rgba(var(--ink-rgb), 0.45);
+    --faint: rgba(var(--ink-rgb), 0.30);
     --amber: #22d3ee;              /* the accent slot; on this skin it is cyan */
     --amber-deep: #0ea5e9;
     --amber-soft: #67e8f9;
@@ -28,8 +29,8 @@
     --caution: #facc15;
     --blue-derived: #0ea5e9;
     --red-derived: #ef4444;
-    --border: rgba(255,255,255,0.16);
-    --border-strong: rgba(255,255,255,0.26);
+    --border: rgba(var(--ink-rgb), 0.16);
+    --border-strong: rgba(var(--ink-rgb), 0.26);
     --sans: 'ManropeVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --mono: 'JetBrainsMonoVar', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -38,6 +39,40 @@
     --rail-w: 64px;
     --status-h: 80px;
   }
+  /* Light glass -- same frosted-panel conceit, tinted dark-on-light instead of
+     light-on-dark. Because every surface/border/text-opacity variable above is
+     already built from --ink-rgb, flipping the theme is mostly just flipping that
+     one value; only the true hex colors (page bg, ink, accent family) need restating
+     for contrast on a light backdrop. */
+  :root[data-theme="light"] {
+    --ink-rgb: 20, 22, 32;
+    --bg-deep: #eef1f6;
+    --cream: #12141c;
+    --amber: #0e8fa8;
+    --amber-deep: #0a6a7d;
+    --amber-soft: #14a8c4;
+    --green: #1a9d5c;
+    --red: #c8343f;
+    --caution: #a67c00;
+    --blue-derived: #0a6a7d;
+    --red-derived: #c8343f;
+    --glass-shadow: 0 8px 32px rgba(20,22,32,0.14);
+  }
+  /* A 28-30%-black "recessed control" wash reads as a subtle well against this
+     skin's near-black page, but the same value on the light variant's pale bg is
+     just a flat dark-grey block -- needs a much softer ink-tinted wash instead. */
+  [data-theme="light"] .chart-nav-btn,
+  [data-theme="light"] .price-chart-stage,
+  [data-theme="light"] .price-chart-empty,
+  [data-theme="light"] .timeframe-select,
+  [data-theme="light"] .refresh-btn,
+  [data-theme="light"] .spread-size-toggle {
+    background: rgba(20,22,32,0.05);
+  }
+  /* The floating status dock is a hardcoded near-black frosted glass in the dark
+     skin -- flip it to a light frosted glass to match, rather than leaving one
+     permanently-dark bar on an otherwise light page. */
+  [data-theme="light"] .status-bar { background: rgba(238,241,246,0.78); }
   * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
   html, body { margin: 0; padding: 0; min-height: 100%; }
   body {
@@ -50,7 +85,7 @@
   /* ---- slim icon rail ---------------------------------------------------- */
   .rail {
     position: fixed; left: 0; top: 0; bottom: 0; width: var(--rail-w); z-index: 60;
-    background: rgba(255,255,255,0.02); border-right: 1px solid var(--border);
+    background: rgba(var(--ink-rgb), 0.02); border-right: 1px solid var(--border);
     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
     display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
     padding: 0.75rem 0.4rem;
@@ -65,7 +100,7 @@
   .rail-modules { display: flex; flex-direction: column; gap: 0.3rem; width: 100%; align-items: center; overflow-y: auto; }
   .rail-mod {
     width: 46px; padding: 0.32rem 0; border-radius: 8px; flex: none; cursor: pointer;
-    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    background: rgba(var(--ink-rgb), 0.04); border: 1px solid var(--border);
     color: var(--soft); font-family: var(--sans); font-size: 0.5rem; font-weight: 800;
     letter-spacing: 0.06em; text-transform: uppercase; transition: all 0.18s var(--ease);
   }
@@ -73,13 +108,16 @@
   .rail-mod.off { opacity: 0.32; text-decoration: line-through; }
   .rail-btn {
     width: 34px; height: 34px; border-radius: 9px; flex: none; cursor: pointer;
-    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    background: rgba(var(--ink-rgb), 0.04); border: 1px solid var(--border);
     color: var(--soft); display: flex; align-items: center; justify-content: center;
     transition: all 0.18s var(--ease);
   }
   .rail-btn:hover { color: var(--amber); border-color: rgba(34,211,238,0.4); }
   .rail-btn svg { width: 15px; height: 15px; }
   .rail-spacer { flex: 1; }
+  .rail-btn .icon-moon { display: none; }
+  [data-theme="light"] .rail-btn .icon-sun { display: none; }
+  [data-theme="light"] .rail-btn .icon-moon { display: block; }
 
   /* ---- main column ------------------------------------------------------- */
   .board-main { margin-left: var(--rail-w); padding: clamp(0.9rem, 2vw, 1.4rem); }
@@ -275,12 +313,12 @@
   /* AI-insight badge, straight from the spec */
   .insight-badge {
     margin-top: 0.7rem; width: 100%; max-width: 260px; padding: 12px; border-radius: 10px;
-    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    background: rgba(var(--ink-rgb), 0.05); border: 1px solid var(--border);
   }
   .insight-badge .lbl { display: block; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
   .insight-badge .lbl.yes { color: var(--green); }
   .insight-badge .lbl.no { color: var(--red); }
-  .insight-badge .txt { font-size: 10px; color: rgba(244,247,251,0.5); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .insight-badge .txt { font-size: 10px; color: rgba(var(--ink-rgb), 0.5); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
   /* ---- gauges ------------------------------------------------------------ */
   .gauges-wrap { display: flex; flex-direction: column; gap: 0.9rem; height: 100%; }
@@ -311,7 +349,7 @@
   .stat-tile {
     padding: 0.7rem 0.5rem; border-radius: 12px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center; min-height: 64px;
-    position: relative; border: 1px solid var(--border); background: rgba(255,255,255,0.025);
+    position: relative; border: 1px solid var(--border); background: rgba(var(--ink-rgb), 0.025);
   }
   .stat-tile.wide { grid-column: 1 / -1; }
   .stat-tile .label { font-size: 0.52rem; color: var(--dim); text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em; margin-bottom: 0.2rem; }
@@ -324,7 +362,7 @@
   .leading-badge { position: absolute; top: 5px; right: 5px; font-size: 0.46rem; font-weight: 900; letter-spacing: 0.06em; padding: 0.1rem 0.32rem; border-radius: 999px; display: none; }
   .stat-tile.leading.yes-side .leading-badge.yes-badge { display: block; background: rgba(74,222,128,0.18); color: var(--green); }
   .stat-tile.leading.no-side .leading-badge.no-badge { display: block; background: rgba(239,68,68,0.18); color: var(--red); }
-  .last-result-card { margin-top: 0.6rem; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.025); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; text-align: center; }
+  .last-result-card { margin-top: 0.6rem; padding: 0.8rem; border-radius: 12px; border: 1px solid var(--border); background: rgba(var(--ink-rgb), 0.025); display: flex; flex-direction: column; align-items: center; gap: 0.35rem; text-align: center; }
   .last-result-card .label { font-size: 0.52rem; color: var(--dim); text-transform: uppercase; font-weight: 800; letter-spacing: 0.09em; }
   .last-result-row { display: flex; align-items: center; gap: 0.6rem; }
   .last-result-row .lr-word { font-size: 1.15rem; font-weight: 800; }
@@ -396,7 +434,7 @@
   .spread-size-toggle:hover { color: var(--amber); border-color: rgba(34,211,238,0.4); }
   .spread-row-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
   .spread-row-item:last-child { border-bottom: none; }
-  .spread-row-item:nth-child(odd) { background: rgba(255,255,255,0.015); }
+  .spread-row-item:nth-child(odd) { background: rgba(var(--ink-rgb), 0.015); }
   .spread-time { font-size: 0.58rem; color: var(--soft); font-weight: 700; flex: none; width: 96px; font-family: var(--mono); }
   .spread-bar-wrap { flex: 1; height: 5px; background: var(--surface-800); border-radius: 999px; position: relative; overflow: hidden; margin: 0 0.2rem; min-width: 36px; }
   .spread-bar { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
@@ -418,14 +456,14 @@
   .meter-group { display: flex; align-items: center; gap: 0.55rem; flex: none; }
   .meter { width: 40px; height: 40px; flex: none; transform: rotate(-90deg); }
   .meter circle { fill: none; stroke-width: 2.5; }
-  .meter .meter-track { stroke: rgba(255,255,255,0.05); }
+  .meter .meter-track { stroke: rgba(var(--ink-rgb), 0.05); }
   .meter .meter-fill { stroke: var(--amber); transition: stroke-dasharray 0.6s var(--ease); stroke-linecap: round; }
   .meter-group.lean .meter .meter-fill { stroke: #a78bfa; }
   .meter-group.conf .meter .meter-fill { stroke: var(--green); }
   .meter-wrap { position: relative; width: 40px; height: 40px; flex: none; }
   .meter-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 8px; font-weight: 700; color: var(--soft); }
   .meter-labels { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .meter-labels .k { font-size: 8px; color: rgba(244,247,251,0.3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; white-space: nowrap; }
+  .meter-labels .k { font-size: 8px; color: rgba(var(--ink-rgb), 0.3); font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; white-space: nowrap; }
   .meter-labels .v { font-size: 11px; color: var(--cream); font-weight: 800; white-space: nowrap; }
   .status-spacer { flex: 1; min-width: 0.5rem; }
   .status-live { display: flex; align-items: center; gap: 0.4rem; flex: none; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--soft); }
@@ -437,7 +475,7 @@
   .page-switcher { position: relative; flex: none; }
   .switcher-btn {
     width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
-    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    background: rgba(var(--ink-rgb), 0.04); border: 1px solid var(--border);
     color: var(--soft); display: flex; align-items: center; justify-content: center;
     transition: all 0.18s var(--ease);
   }
@@ -451,7 +489,7 @@
   }
   .switcher-menu.show { display: flex; }
   .switcher-item { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 8px; text-decoration: none; font-size: 0.66rem; font-weight: 700; color: var(--soft); }
-  .switcher-item:hover { background: rgba(255,255,255,0.06); color: var(--amber); }
+  .switcher-item:hover { background: rgba(var(--ink-rgb), 0.06); color: var(--amber); }
   .switcher-item.current { color: var(--amber); }
   .switcher-item.current::after { content: "\25CF"; font-size: 0.5rem; }
 
@@ -485,7 +523,7 @@
   .tip-modal-close { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-strong); background: transparent; color: var(--faint); cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; }
   .tip-modal-close:hover { color: var(--red); }
   .tip-modal-rows { display: flex; flex-direction: column; gap: 0.45rem; }
-  .tip-modal-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.45rem 0.6rem; background: rgba(255,255,255,0.04); border-radius: 8px; }
+  .tip-modal-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.45rem 0.6rem; background: rgba(var(--ink-rgb), 0.04); border-radius: 8px; }
   .tip-modal-row .k { font-size: 0.56rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
   .tip-modal-row .v { font-size: 0.72rem; font-weight: 800; color: var(--cream); font-family: var(--mono); }
   .tip-modal-row .v.yes { color: var(--green); }
@@ -504,7 +542,7 @@
   .conn-issue-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); flex: none; animation: livePulse 1s ease-in-out infinite; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: rgba(var(--ink-rgb), 0.12); border-radius: 3px; }
 
   /* ---- below 900px the pegboard is not usable, so it stacks --------------- */
   @media (max-width: 899px) {
@@ -525,6 +563,22 @@
     .switcher-menu { left: auto; right: 0; bottom: auto; top: calc(100% + 8px); }
   }
 </style>
+<script>
+  (function () {
+    var NATIVE = 'dark';
+    var theme = null;
+    try { theme = localStorage.getItem('btc15_theme'); } catch (e) {}
+    if (theme !== 'light' && theme !== 'dark') {
+      theme = null;
+      try {
+        if (window.matchMedia) {
+          theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+      } catch (e) {}
+    }
+    document.documentElement.setAttribute('data-theme', theme || NATIVE);
+  })();
+</script>
 </head>
 <body>
 <div class="top-progress" id="topProgress"><div class="top-progress-bar"></div></div>
@@ -536,6 +590,10 @@
   <div class="rail-spacer"></div>
   <button class="rail-btn" id="boardReset" title="Reset layout to default">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>
+  </button>
+  <button class="rail-btn" id="themeToggle" title="Toggle light / dark">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
   <div class="page-switcher">
     <button class="switcher-btn" id="switcherBtn" title="Switch dashboard version">
@@ -985,6 +1043,15 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { menu.classList.remove('show'); btn.classList.remove('active'); }
+    });
+  })();
+  (function () {
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('btc15_theme', next); } catch (e) {}
     });
   })();
   var clockOffsetMs = 0;
