@@ -469,6 +469,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("fluid.html")
             if path in ("/ticket", "/ticket.html"):
                 return self._serve_page("ticket.html")
+            if path in ("/board", "/board.html"):
+                return self._serve_page("board.html")
             if path.startswith("/fonts/"):
                 return self._serve_font(path[len("/fonts/"):])
             if path == "/health":
