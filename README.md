@@ -6,7 +6,7 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-Six versions of the same dashboard, all reading the same backend and cross-linked
+Eight versions of the same dashboard, all reading the same backend and cross-linked
 via the "Switch" button in each header:
 
 - `GET /` — **Classic**, the original 2-column dashboard.
@@ -22,6 +22,11 @@ via the "Switch" button in each header:
   changes colour with how certain the round is.
 - `GET /algo` — **ALGO Desk**, an AI making its own YES/NO call every round, tracked
   against your own picks.
+- `GET /terminal` — **Terminal**, a retro green-phosphor CRT trading terminal —
+  monochrome monospace, scanline overlay, ASCII corner brackets on every card.
+- `GET /tape` — **The Tape**, a dense Bloomberg-style order-book read: a real YES/NO
+  depth ladder off Kalshi's live prices, a scrolling ticker tape of settled rounds
+  across the top, steel-blue accent.
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
@@ -52,7 +57,7 @@ pick is `localStorage`-only and never leaves the browser.
 
 Inter, Manrope and JetBrains Mono are **self-hosted** (`fonts/`, served at
 `/fonts/<name>.woff2`) rather than linked from a CDN — one latin-subset variable file
-per family covering the whole weight axis, ~113KB total, shared across all six pages.
+per family covering the whole weight axis, ~113KB total, shared across all eight pages.
 All three are SIL OFL 1.1; see `fonts/LICENSE.md`.
 
 ## Run
