@@ -92,7 +92,11 @@ def kalshi_markets(status, cursor=None, limit=100):
 
 def fetch_open_round():
     data = kalshi_markets("open", limit=5)
-    markets = data.get("markets") or []
+    all_markets = data.get("markets") or []
+    # Kalshi briefly creates a market shell before assigning its strike -- treat one
+    # missing floor_strike as "not ready yet" rather than letting it KeyError and
+    # abort the whole poll (which froze current_round for up to ~1min per rollover).
+    markets = [m for m in all_markets if m.get("floor_strike") not in (None, "")]
     if not markets:
         return None
     now = time.time()
