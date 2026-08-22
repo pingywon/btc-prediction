@@ -29,7 +29,7 @@
     --red: #ff3d6e;
     --blue-derived: #22e6ff;
     --red-derived: #ff5252;
-    --border: rgba(255, 255, 255, 0.09);
+    --border: rgba(255, 255, 255, 0.18);
     --sans: 'InterVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --bead: 52px;
   }
@@ -135,6 +135,7 @@
   .top-grid { display: flex; flex-direction: column; gap: 1.5rem; }
   @media (min-width: 1024px) { .top-grid { display: grid; grid-template-columns: 7fr 5fr; } }
   .price-col, .side-col { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+  .side-col { padding: clamp(1.1rem, 3vw, 1.5rem); }
 
   .hero-card { padding: clamp(1.1rem, 3vw, 1.5rem); position: relative; overflow: hidden; }
   .hero-card::before {
@@ -786,7 +787,7 @@
       </div>
     </div>
 
-    <div class="side-col" data-section="stats">
+    <div class="side-col panel" data-section="stats">
       <div class="module-head">
         <div class="module-title-row">
           <span class="module-name">Results Sidebar</span>

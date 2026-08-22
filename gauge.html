@@ -32,7 +32,7 @@
     --red: #ff2d20;
     --blue-derived: #4cc9f0;
     --red-derived: #ff2d20;
-    --border: rgba(255,255,255,0.14);
+    --border: rgba(255,255,255,0.20);
     --sans: 'ManropeVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --data: 'InterVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --active-color: var(--c2);
@@ -172,7 +172,7 @@
 
   /* ---- modules below the card -------------------------------------------- */
   .stack { display: flex; flex-direction: column; gap: clamp(0.9rem, 2.5vw, 1.4rem); margin-top: clamp(1.6rem, 5vw, 3rem); }
-  .panel { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; padding: clamp(1rem, 3vw, 1.5rem); }
+  .panel { background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 22px; padding: clamp(1rem, 3vw, 1.5rem); box-shadow: 0 8px 28px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.02); }
   .module-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-bottom: 0.7rem; margin-bottom: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
   .module-title-row { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
   .module-title-row .module-name { font-family: var(--data); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.18em; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
