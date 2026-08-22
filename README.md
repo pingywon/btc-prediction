@@ -66,7 +66,7 @@ All three are SIL OFL 1.1; see `fonts/LICENSE.md`.
 python3 app.py
 ```
 
-Env vars: `PORT` (default 8160), `BIND` (default 0.0.0.0), `BP_DB` (SQLite path, default `./data.db`).
+Env vars: `PORT` (default 80), `BIND` (default 0.0.0.0), `BP_DB` (SQLite path, default `./data.db`).
 
 ### Docker
 

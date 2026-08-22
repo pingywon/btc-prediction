@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("BP_DB", os.path.join(HERE, "data.db"))
-PORT = int(os.environ.get("PORT", "8160"))
+PORT = int(os.environ.get("PORT", "80"))
 BIND = os.environ.get("BIND", "0.0.0.0")
 
 FONT_DIR = os.path.join(HERE, "fonts")
