@@ -1,65 +1,74 @@
 {
   "schemaVersion": 1,
+  "note": "Rewritten 2026-08-20 at v2.9.0. The previous state pointed at v1.3.0-era drafts in a navy/amber 'Ledger Equities Desk' style that was replaced at v2.0.0, and its index.html fingerprint had been stale for six versions. Those old drafts still exist on the canvas but are history -- do not iterate from them.",
+  "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
+  "designSystemPath": ".superdesign/design-system.md",
+  "contextNote": "index.html is ~93KB, well over the CLI's 50,000-character per-context-file cap. Generate a trimmed reference first (strip the <script> block, the favicon data URI, and long SVG path data, then cap leading indentation) -- that lands around 47KB and carries the markup plus the full stylesheet, which is all a visual draft needs.",
   "targets": {
     "/": {
       "targetKind": "existing-ui",
       "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
-      "baselineDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-      "activeDraftId": "46d12b91-43af-415c-b783-b4d713656207",
+      "activeDraftId": "36c7f028-8e05-433f-90e9-8db6bfe58f4c",
       "designSystemPath": ".superdesign/design-system.md",
       "contextFiles": [
         "index.html",
         ".superdesign/design-system.md"
       ],
       "fingerprints": {
-        "index.html": "2d45f3984eddb473c3de77a6202f31b3c0dad0417c5383cd6d59b5953298f02a",
-        ".superdesign/design-system.md": "54ddf173869f2974072357cc61644ede1f96952b32cf38c3ea1d2c3ef5541afe"
+        "index.html": "6a3dc520d7d05302f416915af179ea3c2a7ba5b1601397edb952df5b49f7063c",
+        ".superdesign/design-system.md": "591b866684dac198b644c52604043c143f585e83dba1d9b970a45f42007b34bd"
       },
       "components": [],
       "drafts": {
-        "c18f4d0a-02c7-4a07-8778-b5cfb0307a73": {
-          "title": "BTC 15 - Precise Visual Reproduction",
-          "visualDirection": "baseline: pixel-perfect reproduction of current felt-green/monospace/casino UI",
+        "36c7f028-8e05-433f-90e9-8db6bfe58f4c": {
+          "title": "Classic v3 - Spread Module + Confidence Readout",
+          "visualDirection": "Keeps the arcade-neon identity and the 2-column grid untouched. Adds two things: Current Spread lifted out of the Live Price card into its own module (live spread pill + Robinhood link + a summary line), and a new Round Confidence module -- large percentage, YES/NO call, a certain-NO / neutral / certain-YES bar with a marker, a band badge, and evidence lines citing the Kalshi order book, the price-vs-strike position with time left, and historical precedent, closed by an explicit 'statistical estimate, not financial advice' line.",
           "currentVersion": 1
-        },
-        "470420d5-66a0-409f-ae4a-0fe94fdfd287": {
-          "title": "BTC 15 — Trading Floor Redesign",
-          "visualDirection": "new navy/amber trading-floor style, hero-focused: huge price-vs-target comparison as the dominant top element, full-width Big Road wrapping into rows",
-          "parentDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-          "currentVersion": 1
-        },
-        "46ff649a-0251-462b-a04d-263431fd95e7": {
-          "title": "BTC 15 — Pro Trading Floor Dashboard",
-          "visualDirection": "new navy/amber trading-floor style, dense terminal layout: compact top band packs sentence+countdown+price-compare+lean+link+stats above the fold, Big Road dominant below, wraps into rows",
-          "parentDraftId": "c18f4d0a-02c7-4a07-8778-b5cfb0307a73",
-          "currentVersion": 1
-        },
-        "67b0a62d-6428-4480-b021-f41a189c7547": {
-          "title": "BTC 15 — Professional Trading Floor Dashboard",
-          "visualDirection": "owner selected the hero-focused direction (470420d5) and refined it: removed leftover 'Ledger Equities Desk' style-reference branding, moved lean gauge + round countdown to their own stacked rows below the hero price card, chop-rate tile shows percent + raw flip count, streak/longest-streak tiles color by direction (green YES / red NO), timeframe filters are demonstrably interactive (regenerate sample data on click), Big Road columns carry subtle dim start-time captions",
-          "parentDraftId": "470420d5-66a0-409f-ae4a-0fe94fdfd287",
-          "currentVersion": 1
-        },
-        "5fe41884-fe25-4109-b804-2ba283a91263": {
-          "title": "BTC 15 — Full-Width Dashboard with Derived Roads",
-          "visualDirection": "iterated from 67b0a62d: per-chip time labels on every Big Road bead (replacing the ambiguous per-column captions), Market Lean simulated update interval set to 5s, disclaimer footer line removed, Big Road repositioned as the full-width final section underneath everything, added a Big Eye Boy derived road below Big Road (small red/blue pattern-repeat markers + legend, sample derivation logic -- real algorithm still TODO for the actual app build). v2 fixed a responsive bug where Live Price and Target Strike overlapped/clipped on mobile -- they now stack into separate rows below ~640px.",
-          "parentDraftId": "67b0a62d-6428-4480-b021-f41a189c7547",
-          "currentVersion": 2
-        },
-        "816bed2c-11f5-4fba-a06c-efaac521c6f2": {
-          "title": "BTC 15 — Accurate Big Road Rendering",
-          "visualDirection": "iterated from 5fe41884: fixed the sample-data fill order to match real baccarat Big Road convention (time increases going down a column and left-to-right across columns -- was backwards before); added the round-over-round dollar price delta as a third line on every chip ('+63'/'-24' style, color-matched to result) plus the full signed-dollar delta in each chip's hover tooltip. This delta is the actual number that determines each round's YES/NO result, since a round's target is the previous round's settlement price (chained).",
-          "parentDraftId": "5fe41884-fe25-4109-b804-2ba283a91263",
-          "currentVersion": 1
-        },
-        "46d12b91-43af-415c-b783-b4d713656207": {
-          "title": "BTC 15 — Fixed JS Syntax Error / Performance Analysis & Personal Predictor",
-          "visualDirection": "iterated from 816bed2c: (1) timeframe clarity -- added a 'Showing <date range>' caption that updates with the selected filter, a 'Results -- Last N' header above the stats grid, and a LEADING badge + highlighted border on whichever of Yes Wins/No Wins is ahead for the selected window; (2) personal pick -- added YES/NO buttons next to the hero card scoped to the CURRENT round only (explicitly not a crowd vote, single-user, no server tally), a personal win/loss record display, buttons disable when the round locks, and a 'Personal Call: X -- CORRECT/INCORRECT' feedback line near Last Round Result (hidden until a pick exists for that round). v1 shipped with a real bug (duplicate `const now` declaration inside updateView() -- SyntaxError that silently broke the entire script, leaving Big Road/Big Eye Boy/leading-badges all empty); v2 fixed it. v3 fixed a mobile overflow where the spread/pick/record/Robinhood-link row didn't wrap and clipped off-screen below ~640px.",
-          "parentDraftId": "816bed2c-11f5-4fba-a06c-efaac521c6f2",
-          "currentVersion": 3
         }
       },
-      "updatedAt": "2026-08-18T14:30:00Z"
+      "updatedAt": "2026-08-20T18:00:00Z"
+    },
+    "/board": {
+      "targetKind": "new-ui",
+      "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
+      "activeDraftId": "5f14f995-23d7-40e2-bb25-4a83ac792a80",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "591b866684dac198b644c52604043c143f585e83dba1d9b970a45f42007b34bd"
+      },
+      "components": [],
+      "drafts": {
+        "5f14f995-23d7-40e2-bb25-4a83ac792a80": {
+          "title": "The Board - Pegboard Trading Desk",
+          "visualDirection": "Executive Glassmorphism on a pegboard. Slim 64px icon rail, glass tiles on a 12-column grid with visible drag handles and corner resize grips over a dotted peg-hole texture, and a fixed 80px bottom status bar carrying three circular SVG meters (Round Progress / Lean Strength / Market Confidence) plus a pulsing LIVE dot and clock. Cyan #22d3ee primary, JetBrains Mono numerals. Market Intelligence tile carries the confidence percentage, a YES LIKELY band, and an AI-insight badge, marked 'probabilistic estimate only'. Draft leaves large dead space below the tiles -- the real build's upward compaction fixes that, and the draft has no spread-ledger tile.",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-08-20T18:00:00Z"
+    },
+    "/gauge": {
+      "targetKind": "new-ui",
+      "projectId": "d59b1ffc-8913-4ffd-8f33-2f381b8ece3c",
+      "activeDraftId": "3f7547d5-9103-4dbd-87ab-4d348960990f",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "591b866684dac198b644c52604043c143f585e83dba1d9b970a45f42007b34bd"
+      },
+      "components": [],
+      "drafts": {
+        "3f7547d5-9103-4dbd-87ab-4d348960990f": {
+          "title": "The Gauge - Round Confidence Meter",
+          "visualDirection": "Dark brutalist confidence page. One portrait card on #050505 with a multi-stop gradient border and an amber atmospheric bottom glow, a 98px glowing YES/NO call, a 150px ultra-light confidence percentage, three evidence rows (market odds / price position / historical precedent), a paired live-price and strike-target row with a delta pill, and a rounded-pill timeframe bar. KNOWN DRAFT BUG: the 16-cell segmented gauge rendered as full-width stacked horizontal lines rather than 16 side-by-side cells, and the four band labels overlap it -- build that component properly as a 16-column grid rather than porting the draft's markup.",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-08-20T18:00:00Z"
     }
   }
 }

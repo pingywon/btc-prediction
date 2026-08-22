@@ -1,31 +1,186 @@
 # Design System — BTC 15 (Above or Below)
 
+> Rewritten 2026-08-20 at v2.9.0. The previous version of this file described a navy/amber
+> "Ledger Equities Desk" direction from v1.2.0 — that identity was **replaced** at v2.0.0 by the
+> arcade-neon skin described below, and the app has since grown from one page to four (six after
+> this round). Do not design against the old navy/amber palette; it is history.
+
 ## Product context
-A spectator dashboard for Kalshi's `KXBTC15M` prediction market (also surfaced through Robinhood's app): every 15 minutes a new BTC price target is set, and 15 minutes later it resolves YES (price finished at/above target) or NO. This app reads that real market's data live — the strike and settlement are never independently computed — and presents it as a casino-style scoreboard with a real baccarat "Big Road" (streak-column history) instead of a flat grid. There is no betting/voting of any kind in this app; it's read-only, with a link out to view the actual round on Robinhood.
 
-**JTBD**: someone watching BTC's 15-min swings (often on a second monitor for hours at a stretch) wants to glance over and immediately understand: what's the current target, how close is the live price, which way is it leaning right now, and how has the last N hours gone (win rate, streaks, volatility). Today's biggest complaint (this redesign round): the page takes too long to parse at a glance, the Big Road requires horizontal scrolling to see full history, only 4 timeframe options exist, and the current-vs-target price comparison doesn't make the *difference* jump out.
+A spectator dashboard for Kalshi's `KXBTC15M` prediction market (the same market Robinhood surfaces
+as "BTC 15 min"). Every 15 minutes a BTC price target is posted; 15 minutes later it resolves YES
+(price finished at/above target) or NO. **The strike and settlement are never computed by this app**
+— both are read live from Kalshi's public REST API, so the numbers are definitionally the same as
+what Robinhood shows.
 
-**Key pages**: one page (`/`). No auth, no accounts, no navigation.
+Kalshi chains rounds: `floor_strike(N) == settlement_value(N-1)` exactly. So a round's
+round-over-round price delta *is* the number that decided it. This one fact underpins the Big Road
+chips, the spread ledger, and the target-delta line.
 
-## Branding & styling — NEW direction (owner explicitly chose "explore a new style" over keeping the current felt/casino identity)
+**JTBD**: someone watching BTC's 15-minute swings — usually on a second monitor, for hours — wants
+to glance over and know: what's the target, where is price relative to it, how much time is left,
+and **is this round going to land YES?**
 
-**Style source**: adopted from Superdesign's prompt library, `ledger-equities-desk-trading-floor-watchlist` ("Ledger Equities Desk — Trading-Floor Watchlist") — a dark-navy Bloomberg-terminal-style financial dashboard with amber accents. Chosen because it's built explicitly for "scanning numbers fast: the eye lands on the move, not the chrome" — exactly this round's brief (more pro, easier to understand, differences legible at a glance). This REPLACES the old felt-green/monospace/casino identity — do not blend the two; the owner asked for a new direction, not a mashup.
+**No betting, no accounts, no crowd voting anywhere.** A "Personal Pick" exists but is
+`localStorage`-only, single-browser, never sent to the server. Any predictive readout is framed as
+an *estimate of what the market and recent movement suggest* — never advice.
 
-- **Palette**: near-black navy background `#071629`, layered navy surfaces for cards `#0b1f3a` (900) → `#0e2746` (850) → `#122e52` (800) → `#1a3c66` (700) → `#244a78` (600). Text on dark: primary cream `#f4ecd8`, soft `#cdd6e3`, dim `#8a98ad`, faint `#5d6b80`. Single accent **amber** `#f0b429` (deep `#d99a12`, soft `#f7d27a`) for the brand mark, links, active states, highlights. Semantic **green `#3fcf8e` = up/YES**, **red `#f06d6d` = down/NO** — this maps directly onto our existing YES/NO convention (YES = price finished at/above target = "up"), so no remapping needed, just refreshed hex values.
-- **Typography**: switch from monospace to **Inter** (sans, weights 400-900) as the primary typeface — a deliberate move away from the old terminal-font identity, matching "more pro." **Every numeric value uses `font-variant-numeric: tabular-nums` with `letter-spacing: -0.01em`** so digits align in columns — this is the single most load-bearing technique for this round's "make the difference legible at a glance" requirement; apply it to the live price, target price, settlement price, all stat-tile numbers, and Big Road tooltips.
-- **Cards/panels**: rounded-2xl (larger radius than before), hairline borders (`rgba(205,214,227,0.10)`), a subtle 160deg sheen gradient (`rgba(18,46,82,0.9)` → `rgba(7,22,41,0.9)`), soft drop shadow. A thin amber gradient top-edge hairline on the primary/focal card (the price-comparison card) as a highlight device.
-- **Delta/highlight treatment** (directly answers this round's #5 requirement): the price difference (now vs. target, and settlement vs. target) renders as a **rounded-full pill badge**, green/red 10%-opacity background matching direction, containing the signed $ amount + a small up/down triangle glyph — not just a colored text line. This is what makes the difference "pop" instead of requiring mental subtraction.
-- **Background texture**: drop the old scanline overlay; optionally a very soft radial "grain" glow (amber 10% + green 6% + navy 50%, barely visible) behind the hero/price-comparison card only — subtler and more "trading floor," not "CRT."
-- **Iconography**: inline SVG only (no icon font/CDN), same constraint as before. Card-suit glyphs (♠♥♦♣) are dropped — they belonged to the old casino identity, not this one.
-- **Motion**: keep the existing functional motion (countdown rail linear drain, lean-chip easing, Big Road card-flip reveal) — these communicate live data changing and aren't part of the "casino" identity being replaced. Fine to add a subtle sheen/glow-pulse on the delta pill when it changes direction, if it stays subtle.
-- **No dark/light toggle** — stays a single fixed dark theme; this is a "watching the market at 2am" tool, not a general-audience site.
+### The objective (owner, this round, verbatim)
 
-## Specific requirements for this round (owner's brief, verbatim below — treat as hard constraints, not suggestions)
-> take the user facing webpage and redesign to look easier to understand and more pro, must still look good on mobile. i want the big road to show as full slate, i do not want to have to scroll left/right to get there. i also want a filter for lower than already exists as well keep them, but give me 6hrs, 3hrs, 2hrs, 1hr as well. make the settle price and the target price much larger and easier to see. when comparing btc prices, what it is now, where it needs to be etc, put all the numbers, but make the numbers that are different maybe a different colors or highlight, so that the difference between number is easy to see at a glance.
+> "do not forget our objective, to correctly predict these rounds."
 
-Translated into constraints:
-1. **"More pro"** (owner-confirmed this round): a genuinely new visual direction, not a tightened version of the old felt/casino look — see the trading-floor style adopted above. Tabular-nums, Inter, navy/amber palette, delta pills all serve "easier to understand + more pro" directly.
-2. **Big Road must show as a full slate, no horizontal scroll to see it** (owner-confirmed resolution for long timeframes): columns **wrap into multiple rows** instead of running off-screen — normal vertical scroll of the page is fine, horizontal scroll of the grid itself is not. The grid still reads left-to-right within each row, top-to-bottom across rows, like a real Big Road that's simply been wrapped.
-3. **Timeframe filter: keep existing options (24H/7D/30D/1Y) and ADD 1H/2H/3H/6H** — 8 total filter options, sensibly ordered shortest→longest (1H/2H/3H/6H/24H/7D/30D/1Y).
-4. **Target price and settlement price must be MUCH larger** than current treatment — currently both render at the same modest `clamp(1.2rem,4.2vw,1.6rem)` size as the live price; these should become a clear visual focal point, using the new style's large tabular-nums treatment.
-5. **Price comparison must make the DIFFERENCE legible at a glance**: use the delta pill badge described above (green/red rounded-full, signed $ + direction glyph) rather than a same-weight number sitting quietly next to its neighbor.
+Design decisions get judged against this. Chrome that doesn't help answer *"will this land YES?"*
+is decoration. The strongest available signals, in order:
+
+1. **Kalshi's own live market odds** (`kalshi_yes_price` / `kalshi_no_price`) — a real
+   order-book-derived probability, not an invented score. This is the anchor.
+2. **Distance to strike vs. time remaining** — with the observed distribution of historical
+   15-minute moves as the yardstick for whether that distance is still crossable.
+3. Pattern history — streak, chop rate, Big Eye Boy.
+
+## Pages
+
+One backend, one database, one set of API endpoints. Each page is a **self-contained single HTML
+file** with its own skin; they share data and the module system, not code.
+
+| Route | Name | Identity |
+|---|---|---|
+| `/` | **Classic** | The main skin, and the owner's favourite. Fixed 2-column desktop grid. Reorder is button-based and stays scoped to two small groups — this fixed shape *is* its identity. |
+| `/fluid` | **Fluid** | Same palette as Classic, but a genuine `flex-wrap` tile flow with fully unconstrained reorder. |
+| `/ticket` | **The Ticket** | Light paper/ink exchange-ticket look. Serif headlines, monospace figures, flat offset "stamp" shadows, dashed tear-lines. |
+| `/algo` | **ALGO Desk** | An AI making its own YES/NO call every round, tracked against the owner's. Cyan accent. |
+| `/board` | **The Board** | *(this round)* Pegboard — drag to move, drag to resize. Executive glassmorphism. |
+| `/gauge` | **The Gauge** | *(this round)* Dark brutalist. The confidence gauge is the entire page. |
+
+Pages are cross-linked by a "Switch" icon button in every header opening a menu with the current
+page dotted. New skins are added, not swapped in — the owner is browsing a gallery and cherry-picking
+("keep building until i really find all the parts i like"). Nothing gets retired without being asked.
+
+## The main skin (Classic / Fluid) — arcade neon
+
+- **Palette**: near-black `#05060a` base; layered surfaces `#0d0f16` → `#12151f` → `#171b28` →
+  `#232838`. Text: cream `#f5f7fa`, soft `#c7ccd9`, dim `#7d8399`, faint `#4b5066`.
+  Accent **amber `#ffd23f`** (deep `#e6ac00`, soft `#ffe28a`).
+  Semantic **green `#39ff88` = YES/up**, **red `#ff3d6e` = NO/down**, cyan `#22e6ff` for derived-road
+  "repeat".
+- **Typography**: system sans stack; **every numeric value carries `font-variant-numeric: tabular-nums`**
+  with slight negative tracking so digits align in columns. This is load-bearing, not cosmetic.
+- **Cards**: 14px radius, hairline `rgba(255,255,255,0.09)` border, a 160° sheen gradient, soft drop
+  shadow. A thin amber gradient hairline along the top edge of the focal card.
+- **Deltas** render as rounded-full **pill badges** (10%-opacity green/red background, signed $, a
+  direction triangle) — not a quiet coloured number. Making the *difference* pop without mental
+  subtraction is an explicit standing requirement.
+- **Motion**: functional only — countdown rail drain, lean-chip easing, timer pulse when locked.
+
+## The modular card system (all pages)
+
+Every panel is a module with an always-visible header — this is a **primary interface, not a
+settings-panel afterthought**:
+
+```
+.module-head   title + info-icon + [move-up] [move-down] [chevron] [eye]
+.module-summary   condensed live text, visible only when collapsed
+.module-body      the original content
+```
+
+- **Reorder** by button + `appendChild`/`insertBefore` — deliberately **not** HTML5 drag-and-drop
+  (unreliable iOS Safari touch support). The Board's pegboard uses **Pointer Events** instead, which
+  do work uniformly across mouse and touch.
+- **Collapse** hides the body and shows the summary, built from data the render functions already
+  compute — no extra polling.
+- State persists in `localStorage`, one key per page, reconciled against known ids on load so adding
+  a module later never silently hides content for someone with a saved layout.
+
+### Tooltips — two tiers, one visual language
+
+- **Hover** (desktop only): a colored CSS-only `[data-tip]::after` bubble containing **date and time
+  only**. Disabled under `@media (hover: none)`.
+- **Click** (all devices; touch goes straight here): one shared modal per page, opened via a single
+  **delegated** listener — Big Road beads and ledger rows are destroyed and rebuilt on every render,
+  so per-element listeners would leak. Content is the full structured, colour-coded breakdown.
+- Never an inline slide-down.
+
+## Hard constraints
+
+- **Zero CDN. Zero external requests.** No Tailwind CDN, no icon fonts, no Google Fonts links. Icons
+  are inline SVG. Web fonts are **self-hosted** and served by `app.py` off `/fonts/`.
+- **One self-contained HTML file per page.** No build step, no bundler, no shared `<script src>` —
+  the module and tooltip systems are copy-adapted per file. This is a real, accepted maintenance cost.
+- Backend is **pure Python stdlib** (no pip dependencies).
+- Must look right at **390px (iPhone), 768px / 1024px (iPad), 1440px (desktop)** — verified with
+  screenshots, not assumed.
+- Never overclaim. Derived roads carry a "good-faith simplification, not verified against a casino
+  reference" caveat; the confidence readout carries an equivalent one.
+
+## Owner's new style directions (this round)
+
+Two specs supplied verbatim by the owner, each becoming one new page.
+
+### A. Dark Brutalist Risk Gauge → `/gauge`
+
+Dark glassmorphism + atmospheric glow. **Manrope** for headings/UI (200, 400, 700) and **Inter** for
+data (weight **200** for large displays — this needs a real light weight, hence self-hosted fonts).
+Base `#050505`.
+
+Colour progression: `#55a630` → `#aacc00` → `#ffb703` → `#ff2d20`.
+
+- 1px borders at `rgba(255,255,255,0.14)`.
+- Grainy noise texture (opacity 0.15, `mix-blend-mode: overlay`) over soft radial gradients — a
+  physical, dithered light effect.
+- Needle motion uses `cubic-bezier(0.34, 1.56, 0.64, 1)` — snappy with a slight overshoot.
+- Large portrait card (~760px) with heavily rounded corners (48–64px) and a multi-stop gradient
+  border: `linear-gradient(135deg, rgba(170,204,0,0.8) 0%, rgba(255,255,255,0.1) 40%,
+  rgba(255,183,3,0.5) 70%, rgba(251,133,0,0.8) 100%)`, 3px inner padding to reveal it, inner
+  background `#0a0a0a` at 61px radius.
+- **16-cell segmented gauge**: 24px tall cells, 5px radius, 7px gaps, with a 2px × 48px needle above
+  carrying a dot and glow. Inactive cell `rgba(255,255,255,0.045)`; active takes the status colour,
+  a 12px outer glow and `inset 0 0 8px rgba(255,255,255,0.28)`, 500ms transition.
+- Giant value display: 150px, weight 200, vertical gradient `#ffffff → #cccccc`, with a 100px weight-300
+  suffix and a tracked sub-label.
+- Atmospheric bottom glow: radial ellipse (120% × 350px) using
+  `color-mix(in srgb, var(--active-color) 48%, transparent)`, overlaid with an SVG fractal-noise
+  filter (`baseFrequency 0.85`) at 0.15 opacity, `mix-blend-mode: overlay`.
+- Bottom pill control bar: `rgba(0,0,0,0.5)`, 4px backdrop-blur, rounded-full, 10px bold tracked
+  labels; active state takes the risk-level hex.
+
+**Applied to this app**: "Risk Level" becomes **round confidence** — the gauge runs certain-NO on the
+left to certain-YES on the right, the needle sits at the blended probability, the 98px status word is
+the current call, and the 150px number is the confidence percentage. The band labels become
+NO LIKELY / LEANING NO / LEANING YES / YES LIKELY.
+
+### B. JARVIS OS — Executive Glassmorphism → `/board`
+
+"Professional Futurist." Base `#0a0a0c`. Glass panels: `rgba(255,255,255,0.03)` with
+`backdrop-filter: blur(24px)` and `1px solid rgba(255,255,255,0.05)`. Radius 24–32px on containers,
+12–16px internally. Shadow `0 8px 32px rgba(0,0,0,0.37)`.
+
+Type: **Plus Jakarta Sans** headings/UI (400–800) + **JetBrains Mono** for technical data.
+*(Substitution in use: Manrope covers the geometric-humanist heading role and is already being
+self-hosted for The Gauge, so The Board uses Manrope rather than adding a fourth font file.)*
+
+Colour: cyan `#22d3ee` primary/active, blue `#0ea5e9` secondary, emerald `#4ade80` positive, caution
+yellow, alert red `#ef4444`. Ultra-thin low-opacity borders throughout.
+Transitions `cubic-bezier(0.4, 0, 0.2, 1)`, subtle `translateY(-4px)` hovers. Minimalist stroke icons.
+
+Structure: a slim nav rail, a heavy central workspace, a contextual briefing panel, and a **floating
+bottom system status bar** (80px, `backdrop-blur-xl`, 1px top border) carrying circular SVG meters —
+40px diameter, 2.5px stroke, `stroke-dasharray: 100` with a computed offset, tiny monospace centre
+percentage, two-line label stack beside it. Plus an **AI Insight badge**: 128px wide,
+`rgba(255,255,255,0.05)`, 12px padding, an 8px black uppercase state-coloured label over 10px
+`white/50` clamped body text.
+
+**Applied to this app**: the three circular meters become **Round Progress**, **Lean Strength** and
+**Market Confidence** — all three are genuinely 0–100% values. The AI Insight badge becomes the
+confidence engine's current call plus its top reason. The 256px sidebar shrinks to a slim icon rail
+so the pegboard gets full width, and container radius pulls back to ~16px because 24–32px reads
+bubbly once tiles sit adjacent on a grid.
+
+## The Board's pegboard (new capability)
+
+12-column grid, 44px auto-rows, 10px gap; each tile placed by CSS custom properties driving
+`grid-column: var(--x) / span var(--w)`. Drag from the module header (1:1 `transform` tracking while a
+dashed placeholder snaps to the target cell), resize from a bottom-right grip, both on **Pointer
+Events** with `setPointerCapture`. On drop: push overlapping tiles down, then compact upward. A dotted
+peg-hole overlay sized to the exact cell pitch appears only while dragging. Below 900px the grid
+collapses to a single column and drag/resize no-op behind a `matchMedia` guard — a 12-column pegboard
+on a phone is not usable, and stacking is the honest answer.
