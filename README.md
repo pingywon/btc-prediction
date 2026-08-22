@@ -6,7 +6,7 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-Four versions of the same dashboard, all reading the same backend and cross-linked
+Six versions of the same dashboard, all reading the same backend and cross-linked
 via the "Switch" button in each header:
 
 - `GET /` — **Classic**, the original 2-column dashboard.
@@ -14,12 +14,46 @@ via the "Switch" button in each header:
   module reordering (no fixed columns).
 - `GET /ticket` — **The Ticket**, a from-scratch visual redesign (paper/ink exchange
   ticket look) on the same modular system.
+- `GET /board` — **The Board**, a real pegboard: drag tiles by the header, resize
+  from the corner grip, on a 12-column grid with collision push-down and upward
+  compaction. Executive-glassmorphism skin.
+- `GET /gauge` — **The Gauge**, the confidence readout as the entire page — a 16-cell
+  segmented meter with a needle, on a dark-brutalist card whose atmospheric glow
+  changes colour with how certain the round is.
 - `GET /algo` — **ALGO Desk**, an AI making its own YES/NO call every round, tracked
   against your own picks.
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
 Prev/Live/Next controls above it (not just the live one).
+
+## Round Confidence
+
+Every page carries an estimate of how the current round is likely to resolve. It
+blends two independent reads, both from data already being polled:
+
+1. **Kalshi's own live order book** (weight 0.7) — `kalshi_yes_price` is a 0–1
+   traded probability, not an invented score. The two sides are bid-side prices that
+   rarely sum to exactly 1, so it normalises over the pair to de-vig.
+2. **Position versus time** (weight 0.3) — how far price sits from the strike, judged
+   against the observed spread of completed-round moves rather than an assumed
+   volatility. A round is exactly 900s, so a move across the remaining fraction `f`
+   is about `sqrt(f)` the size of a whole-round move; the required move is scaled up
+   to a whole-round equivalent before being compared against history, then halved
+   because it also has to go the right way. As time runs out this sharpens and the
+   current position takes over.
+
+It skips the second read below 8 settled rounds rather than quoting a percentage off
+three samples, and returns nothing at all when neither read is available. **It is an
+estimate, not advice** — and there is no betting anywhere in this app; the personal
+pick is `localStorage`-only and never leaves the browser.
+
+## Fonts
+
+Inter, Manrope and JetBrains Mono are **self-hosted** (`fonts/`, served at
+`/fonts/<name>.woff2`) rather than linked from a CDN — one latin-subset variable file
+per family covering the whole weight axis, ~113KB total, shared across all six pages.
+All three are SIL OFL 1.1; see `fonts/LICENSE.md`.
 
 ## Run
 
@@ -43,7 +77,8 @@ container starts with an empty Big Road / spread ledger every time.
 
 ## Endpoints
 
-- `GET /`, `/fluid`, `/ticket`, `/algo` — the 4 pages
+- `GET /`, `/fluid`, `/ticket`, `/board`, `/gauge`, `/algo` — the 6 pages
+- `GET /fonts/<name>.woff2` — self-hosted webfonts (whitelisted names only)
 - `GET /api/state` — current round, live price, lean, Kalshi market odds, last settled round
 - `GET /api/history?hours=24` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760)
 - `GET /api/ticks?since=<ts>[&until=<ts>]` — raw price ticks for a round's chart; `until` bounds a historical round's fetch to its own 15-minute window
