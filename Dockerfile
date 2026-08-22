@@ -2,6 +2,7 @@ FROM python:3-slim
 
 WORKDIR /app
 COPY app.py index.html fluid.html ticket.html algo.html README.md ./
+COPY fonts/ ./fonts/
 
 ENV PORT=80 \
     BIND=0.0.0.0 \

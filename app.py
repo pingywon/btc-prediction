@@ -8,6 +8,7 @@ No pip installs. Python 3.7+.
 import calendar
 import json
 import os
+import re
 import socket
 import sqlite3
 import sys
@@ -23,6 +24,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("BP_DB", os.path.join(HERE, "data.db"))
 PORT = int(os.environ.get("PORT", "8160"))
 BIND = os.environ.get("BIND", "0.0.0.0")
+
+FONT_DIR = os.path.join(HERE, "fonts")
+FONT_NAME_RE = re.compile(r"^[a-z0-9-]+\.woff2$")  # no dots or slashes -> no traversal
 
 KALSHI_HOST = "api.elections.kalshi.com"  # trading-api.kalshi.com is the dead old host
 KALSHI_SERIES = "KXBTC15M"
@@ -465,6 +469,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("fluid.html")
             if path in ("/ticket", "/ticket.html"):
                 return self._serve_page("ticket.html")
+            if path.startswith("/fonts/"):
+                return self._serve_font(path[len("/fonts/"):])
             if path == "/health":
                 return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":
@@ -490,6 +496,28 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, f.read(), "text/html; charset=utf-8")
         except Exception as e:  # noqa
             self._send(500, json.dumps({"error": str(e)}).encode())
+
+    def _serve_font(self, name):
+        # Self-hosted webfonts (see fonts/LICENSE.md) -- the pages are zero-CDN, and the
+        # v3 skins need a real weight 200 that no system font stack provides.
+        #
+        # This is the only place in the app where a request path reaches the filesystem,
+        # so the name is checked twice: a strict character whitelist (no dots, no slashes,
+        # so "..", absolute paths and encoded traversal can't survive it), and then a
+        # realpath containment check in case the first one is ever loosened.
+        if not FONT_NAME_RE.match(name or ""):
+            return self._send(404, b'{"error":"not found"}')
+        path = os.path.realpath(os.path.join(FONT_DIR, name))
+        if os.path.commonpath([path, os.path.realpath(FONT_DIR)]) != os.path.realpath(FONT_DIR):
+            return self._send(404, b'{"error":"not found"}')
+        try:
+            with open(path, "rb") as f:
+                body = f.read()
+        except OSError:
+            return self._send(404, b'{"error":"not found"}')
+        # Font files are immutable once shipped; let the browser keep them for a year so
+        # this is one download shared across all six pages rather than per-page.
+        self._send(200, body, "font/woff2", {"Cache-Control": "public, max-age=31536000, immutable"})
 
     def _api_state(self):
         touch_client()
