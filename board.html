@@ -1253,6 +1253,9 @@
   function startPeg(e, id, mode) {
     var el = document.querySelector('[data-section="' + id + '"]');
     var it = board.layout[id];
+    // Defensive: a tile grabbed mid-FLIP-animation (see endPeg) could still have an
+    // inline transition set, which would make its own live pointer-tracking lag.
+    el.style.transition = '';
     pegDrag = {
       id: id, mode: mode, el: el, pid: e.pointerId,
       sx: e.clientX, sy: e.clientY,
@@ -1296,10 +1299,52 @@
     var it = board.layout[d.id];
     if (d.mode === 'move') { it.x = d.nx; it.y = d.ny; }
     else { it.w = d.nw; it.h = d.nh; }
+
+    // FLIP ("First, Last, Invert, Play"): capture every other visible tile's rect
+    // before the cascade/compaction below can move it. applyBoard() writes grid
+    // position via CSS custom props with no transition, so without this every
+    // side-effect-moved tile would jump to its new cell instantly in the same
+    // frame -- the literal cause of "everything scatters." The dragged tile itself
+    // already tracks the pointer smoothly during the drag and is excluded here.
+    var firstRects = {};
+    visibleIds().forEach(function (id) {
+      if (id === d.id) return;
+      var el = document.querySelector('[data-section="' + id + '"]');
+      if (el) firstRects[id] = el.getBoundingClientRect();
+    });
+
     resolveCollisions(d.id);
     compactBoard();
     saveBoard();
     applyBoard();
+
+    // Invert every tile that actually moved back to its old screen position (no
+    // transition, so this paints instantly), then release it into an animated
+    // transition back to zero offset -- i.e. its real new spot.
+    var flipped = [];
+    Object.keys(firstRects).forEach(function (id) {
+      var el = document.querySelector('[data-section="' + id + '"]');
+      if (!el) return;
+      var last = el.getBoundingClientRect(), first = firstRects[id];
+      var dx = first.left - last.left, dy = first.top - last.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+      flipped.push(el);
+    });
+    if (flipped.length) {
+      // Force a synchronous reflow so the browser commits the inverted position as its
+      // own real frame -- that commit point is what lets us set the animated end state
+      // on the very next line instead of needing a requestAnimationFrame callback.
+      void flipped[0].offsetWidth;
+      flipped.forEach(function (el) {
+        el.style.transition = 'transform 0.32s var(--ease)';
+        el.style.transform = '';
+      });
+      setTimeout(function () {
+        flipped.forEach(function (el) { el.style.transition = ''; });
+      }, 340);
+    }
   }
   document.addEventListener('pointerdown', function (e) {
     if (!pegActive() || pegDrag) return;
