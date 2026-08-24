@@ -41,6 +41,7 @@ IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap,
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
 SETTLE_RETRY_S = 3
+STARTUP_BACKFILL_TRIES = 12  # qnet needs ~30s after container start before egress works
 ROUND_RETENTION_S = None  # None = never prune; the board charts every round we have ever seen
 BACKFILL_LOOKBACK_S = 400 * 24 * 3600  # ask far past Kalshi's real depth (~68d) so it self-limits, not us
 LEAN_FULL_TILT_USD = 300.0
@@ -276,11 +277,20 @@ def refresh_open_round():
 
 
 def round_engine():
-    try:
-        n = backfill()
-        print("[round_engine] backfilled %d rounds" % n, file=sys.stderr)
-    except Exception as e:  # noqa
-        print("[round_engine] backfill failed: %s" % e, file=sys.stderr)
+    # The QNAP's qnet VLAN interface is not usable for the first several seconds of a
+    # container's life, so the very first Kalshi call reliably dies with "No route to
+    # host". A single attempt loses the whole startup backfill, and nothing else re-runs
+    # it until a gap is seen or the 12h idle resync -- so retry here instead.
+    for attempt in range(STARTUP_BACKFILL_TRIES):
+        try:
+            n = backfill()
+            print("[round_engine] backfilled %d rounds" % n, file=sys.stderr)
+            break
+        except Exception as e:  # noqa
+            print("[round_engine] backfill attempt %d/%d failed: %s"
+                  % (attempt + 1, STARTUP_BACKFILL_TRIES, e), file=sys.stderr)
+            if attempt + 1 < STARTUP_BACKFILL_TRIES:
+                time.sleep(min(20, 3 + attempt * 3))
     try:
         prune_old_rounds()
     except Exception as e:  # noqa
