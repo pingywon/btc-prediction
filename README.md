@@ -6,8 +6,9 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-Eleven versions of the same dashboard, all reading the same backend and cross-linked
-via the "Switch" button in each header:
+Twelve pages, all reading the same backend and cross-linked via the "Switch" button in
+each header. Eleven are fixed-layout versions of the same dashboard; the twelfth builds
+its own:
 
 - `GET /` — **Classic**, the original 2-column dashboard.
 - `GET /fluid` — **Fluid**, a genuine flex-wrap layout with fully unconstrained
@@ -34,6 +35,14 @@ via the "Switch" button in each header:
   shadows and 3px keylines, square corners, saturated cabinet palette.
 - `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
   felt and gold rules, chip-round controls and a serif face.
+- `GET /studio` — **The Studio**, a build-your-own board. A 24-column drag-and-drop grid
+  in the style of Grafana: add a panel, pick one of 13 visualizations (gauge, bar gauge,
+  stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
+  Big Road, table, note), pick the metric it reads, then drag the header to move it and
+  the corner to resize it. Per-panel unit, min/max, decimals, colour mode and threshold
+  steps. There is only one data source, so — as in Netdata — there is no query language:
+  metrics are a dropdown. Layout persists to `localStorage` and the whole board can be
+  exported and re-imported as JSON.
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
@@ -64,7 +73,7 @@ pick is `localStorage`-only and never leaves the browser.
 
 Inter, Manrope and JetBrains Mono are **self-hosted** (`fonts/`, served at
 `/fonts/<name>.woff2`) rather than linked from a CDN — one latin-subset variable file
-per family covering the whole weight axis, ~113KB total, shared across all eleven pages.
+per family covering the whole weight axis, ~113KB total, shared across all twelve pages.
 All three are SIL OFL 1.1; see `fonts/LICENSE.md`.
 
 ## Run
@@ -90,10 +99,11 @@ container starts with an empty Big Road / spread ledger every time.
 ## Endpoints
 
 - `GET /`, `/fluid`, `/ticket`, `/board`, `/gauge`, `/algo`, `/terminal`, `/tape`,
-  `/blueprint`, `/arcade`, `/pit` — the 11 pages
+  `/blueprint`, `/arcade`, `/pit`, `/studio` — the 12 pages
 - `GET /fonts/<name>.woff2` — self-hosted webfonts (whitelisted names only)
 - `GET /api/state` — current round, live price, lean, Kalshi market odds, last settled round
-- `GET /api/history?hours=24` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760)
+- `GET /api/history?hours=24[&limit=N]` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760). `limit` returns only the newest N rounds, which is how the bead/table panels stay cheap over a multi-month window.
+- `GET /api/series?days=0&bucket=day` — history bucketed for charting: per-bucket round count, YES/NO split, YES rate, settlement OHLC, average and largest move, plus a summary block (streaks, chop rate, YES rate by hour-of-day and weekday). `days=0` means every round held. The full ~68-day history is ~15KB this way instead of ~1MB of raw rows.
 - `GET /api/ticks?since=<ts>[&until=<ts>]` — raw price ticks for a round's chart; `until` bounds a historical round's fetch to its own 15-minute window
 - `GET /health`
 

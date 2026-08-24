@@ -41,8 +41,8 @@ IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap,
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
 SETTLE_RETRY_S = 3
-ROUND_RETENTION_S = 30 * 24 * 3600  # rolling window -- owner doesn't need anything older
-BACKFILL_LOOKBACK_S = ROUND_RETENTION_S
+ROUND_RETENTION_S = None  # None = never prune; the board charts every round we have ever seen
+BACKFILL_LOOKBACK_S = 400 * 24 * 3600  # ask far past Kalshi's real depth (~68d) so it self-limits, not us
 LEAN_FULL_TILT_USD = 300.0
 TICK_RETENTION_S = 3 * 3600
 MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
@@ -83,7 +83,7 @@ def http_get_json(host, path, timeout=10):
         conn.close()
 
 
-def kalshi_markets(status, cursor=None, limit=100):
+def kalshi_markets(status, cursor=None, limit=1000):
     q = {"series_ticker": KALSHI_SERIES, "status": status, "limit": limit}
     if cursor:
         q["cursor"] = cursor
@@ -213,7 +213,7 @@ def backfill():
     # 1 year of 15-min rounds is ~35k; cap well above that so a bug can't loop forever
     # but a full year's worth of pages can still complete.
     for _ in range(500):
-        data = kalshi_markets("settled", cursor=cursor, limit=100)
+        data = kalshi_markets("settled", cursor=cursor, limit=1000)
         markets = data.get("markets") or []
         if not markets:
             break
@@ -244,6 +244,8 @@ def backfill():
 
 
 def prune_old_rounds():
+    if ROUND_RETENTION_S is None:
+        return 0
     cutoff = time.time() - ROUND_RETENTION_S
     cur = db.execute("DELETE FROM rounds WHERE close_time < ?", (cutoff,))
     return cur.rowcount if cur else 0
@@ -443,6 +445,82 @@ def compute_lean(price, strike):
     return {"direction": "yes" if delta >= 0 else "no", "strength": round(strength, 3), "delta": round(delta, 2)}
 
 
+BUCKET_SIZES = {"round": 900, "hour": 3600, "4h": 4 * 3600, "day": 86400, "week": 7 * 86400}
+
+
+def build_series(rows, size):
+    """Bucket settled rounds for the board. Long windows (68d = ~6.4k rounds) are charted
+    from these buckets instead of raw rows, so a panel never ships the whole table."""
+    buckets = []
+    cur = None
+    for r in rows:
+        sv, fs = r["settlement_value"], r["floor_strike"]
+        d = (sv - fs) if (sv is not None and fs is not None) else None
+        b0 = int(r["close_time"] // size) * size
+        if cur is None or cur["ts"] != b0:
+            cur = {"ts": b0, "n": 0, "yes": 0, "no": 0, "o": None, "h": None,
+                   "l": None, "c": None, "sum_d": 0.0, "sum_abs": 0.0, "max_abs": 0.0, "nd": 0}
+            buckets.append(cur)
+        cur["n"] += 1
+        if r["result"] == "yes":
+            cur["yes"] += 1
+        elif r["result"] == "no":
+            cur["no"] += 1
+        if sv is not None:
+            if cur["o"] is None:
+                cur["o"] = cur["h"] = cur["l"] = sv
+            cur["h"] = max(cur["h"], sv)
+            cur["l"] = min(cur["l"], sv)
+            cur["c"] = sv
+        if d is not None:
+            cur["nd"] += 1
+            cur["sum_d"] += d
+            cur["sum_abs"] += abs(d)
+            cur["max_abs"] = max(cur["max_abs"], abs(d))
+    out = []
+    for b in buckets:
+        nd = b["nd"]
+        out.append({
+            "ts": b["ts"], "n": b["n"], "yes": b["yes"], "no": b["no"],
+            "yes_rate": round(100.0 * b["yes"] / b["n"], 2) if b["n"] else None,
+            "o": b["o"], "h": b["h"], "l": b["l"], "c": b["c"],
+            "avg_delta": round(b["sum_d"] / nd, 2) if nd else None,
+            "volatility": round(b["sum_abs"] / nd, 2) if nd else None,
+            "max_abs_delta": round(b["max_abs"], 2) if nd else None,
+        })
+    return out
+
+
+def build_summary(rows):
+    n = len(rows)
+    yes = sum(1 for r in rows if r["result"] == "yes")
+    deltas = [r["settlement_value"] - r["floor_strike"] for r in rows
+              if r["settlement_value"] is not None and r["floor_strike"] is not None]
+    by_hour = [{"hour": h, "n": 0, "yes": 0} for h in range(24)]
+    by_dow = [{"dow": d, "n": 0, "yes": 0} for d in range(7)]
+    for r in rows:
+        t = datetime.fromtimestamp(r["close_time"], tz=ZoneInfo("America/New_York"))
+        for slot in (by_hour[t.hour], by_dow[t.weekday()]):
+            slot["n"] += 1
+            if r["result"] == "yes":
+                slot["yes"] += 1
+    for slot in by_hour + by_dow:
+        slot["yes_rate"] = round(100.0 * slot["yes"] / slot["n"], 2) if slot["n"] else None
+    s = {
+        "rounds": n, "yes": yes, "no": n - yes,
+        "yes_rate": round(100.0 * yes / n, 2) if n else None,
+        "first_ts": rows[0]["close_time"] if n else None,
+        "last_ts": rows[-1]["close_time"] if n else None,
+        "span_days": round((rows[-1]["close_time"] - rows[0]["close_time"]) / 86400.0, 2) if n > 1 else 0,
+        "volatility": round(sum(abs(d) for d in deltas) / len(deltas), 2) if deltas else None,
+        "max_abs_delta": round(max(abs(d) for d in deltas), 2) if deltas else None,
+        "last_delta": round(deltas[-1], 2) if deltas else None,
+        "by_hour": by_hour, "by_dow": by_dow,
+    }
+    s.update(compute_road_stats(rows))
+    return s
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status, body, ctype="application/json", extra_headers=None):
         try:
@@ -487,6 +565,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("arcade.html")
             if path in ("/pit", "/pit.html"):
                 return self._serve_page("pit.html")
+            if path in ("/studio", "/studio.html"):
+                return self._serve_page("studio.html")
             if path.startswith("/fonts/"):
                 return self._serve_font(path[len("/fonts/"):])
             if path == "/health":
@@ -495,6 +575,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._api_state()
             if path == "/api/history":
                 return self._api_history(urllib.parse.parse_qs(parsed.query))
+            if path == "/api/series":
+                return self._api_series(urllib.parse.parse_qs(parsed.query))
             if path == "/api/ticks":
                 return self._api_ticks(urllib.parse.parse_qs(parsed.query))
             self._send(404, b'{"error":"not found"}')
@@ -565,9 +647,18 @@ class Handler(BaseHTTPRequestHandler):
     def _api_history(self, qs):
         hours = float((qs.get("hours") or ["24"])[0])
         cutoff = time.time() - hours * 3600
-        rows = db.query("""SELECT kalshi_ticker, close_time, floor_strike, settlement_value, result
-                            FROM rounds WHERE result IS NOT NULL AND close_time >= ?
-                            ORDER BY close_time ASC""", (cutoff,))
+        limit = int(float((qs.get("limit") or ["0"])[0]))
+        if limit > 0:
+            # Newest N, then flipped back to ascending -- a 68-day window is ~6.4k rounds and
+            # the bead/table panels only ever render the tail of it.
+            rows = db.query("""SELECT kalshi_ticker, close_time, floor_strike, settlement_value, result
+                                FROM rounds WHERE result IS NOT NULL AND close_time >= ?
+                                ORDER BY close_time DESC LIMIT ?""", (cutoff, limit))
+            rows.reverse()
+        else:
+            rows = db.query("""SELECT kalshi_ticker, close_time, floor_strike, settlement_value, result
+                                FROM rounds WHERE result IS NOT NULL AND close_time >= ?
+                                ORDER BY close_time ASC""", (cutoff,))
         # floor_strike(N) == settlement_value(N-1) (Kalshi chains rounds), so this delta is both
         # "price change since the previous round" and the exact number that decided yes/no.
         # A handful of older Kalshi records are settled (result set) but never got an
@@ -581,6 +672,22 @@ class Handler(BaseHTTPRequestHandler):
                    "no": sum(1 for r in rows if r["result"] == "no")}
         tallies.update(compute_road_stats(rows))
         self._send(200, json.dumps({"rounds": rows, "tallies": tallies}).encode())
+
+    def _api_series(self, qs):
+        touch_client()
+        days = float((qs.get("days") or ["0"])[0])  # 0 = every round we hold
+        bucket = (qs.get("bucket") or ["day"])[0]
+        size = BUCKET_SIZES.get(bucket, 86400)
+        sql = ("SELECT close_time, floor_strike, settlement_value, result FROM rounds "
+               "WHERE result IS NOT NULL")
+        params = ()
+        if days > 0:
+            sql += " AND close_time >= ?"
+            params = (time.time() - days * 86400,)
+        rows = db.query(sql + " ORDER BY close_time ASC", params)
+        self._send(200, json.dumps({"bucket": bucket, "bucket_size": size,
+                                    "buckets": build_series(rows, size),
+                                    "summary": build_summary(rows)}).encode())
 
     def _api_ticks(self, qs):
         # The in-memory ring buffer (STATE["recent_ticks"]) only holds ~10 minutes and

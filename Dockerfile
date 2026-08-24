@@ -1,7 +1,7 @@
 FROM python:3-slim
 
 WORKDIR /app
-COPY app.py index.html fluid.html ticket.html board.html gauge.html algo.html terminal.html tape.html blueprint.html arcade.html pit.html README.md ./
+COPY app.py index.html fluid.html ticket.html board.html gauge.html algo.html terminal.html tape.html blueprint.html arcade.html pit.html studio.html README.md ./
 COPY fonts/ ./fonts/
 
 ENV PORT=80 \
