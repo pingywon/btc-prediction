@@ -251,6 +251,17 @@
   .bead.y { color: var(--green); background: color-mix(in srgb, var(--green) 22%, transparent); }
   .bead.n { color: var(--red); background: color-mix(in srgb, var(--red) 22%, transparent); }
 
+  .tbtn {
+    font-family: var(--sans); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.04em;
+    color: var(--soft); background: var(--surface-800);
+    border: 1px solid var(--ctl-border); border-radius: 5px;
+    padding: 0.25rem 0.5rem; cursor: pointer; min-height: 26px; white-space: nowrap;
+  }
+  .tbtn:hover:not(:disabled) { color: var(--amber); border-color: var(--amber); }
+  .tbtn.on { color: #05060a; background: var(--amber); border-color: var(--amber); }
+  :root[data-theme="light"] .tbtn.on { color: #ffffff; }
+  .tbtn:disabled { opacity: 0.4; cursor: default; }
+
   .legend { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.2rem 0.1rem 0; font-size: 0.64rem; color: var(--dim); font-family: var(--mono); }
   .legend span { display: inline-flex; align-items: center; gap: 0.25rem; }
   .swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
@@ -507,6 +518,10 @@ function fmtTime(ts, bucket) {
   return dt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
+function fmtClock(ts) {
+  return new Date(ts * 1000).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -645,6 +660,42 @@ function seriesFor(p, D) {
 const VIZ = {};
 
 function defViz(id, def) { VIZ[id] = def; }
+
+/* Per-panel round browsing for the price track. Kept out of the panel object so it
+   never lands in the saved JSON. offset 0 = the round in progress, 1 = previous, ...
+   Ticks are only retained server-side for 3h, so ~12 rounds back is the real floor. */
+const TRACK = {};
+
+function trackState(id) { return TRACK[id] || (TRACK[id] = { offset: 0 }); }
+
+function trackRound(p, D) {
+  const st = trackState(p.id);
+  if (st.offset <= 0) {
+    const cr = D.state && D.state.current_round;
+    if (!cr) return null;
+    return { key: cr.ticker, strike: cr.floor_strike, open: cr.open_time,
+             close: cr.close_time, live: true };
+  }
+  const rs = D.rounds || [];
+  const r = rs[rs.length - st.offset];
+  if (!r) return null;
+  return { key: r.kalshi_ticker, strike: r.floor_strike, open: r.close_time - 900,
+           close: r.close_time, result: r.result, settlement: r.settlement_value };
+}
+
+function loadTrackTicks(p, round) {
+  const st = trackState(p.id);
+  if (st.loading === round.key) return;
+  st.loading = round.key;
+  getJSON("/api/ticks?since=" + round.open + "&until=" + round.close)
+    .then(d => {
+      st.key = round.key;
+      st.ticks = d.ticks || [];
+      st.loading = null;
+      renderPanelBody(p);
+    })
+    .catch(() => { st.loading = null; });
+}
 
 /* --- gauge ------------------------------------------------------------- */
 defViz("gauge", {
@@ -1131,6 +1182,195 @@ defViz("countdown", {
   }
 });
 
+/* --- price vs target ---------------------------------------------------
+   The dashed line is the strike; the track is green while price is above it and
+   red while below -- the same rule that decides the round. */
+defViz("pricetrack", {
+  label: "Price vs Target", group: "Live", accepts: ["ticks"],
+  icon: '<line x1="5" y1="26" x2="39" y2="26" stroke="currentColor" stroke-width="2" stroke-dasharray="4,3" opacity=".8"/><path d="M5 34l7-5 5 3" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 32l6-12 5 6 6-9" fill="none" stroke="currentColor" stroke-width="3"/>',
+  defaults: { showFill: false, showNav: true, lineWidth: 2.5 },
+  render(p, D, w, h) {
+    const st = trackState(p.id);
+    const round = trackRound(p, D);
+    if (!round) return empty(st.offset > 0 ? "No settled round that far back" : "Waiting for the next round…");
+
+    let ticks;
+    if (round.live) {
+      // D.ticks is a rolling 3h buffer -- clip it to this round or the previous
+      // round's tail gets drawn off the left edge.
+      ticks = (D.ticks || []).filter(t => t[0] >= round.open && t[0] <= round.close);
+    } else if (st.key === round.key && st.ticks) {
+      ticks = st.ticks;
+    } else {
+      loadTrackTicks(p, round);
+      ticks = null;
+    }
+
+    const nav = p.options.showNav !== false;
+    const navH = nav ? 30 : 0;
+    const lblH = 15;
+    let head = "";
+    if (nav) {
+      const rs = D.rounds || [];
+      head = '<div style="display:flex;gap:4px;align-items:center;flex:none;padding-bottom:5px">'
+        + '<button class="tbtn" data-track="prev"' + (st.offset >= rs.length ? " disabled" : "") + '>&#9664; Prev</button>'
+        + '<button class="tbtn' + (st.offset === 0 ? " on" : "") + '" data-track="live">Live</button>'
+        + '<button class="tbtn" data-track="next"' + (st.offset <= 0 ? " disabled" : "") + '>Next &#9654;</button>'
+        + '<span style="flex:1 1 auto"></span>'
+        + '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--faint)">DASHED = TARGET</span>'
+        + "</div>";
+    }
+
+    const range = '<div style="flex:none;font-family:var(--mono);font-size:0.6rem;color:var(--faint);padding-bottom:3px">'
+      + esc(fmtClock(round.open) + "–" + fmtClock(round.close)) + " &middot; TARGET " + esc(fmtNum(round.strike, "usd", 2))
+      + (round.result ? ' &middot; <b style="color:var(--' + (round.result === "yes" ? "green" : "red") + ')">' + esc(round.result.toUpperCase()) + "</b>" : "")
+      + "</div>";
+
+    const W = Math.max(120, w), H = Math.max(40, h - navH - lblH);
+    let chart;
+    if (ticks === null) {
+      chart = '<div class="empty">Loading this round’s ticks…</div>';
+    } else if (!ticks.length) {
+      chart = '<div class="empty">No live ticks recorded for this round</div>';
+    } else {
+      const PAD = 8;
+      const strike = round.strike;
+      const prices = ticks.map(t => t[1]);
+      let minP = Math.min(strike, Math.min.apply(null, prices));
+      let maxP = Math.max(strike, Math.max.apply(null, prices));
+      let span = Math.max(0.01, maxP - minP);
+      minP -= span * 0.15; maxP += span * 0.15; span = maxP - minP;
+      const t0 = round.open;
+      const t1 = Math.max(round.close, ticks[ticks.length - 1][0]);
+      const X = ts => PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2);
+      const Y = pr => H - PAD - ((pr - minP) / span) * (H - PAD * 2);
+      const sy = Y(strike);
+      let s = "";
+
+      if (p.options.showFill) {
+        // area between the track and the strike, split at the crossings
+        let run = [], runUp = null;
+        const flush = () => {
+          if (run.length < 2) { run = []; return; }
+          let d = "M " + X(run[0][0]).toFixed(2) + " " + sy.toFixed(2);
+          run.forEach(t => { d += " L " + X(t[0]).toFixed(2) + " " + Y(t[1]).toFixed(2); });
+          d += " L " + X(run[run.length - 1][0]).toFixed(2) + " " + sy.toFixed(2) + " Z";
+          s += '<path d="' + d + '" fill="var(--' + (runUp ? "green" : "red") + ')" opacity="0.16"/>';
+          run = [];
+        };
+        ticks.forEach(t => {
+          const up = t[1] >= strike;
+          if (runUp === null) runUp = up;
+          if (up !== runUp) { const last = run[run.length - 1]; flush(); runUp = up; if (last) run.push(last); }
+          run.push(t);
+        });
+        flush();
+      }
+
+      s += '<line x1="' + PAD + '" y1="' + sy.toFixed(2) + '" x2="' + (W - PAD) + '" y2="' + sy.toFixed(2)
+         + '" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>';
+
+      const lw = num(p.options.lineWidth, 2.5);
+      for (let i = 1; i < ticks.length; i++) {
+        s += '<line x1="' + X(ticks[i - 1][0]).toFixed(2) + '" y1="' + Y(ticks[i - 1][1]).toFixed(2)
+           + '" x2="' + X(ticks[i][0]).toFixed(2) + '" y2="' + Y(ticks[i][1]).toFixed(2)
+           + '" stroke="var(--' + (ticks[i][1] >= strike ? "green" : "red") + ')" stroke-width="' + lw + '" stroke-linecap="round"/>';
+      }
+      const last = ticks[ticks.length - 1];
+      s += '<circle cx="' + X(last[0]).toFixed(2) + '" cy="' + Y(last[1]).toFixed(2) + '" r="3.6" fill="var(--'
+         + (last[1] >= strike ? "green" : "red") + ')" stroke="var(--surface-900)" stroke-width="1.5"/>';
+      chart = '<div style="flex:1 1 auto;min-height:0">' + svgFixed(W, H, s) + "</div>";
+    }
+    return '<div style="display:flex;flex-direction:column;height:100%">' + head + range + chart + "</div>";
+  }
+});
+
+/* --- lean bar ----------------------------------------------------------- */
+defViz("leanbar", {
+  label: "Lean bar", group: "Live", accepts: ["scalar"],
+  icon: '<rect x="4" y="17" width="18" height="10" rx="2" fill="currentColor" opacity=".45"/><rect x="22" y="17" width="14" height="10" rx="2" fill="currentColor"/><line x1="22" y1="10" x2="22" y2="34" stroke="currentColor" stroke-width="2.5"/>',
+  defaults: { fullTilt: 300, showScale: true },
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s || !s.current_round || s.live_price == null) return empty("Waiting for a live price…");
+    const strike = s.current_round.floor_strike;
+    const delta = s.live_price - strike;
+    const tilt = Math.max(1, num(p.options.fullTilt, 300));
+    const frac = Math.max(-1, Math.min(1, delta / tilt));
+    const up = delta >= 0;
+    const col = up ? "var(--green)" : "var(--red)";
+    const W = Math.max(120, w), H = Math.max(40, h);
+    const scale = p.options.showScale !== false;
+    // three stacked bands: value, bar, scale -- so the number never sits on the bar
+    const fs = Math.min(26, Math.max(12, H * 0.30));
+    const topH = fs + 6;
+    const botH = scale ? 12 : 0;
+    const barH = Math.min(40, Math.max(10, H - topH - botH - 8));
+    const barY = topH + 4;
+    const cx = W / 2;
+    const half = (W - 16) / 2;
+    const len = Math.abs(frac) * half;
+
+    let g = '<rect x="8" y="' + barY + '" width="' + (W - 16) + '" height="' + barH + '" rx="4" fill="var(--surface-800)"/>';
+    g += '<rect x="' + (up ? cx : cx - len).toFixed(2) + '" y="' + barY + '" width="' + len.toFixed(2)
+       + '" height="' + barH + '" rx="3" fill="' + col + '" opacity="0.9"/>';
+    // the strike itself -- the line everything is measured against
+    g += '<line x1="' + cx + '" y1="' + (barY - 5) + '" x2="' + cx + '" y2="' + (barY + barH + 5)
+       + '" stroke="var(--amber)" stroke-width="2"/>';
+    g += '<text x="' + cx + '" y="' + (fs * 0.86).toFixed(1) + '" text-anchor="middle" font-family="var(--mono)" font-weight="700" font-size="'
+       + fs.toFixed(1) + '" fill="' + col + '">' + esc(fmtNum(delta, "usd_signed", 2)) + "</text>";
+    if (scale) {
+      const by = H - 3;
+      g += '<text x="8" y="' + by + '" font-family="var(--mono)" font-size="8" fill="var(--faint)">' + esc("−" + fmtNum(tilt, "usd", 0)) + "</text>";
+      g += '<text x="' + cx + '" y="' + by + '" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--amber)">TARGET</text>';
+      g += '<text x="' + (W - 8) + '" y="' + by + '" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--faint)">+' + esc(fmtNum(tilt, "usd", 0)) + "</text>";
+    }
+    return svgFixed(W, H, g);
+  }
+});
+
+/* --- round card --------------------------------------------------------- */
+defViz("roundcard", {
+  label: "Round card", group: "Live", accepts: ["scalar"],
+  icon: '<rect x="4" y="8" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="4" y1="20" x2="40" y2="20" stroke="currentColor" stroke-width="2"/><line x1="22" y1="20" x2="22" y2="36" stroke="currentColor" stroke-width="2"/>',
+  defaults: {},
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const cr = s.current_round;
+    const price = s.live_price;
+    const big = Math.max(20, Math.min(58, w / 9));
+    const sub = Math.max(14, Math.min(30, w / 17));
+    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:2px;justify-content:center">';
+    html += '<div style="font-size:0.58rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">LIVE BITCOIN PRICE</div>';
+    html += '<div style="font-family:var(--mono);font-weight:700;line-height:1;font-size:' + big.toFixed(0) + 'px;color:var(--cream)">'
+          + esc(fmtNum(price, "usd", 2)) + "</div>";
+    if (cr) {
+      const left = Math.max(0, cr.close_time - s.now);
+      const locked = s.now >= cr.lock_ts;
+      const dcol = locked ? "var(--red)" : left < 180 ? "var(--amber)" : "var(--green)";
+      html += '<div style="display:flex;gap:14px;margin-top:6px;flex-wrap:wrap">';
+      html += '<div><div style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">'
+            + (locked ? "LOCKED &middot; CLOSES" : "ROUND CLOSES") + '</div>'
+            + '<div style="font-family:var(--mono);font-weight:700;font-size:' + sub.toFixed(0) + 'px;color:' + dcol + '">'
+            + esc(fmtNum(left, "sec")) + "</div></div>";
+      html += '<div><div style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">TARGET STRIKE</div>'
+            + '<div style="font-family:var(--mono);font-weight:700;font-size:' + sub.toFixed(0) + 'px;color:var(--amber)">'
+            + esc(fmtNum(cr.floor_strike, "usd", 2)) + "</div>";
+      const ls = s.last_settled;
+      if (ls && ls.floor_strike != null) {
+        const d = cr.floor_strike - ls.floor_strike;
+        html += '<div style="font-size:0.66rem;font-family:var(--mono);color:var(--' + (d >= 0 ? "green" : "red") + ')">'
+              + (d >= 0 ? "▲ " : "▼ ") + esc(fmtNum(d, "usd_signed", 2)) + " vs last round</div>";
+      }
+      html += "</div></div>";
+    } else {
+      html += '<div class="stat-sub" style="margin-top:6px">Waiting for the next round…</div>';
+    }
+    return html + "</div>";
+  }
+});
+
 /* --- text -------------------------------------------------------------- */
 defViz("text", {
   label: "Note", group: "Other", accepts: ["scalar", "series", "rounds", "ohlc", "profile", "ticks"],
@@ -1171,31 +1411,34 @@ function defaultDashboard() {
     bucket: "day",
     refresh: 10,
     panels: [
-      mkPanel("stat", "live_price", { x: 0, y: 0, w: 6, h: 4 }, "Live BTC",
-        { colorMode: "none", sparkline: true }, { colorMode: "fixed", fixedColor: "amber", decimals: 2 }),
-      mkPanel("countdown", "to_close", { x: 6, y: 0, w: 4, h: 4 }, "This round"),
-      mkPanel("gauge", "yes_rate", { x: 10, y: 0, w: 5, h: 4 }, "YES rate",
+      mkPanel("roundcard", "live_price", { x: 0, y: 0, w: 9, h: 6 }, "Live price & round"),
+      mkPanel("pricetrack", "ticks", { x: 9, y: 0, w: 15, h: 6 }, "Price vs Target"),
+
+      mkPanel("leanbar", "distance", { x: 0, y: 6, w: 24, h: 3 }, "Lean — distance to target"),
+
+      mkPanel("gauge", "yes_rate", { x: 0, y: 9, w: 6, h: 4 }, "YES rate",
         {}, { min: 40, max: 60, decimals: 2, baseColor: "red",
               thresholds: [{ value: 48, color: "amber" }, { value: 50, color: "green" }] }),
-      mkPanel("stat", "rounds", { x: 15, y: 0, w: 5, h: 4 }, "Rounds tracked",
+      mkPanel("stat", "rounds", { x: 6, y: 9, w: 6, h: 4 }, "Rounds tracked",
         { colorMode: "none", sparkline: false }, { colorMode: "fixed", fixedColor: "blue" }),
-      mkPanel("stat", "span_days", { x: 20, y: 0, w: 4, h: 4 }, "History depth",
+      mkPanel("stat", "span_days", { x: 12, y: 9, w: 6, h: 4 }, "History depth",
         { colorMode: "none", sparkline: false }, { colorMode: "fixed", fixedColor: "violet", decimals: 1 }),
+      mkPanel("countdown", "to_close", { x: 18, y: 9, w: 6, h: 4 }, "This round"),
 
-      mkPanel("candlestick", "ohlc", { x: 0, y: 4, w: 16, h: 8 }, "Settlement price"),
-      mkPanel("donut", "results", { x: 16, y: 4, w: 8, h: 8 }, "YES vs NO"),
+      mkPanel("candlestick", "ohlc", { x: 0, y: 13, w: 16, h: 8 }, "Settlement price"),
+      mkPanel("donut", "results", { x: 16, y: 13, w: 8, h: 8 }, "YES vs NO"),
 
-      mkPanel("timeseries", "s_yes_rate", { x: 0, y: 12, w: 12, h: 7 }, "YES rate over time",
+      mkPanel("timeseries", "s_yes_rate", { x: 0, y: 21, w: 12, h: 7 }, "YES rate over time",
         { fill: true }, { min: 0, max: 100, decimals: 1, baseColor: "red",
                           thresholds: [{ value: 50, color: "green" }] }),
-      mkPanel("bars", "s_volatility", { x: 12, y: 12, w: 12, h: 7 }, "Volatility",
+      mkPanel("bars", "s_volatility", { x: 12, y: 21, w: 12, h: 7 }, "Volatility",
         {}, { colorMode: "fixed", fixedColor: "blue", decimals: 0 }),
 
-      mkPanel("heatmap", "by_hour", { x: 0, y: 19, w: 12, h: 6 }, "YES rate by hour (ET)"),
-      mkPanel("histogram", "deltas", { x: 12, y: 19, w: 12, h: 6 }, "Move distribution"),
+      mkPanel("heatmap", "by_hour", { x: 0, y: 28, w: 12, h: 6 }, "YES rate by hour (ET)"),
+      mkPanel("histogram", "deltas", { x: 12, y: 28, w: 12, h: 6 }, "Move distribution"),
 
-      mkPanel("bigroad", "results", { x: 0, y: 25, w: 14, h: 7 }, "Big Road"),
-      mkPanel("table", "results", { x: 14, y: 25, w: 10, h: 7 }, "Recent rounds")
+      mkPanel("bigroad", "results", { x: 0, y: 34, w: 14, h: 7 }, "Big Road"),
+      mkPanel("table", "results", { x: 14, y: 34, w: 10, h: 7 }, "Recent rounds")
     ]
   };
 }
@@ -1467,6 +1710,24 @@ function renderPanelBody(p) {
 
 function renderBodies() { for (const p of DASH.panels) renderPanelBody(p); }
 
+/* Prev/Live/Next inside a price-track panel. Delegated, since panel bodies are
+   replaced wholesale on every render. */
+gridEl.addEventListener("click", e => {
+  const btn = e.target.closest("[data-track]");
+  if (!btn || btn.disabled) return;
+  const host = btn.closest(".panel");
+  if (!host) return;
+  const p = DASH.panels.find(q => q.id === host.id);
+  if (!p) return;
+  const st = trackState(p.id);
+  const act = btn.getAttribute("data-track");
+  const maxBack = (DATA.rounds || []).length;
+  if (act === "live") st.offset = 0;
+  else if (act === "prev") st.offset = Math.min(maxBack, st.offset + 1);
+  else if (act === "next") st.offset = Math.max(0, st.offset - 1);
+  renderPanelBody(p);
+});
+
 /* ============================ panel CRUD ============================ */
 
 function addPanel(type, metric) {
@@ -1475,7 +1736,8 @@ function addPanel(type, metric) {
     stat: { w: 6, h: 4 }, gauge: { w: 5, h: 5 }, bargauge: { w: 8, h: 5 },
     countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
     statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
-    heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 }
+    heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
+    pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 }
   };
   const sz = sizes[type] || { w: 12, h: 7 };
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
@@ -1642,6 +1904,17 @@ function openEditor(p) {
   if (p.type === "table") {
     html += '<div class="field"><label>Rows</label><input id="o_limit" type="number" min="5" max="500" value="' + num(p.options.limit, 40) + '"></div>';
   }
+  if (p.type === "pricetrack") {
+    html += chk("o_showFill", "Shade between the track and the target", !!p.options.showFill);
+    html += chk("o_showNav", "Show Prev / Live / Next", p.options.showNav !== false);
+    html += '<div class="field"><label>Line width</label><input id="o_lineWidth" type="number" min="1" max="6" step="0.5" value="' + num(p.options.lineWidth, 2.5) + '"></div>';
+    html += '<p class="hint">Ticks are kept for 3 hours, so Prev reaches about 12 rounds back before a round has no track to draw.</p>';
+  }
+  if (p.type === "leanbar") {
+    html += '<div class="field"><label>Full tilt (± dollars)</label><input id="o_fullTilt" type="number" min="10" max="5000" step="10" value="' + num(p.options.fullTilt, 300) + '"></div>';
+    html += chk("o_showScale", "Show the scale row", p.options.showScale !== false);
+    html += '<p class="hint">The bar fills completely at this distance from the target. 300 matches the server’s own lean calculation.</p>';
+  }
 
   // ---- standard field options
   if (p.type !== "text") {
@@ -1703,9 +1976,10 @@ function openEditor(p) {
   ["o_colorMode", "o_display"].forEach(id => bind(id, () => {
     p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save();
   }));
-  ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines"].forEach(id =>
+  ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
+   "o_showFill", "o_showNav", "o_showScale"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
-  ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit"].forEach(id =>
+  ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt"].forEach(id =>
     bindIn(id, () => { p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save(); }));
   bindIn("o_subtitle", () => { p.options.subtitle = $("o_subtitle").value; renderPanelBody(p); save(); });
   bindIn("f_body", () => { p.options.body = $("f_body").value; renderPanelBody(p); save(); });
@@ -1887,13 +2161,13 @@ function rangeDays() {
 function needsRounds() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return m && m.kind === "rounds";
+    return (m && m.kind === "rounds") || p.type === "pricetrack";  // pricetrack pages back through them
   });
 }
 function needsTicks() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return m && m.kind === "ticks";
+    return (m && m.kind === "ticks") || p.type === "pricetrack";
   });
 }
 

@@ -36,9 +36,13 @@ its own:
 - `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
   felt and gold rules, chip-round controls and a serif face.
 - `GET /studio` — **The Studio**, a build-your-own board. A 24-column drag-and-drop grid
-  in the style of Grafana: add a panel, pick one of 14 visualizations (gauge, bar gauge,
+  in the style of Grafana: add a panel, pick one of 17 visualizations (gauge, bar gauge,
   stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
-  Big Road, table, countdown, note), pick the metric it reads, then drag the header to move it and
+  Big Road, table, countdown, note, plus three live ones — **price vs target**, drawing
+  this round's tick track green above the strike and red below it with a dashed line at
+  the target and Prev/Live/Next to page back through settled rounds; **lean bar**, a
+  green/red bar measuring distance from the target; and **round card**, the live price,
+  countdown, target and round-over-round delta in one block), pick the metric it reads, then drag the header to move it and
   the corner to resize it. Per-panel unit, min/max, decimals, colour mode and threshold
   steps. There is only one data source, so — as in Netdata — there is no query language:
   metrics are a dropdown. Layout persists to `localStorage` and the whole board can be
