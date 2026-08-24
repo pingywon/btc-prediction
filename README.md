@@ -36,7 +36,8 @@ its own:
 - `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
   felt and gold rules, chip-round controls and a serif face.
 - `GET /studio` — **The Studio**, a build-your-own board. A 24-column drag-and-drop grid
-  in the style of Grafana: add a panel, pick one of 18 visualizations (gauge, bar gauge,
+  in the style of Grafana: add a panel, pick one of 25 visualizations (the seven Classic
+  modules, plus gauge, bar gauge,
   stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
   Big Road, table, countdown, note, plus the live ones — **price vs target**, drawing
   this round's tick track green above the strike and red below it with a dashed line at
@@ -48,6 +49,16 @@ its own:
   steps. There is only one data source, so — as in Netdata — there is no query language:
   metrics are a dropdown. Layout persists to `localStorage` and the whole board can be
   exported and re-imported as JSON.
+
+  **The default board is Classic, module for module.** Live Price & Pick, Round
+  Confidence, Current Spread and Market Gauges stacked in the 14/24-wide left column,
+  Results Sidebar in the 10/24 right column, Big Road History and Round-to-Round Spread
+  full-width beneath — the same `7fr 5fr` split `/` uses, and the same calculations
+  (the confidence engine, Kalshi odds normalisation, streak/chop tallies, the tile Big
+  Road with its Dragon Tail ring, pick badges and Big Eye Boy) ported line for line. The
+  Big Road's timeframe selector drives the Results and Spread windows together, as on
+  Classic. So "modular Classic" is literally Classic, just movable and resizable. The
+  earlier analytics layout is still there as a preset in the JSON dialog.
 
   It also carries a **skin picker**: the same board renders in any of the ten looks —
   Classic, Fluid, The Ticket, The Board, The Gauge, Terminal, The Tape, Blueprint, Arcade

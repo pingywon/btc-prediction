@@ -301,6 +301,172 @@
   }
   .note { font-size: 0.8rem; color: var(--soft); line-height: 1.5; height: 100%; overflow: auto; }
 
+  /* ---------------- Classic modules ----------------
+     The seven modules of / rebuilt as panels. Same labels, same numbers, same
+     colour rules -- only the container is different. */
+  .cl-eyebrow { font-size: 0.58rem; letter-spacing: 0.12em; color: var(--faint); font-weight: 800; text-transform: uppercase; display: flex; gap: 0.45rem; align-items: baseline; }
+  .cl-eyebrow i { font-style: normal; font-size: 0.55rem; color: var(--dim); text-transform: lowercase; letter-spacing: 0; font-weight: 600; }
+  .cl-label { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--faint); font-weight: 800; text-transform: uppercase; }
+  .cl-live { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .cl-price { font-family: var(--mono); font-weight: 800; line-height: 1.05; color: var(--cream); letter-spacing: -0.02em; margin-top: 0.15rem; }
+  .cl-row2 { display: flex; gap: 1rem; align-items: flex-start; margin-top: 0.45rem; flex-wrap: wrap; }
+  .cl-div { width: 1px; align-self: stretch; background: var(--border); }
+  .cl-timer { font-family: var(--mono); font-weight: 800; color: var(--green); line-height: 1.1; }
+  .cl-timer.locked { color: var(--red); }
+  .cl-strike { font-family: var(--mono); font-weight: 800; color: var(--amber); line-height: 1.1; }
+  .cl-delta { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; margin-top: 3px; }
+  .cl-delta.up { color: var(--green); }
+  .cl-delta.down { color: var(--red); }
+  .cl-nav { display: flex; gap: 4px; margin-top: 0.55rem; }
+  .cl-range { display: flex; justify-content: space-between; gap: 0.5rem; font-family: var(--mono); font-size: 0.58rem; color: var(--faint); margin: 0.4rem 0 0.25rem; letter-spacing: 0.04em; }
+  .cl-chart { flex: 1 1 auto; min-height: 70px; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; position: relative; }
+  .cl-chart svg { width: 100%; height: 100%; display: block; }
+  .cl-pickrow { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.55rem; flex-wrap: wrap; flex: none; }
+  .cl-pickbtn { font-family: var(--sans); font-weight: 800; letter-spacing: 0.06em; font-size: 0.78rem; padding: 0.35rem 0.9rem; min-height: 36px; border-radius: var(--r-sm); border: 1.5px solid var(--pc); color: var(--pc); background: transparent; cursor: pointer; }
+  .cl-pickbtn:hover:not(:disabled) { background: color-mix(in srgb, var(--pc) 16%, transparent); }
+  .cl-pickbtn.on { background: var(--pc); color: var(--surface-900); }
+  .cl-pickbtn:disabled { opacity: 0.45; cursor: default; }
+  .cl-pickstatus { font-size: 0.74rem; color: var(--dim); font-weight: 700; }
+  .cl-pickstatus.set { color: var(--amber); }
+  .cl-calls { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.1em; color: var(--faint); font-weight: 800; text-transform: uppercase; }
+  .cl-calls b { color: var(--cream); font-family: var(--mono); font-size: 0.78rem; margin-left: 0.2rem; }
+
+  .cl-signal { display: flex; flex-direction: column; height: 100%; overflow: auto; }
+  .cl-signal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+  .cl-signal-call { display: flex; align-items: baseline; gap: 0.6rem; }
+  .cl-side { font-weight: 900; line-height: 1; letter-spacing: -0.01em; font-family: var(--mono); }
+  .cl-side.yes { color: var(--green); }
+  .cl-side.no { color: var(--red); }
+  .cl-pct { font-weight: 900; line-height: 1; color: var(--cream); font-family: var(--mono); }
+  .cl-pct::before { content: ""; display: inline-block; width: 1px; height: 1.1em; background: var(--cream); opacity: 0.22; margin-right: 0.6rem; vertical-align: -0.12em; }
+  .cl-band { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.3rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+  .cl-band.no-likely { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+  .cl-band.leaning-no { background: color-mix(in srgb, var(--red) 10%, transparent); color: var(--red); }
+  .cl-band.leaning-yes { background: color-mix(in srgb, var(--green) 10%, transparent); color: var(--green); }
+  .cl-band.yes-likely { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .cl-track { position: relative; height: 6px; margin-top: 1rem; border-radius: 999px; background: linear-gradient(90deg, var(--red), color-mix(in srgb, var(--red) 25%, var(--surface-700)) 40%, color-mix(in srgb, var(--green) 25%, var(--surface-700)) 60%, var(--green)); }
+  .cl-track-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--cream); opacity: 0.32; }
+  .cl-track-marker { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; background: var(--cream); border: 2px solid var(--surface-900); transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--cream); }
+  .cl-scale { display: flex; justify-content: space-between; margin-top: 0.4rem; }
+  .cl-scale span { font-size: 0.55rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+  .cl-reasons { margin-top: 0.9rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .cl-reason { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+  .cl-reason .k { font-size: 0.58rem; color: var(--faint); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+  .cl-reason .v { font-size: 0.72rem; color: var(--soft); font-weight: 700; text-align: right; }
+  .cl-disclaimer { margin-top: auto; padding-top: 0.7rem; border-top: 1px solid var(--border); font-size: 0.62rem; color: var(--faint); font-style: italic; }
+
+  .cl-spreadnow { display: flex; align-items: center; gap: 0.6rem; height: 100%; flex-wrap: wrap; }
+  .cl-pill { font-family: var(--mono); font-weight: 800; font-size: 0.78rem; padding: 0.25rem 0.6rem; border-radius: 999px; }
+  .cl-pill.up { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .cl-pill.down { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+  .cl-rh { margin-left: auto; font-size: 0.62rem; letter-spacing: 0.1em; font-weight: 900; text-transform: uppercase; color: var(--amber); text-decoration: none; white-space: nowrap; }
+  .cl-rh:hover { text-decoration: underline; }
+
+  .cl-gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.9rem; height: 100%; align-content: center; }
+  .cl-gauge { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+  .cl-gauge-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .cl-gauge-title { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--faint); font-weight: 800; text-transform: uppercase; }
+  .cl-gsub { font-size: 0.6rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--mono); }
+  .cl-lean-status { display: flex; align-items: center; gap: 0.35rem; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; }
+  .cl-lean-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cl-gtrack { height: 8px; background: var(--surface-800); border-radius: 999px; position: relative; }
+  .cl-chip { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid var(--surface-900); }
+  .cl-chip.yes { background: var(--green); box-shadow: 0 0 10px color-mix(in srgb, var(--green) 60%, transparent); }
+  .cl-chip.no { background: var(--red); box-shadow: 0 0 10px color-mix(in srgb, var(--red) 60%, transparent); }
+  .cl-odds { height: 8px; display: flex; border-radius: 999px; overflow: hidden; background: var(--surface-800); }
+  .cl-odds .y { background: var(--green); }
+  .cl-odds .n { background: var(--red); }
+  .cl-rail { height: 8px; background: var(--surface-800); border-radius: 999px; overflow: hidden; }
+  .cl-rail div { height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width 0.9s linear; }
+  .cl-rail.urgent div { background: linear-gradient(90deg, var(--amber-deep), var(--red)); }
+
+  .cl-results { display: flex; flex-direction: column; gap: 0.6rem; height: 100%; overflow: auto; }
+  .cl-win-head { display: flex; flex-direction: column; gap: 2px; }
+  .cl-win-label { font-size: 0.64rem; letter-spacing: 0.08em; color: var(--soft); font-weight: 900; text-transform: uppercase; }
+  .cl-win-range { font-size: 0.58rem; color: var(--faint); font-weight: 700; font-family: var(--mono); }
+  .cl-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+  .cl-tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.5rem; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-md); text-align: center; }
+  .cl-tile.wide { grid-column: 1 / -1; }
+  .cl-tile .label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 800; letter-spacing: 0.06em; margin-bottom: 0.2rem; }
+  .cl-tile .num { font-size: 1.45rem; font-weight: 900; font-family: var(--mono); color: var(--cream); line-height: 1; }
+  .cl-tile .num.yes { color: var(--green); }
+  .cl-tile .num.no { color: var(--red); }
+  .cl-tile .sub { font-size: 0.58rem; color: var(--faint); font-weight: 800; text-transform: uppercase; margin-left: 0.4rem; font-family: var(--mono); }
+  .cl-tile.leading.yes-side { border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+  .cl-tile.leading.no-side { border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+  .cl-leading { position: absolute; top: 5px; right: 6px; font-size: 0.48rem; font-weight: 900; letter-spacing: 0.1em; padding: 2px 5px; border-radius: 999px; }
+  .cl-tile.yes-side .cl-leading { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+  .cl-tile.no-side .cl-leading { background: color-mix(in srgb, var(--red) 18%, transparent); color: var(--red); }
+  .cl-last { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.8rem 0.6rem; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-md); text-align: center; }
+  .cl-last .label { font-size: 0.6rem; color: var(--dim); text-transform: uppercase; font-weight: 900; letter-spacing: 0.08em; }
+  .cl-last-row { display: flex; align-items: center; gap: 0.7rem; }
+  .cl-lr-word { font-size: 1.5rem; font-weight: 900; font-family: var(--mono); line-height: 1; }
+  .cl-lr-word.yes { color: var(--green); }
+  .cl-lr-word.no { color: var(--red); }
+  .cl-lr-div { width: 1px; height: 1.3rem; background: var(--border); }
+  .cl-lr-price { font-size: 1.3rem; font-weight: 800; font-family: var(--mono); color: var(--cream); }
+  .cl-lr-target { font-size: 0.66rem; color: var(--dim); font-weight: 600; }
+  .cl-lr-target b { color: var(--soft); font-family: var(--mono); }
+  .cl-feedback { font-size: 0.64rem; font-weight: 800; padding: 0.25rem 0.55rem; border-radius: 999px; margin-top: 0.2rem; }
+  .cl-feedback.correct { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); }
+  .cl-feedback.incorrect { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
+
+  .cl-road, .cl-ledger { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .cl-road-head, .cl-ledger-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; flex: none; margin-bottom: 0.6rem; }
+  .cl-road-title { display: flex; align-items: center; gap: 0.6rem; }
+  .cl-road-icon { width: 30px; height: 30px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none; }
+  .cl-road-icon svg { width: 16px; height: 16px; }
+  .cl-road-title h2 { margin: 0; font-size: 0.82rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cream); }
+  .cl-road-title p { margin: 0; font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .cl-road-ctl, .cl-ledger-ctl { display: flex; align-items: center; gap: 0.5rem; }
+  .cl-tf { display: inline-flex; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .cl-tf-btn { font-family: var(--sans); font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em; color: var(--dim); background: transparent; border: 0; border-radius: var(--r-sm); padding: 0.35rem 0.55rem; cursor: pointer; min-height: 30px; }
+  .cl-tf-btn:hover { background: var(--surface-800); color: var(--cream); }
+  .cl-tf-btn.active { background: var(--amber); color: #05060a; }
+  .cl-tf-btn.solo { border: 1px solid var(--border); background: var(--surface-850); }
+  .cl-refresh { width: 34px; height: 34px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface-850); color: var(--dim); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .cl-refresh:hover { color: var(--amber); border-color: var(--amber); }
+  .cl-refresh svg { width: 15px; height: 15px; }
+  .cl-road-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
+  .cl-road-col { display: flex; flex-direction: column; gap: 4px; padding: 3px; border-radius: 9px; border: 2px solid transparent; }
+  .cl-road-col.dragon { border-color: var(--amber); }
+  .cl-bead { position: relative; width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; cursor: default; transition: transform .12s; }
+  .cl-bead:hover { transform: scale(1.06); z-index: 2; }
+  .cl-bead.yes { background: var(--green); color: #05060a; }
+  .cl-bead.no { background: var(--red); color: #05060a; }
+  :root[data-theme="light"] .cl-bead.yes, :root[data-theme="light"] .cl-bead.no { color: #ffffff; }
+  .cl-bead .g { font-weight: 900; font-size: 0.95rem; }
+  .cl-bead .t { font-weight: 700; font-size: 0.52rem; opacity: 0.85; margin-top: 1px; letter-spacing: -0.02em; font-family: var(--mono); }
+  .cl-bead .d { font-weight: 900; font-size: 0.5rem; opacity: 0.92; font-family: var(--mono); }
+  .cl-badge { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface-900); }
+  .cl-badge svg { width: 11px; height: 11px; }
+  .cl-badge.hit { background: var(--amber); color: #05060a; }
+  .cl-badge.miss { background: #14161d; color: #ffffff; }
+  .cl-derived { flex: none; margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+  .cl-derived-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
+  .cl-derived-head h3 { margin: 0; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); font-weight: 900; }
+  .cl-legend { display: flex; gap: 0.8rem; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); font-weight: 800; }
+  .cl-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+  .cl-derived-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .cl-dbead { display: inline-block; width: 13px; height: 13px; border-radius: 50%; flex: none; }
+  .cl-dbead.repeat { border: 2.5px solid var(--blue-derived, var(--blue)); background: transparent; }
+  .cl-dbead.break { background: var(--red-derived, var(--red)); }
+
+  .cl-range-lbl { font-size: 0.58rem; color: var(--faint); font-weight: 700; font-family: var(--mono); white-space: nowrap; }
+  .cl-ledger-list { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+  .cl-ledger-list.compact { max-height: 240px; flex: none; }
+  .cl-ledger-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.4rem; border-radius: var(--r-sm); }
+  .cl-ledger-row:hover { background: var(--surface-850); }
+  .cl-ledger-row .time { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); font-weight: 700; flex: 0 0 84px; }
+  .cl-ledger-row .barwrap { position: relative; flex: 1 1 auto; height: 8px; background: var(--surface-800); border-radius: 999px; overflow: hidden; }
+  .cl-ledger-row .barwrap::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .cl-ledger-row .bar { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+  .cl-ledger-row .bar.up { left: 50%; background: var(--green); }
+  .cl-ledger-row .bar.down { right: 50%; background: var(--red); }
+  .cl-ledger-row .amt { font-family: var(--mono); font-size: 0.66rem; font-weight: 800; flex: 0 0 82px; text-align: right; }
+  .cl-ledger-row .amt.up { color: var(--green); }
+  .cl-ledger-row .amt.down { color: var(--red); }
+
   /* ---------------- modals / drawer ---------------- */
   .scrim {
     position: fixed; inset: 0; z-index: 100; display: none;
@@ -886,7 +1052,9 @@
     <div class="field"><textarea id="jsonText" spellcheck="false"></textarea></div>
   </div>
   <div class="sheet-foot">
-    <button class="btn" id="jsonReset">Reset to default</button>
+    <button class="btn" id="jsonReset">Reset to Classic</button>
+    <button class="btn" id="jsonAnalytics">Analytics preset</button>
+    <button class="btn" id="jsonPrev" style="display:none">My previous board</button>
     <button class="btn" id="jsonCopy">Copy</button>
     <button class="btn primary" id="jsonLoad">Load</button>
   </div>
@@ -900,7 +1068,8 @@
 /* ============================ constants ============================ */
 
 const COLS = 24, ROW_H = 34, GAP = 8;
-const LS_KEY = "btc_studio_dashboard_v1";
+const LS_KEY = "btc_studio_dashboard_v2";  // v1 held the analytics board; kept, loadable from the JSON dialog
+const LS_KEY_V1 = "btc_studio_dashboard_v1";
 const LS_THEME = "btc15_theme";  // shared with every other page
 
 const RANGES = [
@@ -1153,6 +1322,176 @@ function resolveSettledPick(D) {
   resolvedPicks.push(s.ticker);
   saveJSON(RECORD_KEY, record);
   saveJSON(RESOLVED_KEY, resolvedPicks);
+}
+
+/* ============================ Classic engine ============================
+   Ports of the Classic page's own calculations, line for line, so the modular
+   board says exactly what / says. */
+
+function fmtMS(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + "m " + (s < 10 ? "0" : "") + s + "s";
+}
+function fmtHHMM(ts) {
+  const d = new Date(ts * 1000);
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+function fmtDateShort(ts) {
+  return new Date(ts * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function fmtDateTime(ts) {
+  return new Date(ts * 1000).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+function fmtUSD(v) { return fmtNum(v, "usd", 2); }
+
+const CONF_BANDS = [
+  { max: 0.30, key: "no-likely", label: "No likely" },
+  { max: 0.50, key: "leaning-no", label: "Leaning no" },
+  { max: 0.70, key: "leaning-yes", label: "Leaning yes" },
+  { max: 1.01, key: "yes-likely", label: "Yes likely" }
+];
+function confBand(pYes) {
+  for (const b of CONF_BANDS) if (pYes < b.max) return b;
+  return CONF_BANDS[CONF_BANDS.length - 1];
+}
+
+/* Two reads blended: Kalshi's live order book (0.7) and where price sits against
+   the strike judged by how far completed rounds actually moved (0.3). */
+function computeConfidence(s, rounds) {
+  if (!s || !s.current_round) return null;
+  const cur = s.current_round;
+  const reasons = [], parts = [];
+
+  const yes = cur.kalshi_yes_price, no = cur.kalshi_no_price;
+  if (yes !== null && yes !== undefined) {
+    const effNo = (no !== null && no !== undefined) ? no : (1 - yes);
+    const sum = yes + effNo;
+    const pMkt = sum > 0 ? yes / sum : yes;
+    parts.push({ p: pMkt, w: 0.7 });
+    reasons.push({ k: "Market odds", v: "Kalshi prices YES at " + Math.round(pMkt * 100) + "%" });
+  }
+
+  const price = s.live_price, strike = cur.floor_strike;
+  const moves = [];
+  for (const r of (rounds || [])) if (r.delta !== null && r.delta !== undefined) moves.push(Math.abs(r.delta));
+  if (price !== null && price !== undefined && strike !== null && strike !== undefined && moves.length >= 8) {
+    const tLeft = Math.max(0, cur.close_time - s.now);
+    const gap = price - strike;
+    const frac = Math.max(0.005, Math.min(1, tLeft / 900));
+    const equiv = Math.abs(gap) / Math.sqrt(frac);
+    let hits = 0;
+    for (const m of moves) if (m >= equiv) hits++;
+    const pExceed = hits / moves.length;
+    const pFlip = pExceed / 2;
+    parts.push({ p: gap >= 0 ? (1 - pFlip) : pFlip, w: 0.3 });
+    reasons.push({ k: "Position", v: fmtUSD(Math.abs(gap)) + (gap >= 0 ? " above" : " below") + " target, " + fmtMS(tLeft) + " left" });
+    reasons.push({ k: "Precedent", v: Math.round(pExceed * 100) + "% of recent rounds moved at least that far" });
+  }
+
+  if (!parts.length) return null;
+  let acc = 0, wSum = 0;
+  for (const k of parts) { acc += k.p * k.w; wSum += k.w; }
+  const pYes = Math.max(0, Math.min(1, acc / wSum));
+  const side = pYes >= 0.5 ? "yes" : "no";
+  return { pYes, pct: Math.round(100 * (side === "yes" ? pYes : 1 - pYes)), side, band: confBand(pYes), reasons };
+}
+
+const COLUMN_CAP = 6;
+function buildColumns(rounds, cap) {
+  const columns = [];
+  let col = null, colResult = null;
+  for (const r of rounds) {
+    if (!col || r.result !== colResult || col.length >= cap) {
+      col = []; colResult = r.result; columns.push(col);
+    }
+    col.push(r);
+  }
+  return columns;
+}
+function computeBigEyeBoy(columns) {
+  const marks = [];
+  for (let c = 1; c < columns.length; c++) {
+    const col = columns[c];
+    for (let r = 0; r < col.length; r++) {
+      if (c === 1 && r === 0) continue;
+      let repeat;
+      if (r > 0) repeat = columns[c - 1].length > r;
+      else {
+        const prevLen = columns[c - 1].length;
+        const prevPrevLen = c >= 2 ? columns[c - 2].length : null;
+        repeat = prevPrevLen !== null && prevLen === prevPrevLen;
+      }
+      marks.push(repeat);
+    }
+  }
+  return marks;
+}
+
+/* ---- history windows -----------------------------------------------------
+   Classic's Big Road, Results Sidebar and Spread all read one /api/history?hours=
+   window, with its server-side tallies (streaks, chop). These panels do the same:
+   each distinct window in use is fetched once per cycle into DATA.hist[hours]. */
+const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours", 6: "6 Hours", 8: "8 Hours", 12: "12 Hours", 24: "24 Hours", 168: "7 Days" };
+const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
+const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
+
+function panelHours(p) { return num(p.options.hours, 24); }
+function histWindowsNeeded() {
+  const s = new Set();
+  for (const p of DASH.panels) if (HIST_TYPES[p.type]) s.add(panelHours(p));
+  return s;
+}
+function histFor(p) { return DATA.hist[panelHours(p)] || null; }
+const histLoading = {};
+function loadHist(hours, then) {
+  if (histLoading[hours]) return;
+  histLoading[hours] = true;
+  getJSON("/api/history?hours=" + hours)
+    .then(d => {
+      DATA.hist[hours] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() };
+      histLoading[hours] = false;
+      if (then) then();
+    })
+    .catch(() => { histLoading[hours] = false; });
+}
+
+/* Classic's chart: fixed 600x130 box stretched to fit, strokes kept crisp. */
+function trackSvgStretch(ticks, round, lw) {
+  const W = 600, H = 130, PAD = 6;
+  const strike = round.strike;
+  const prices = ticks.map(t => t[1]);
+  let minP = Math.min(strike, Math.min.apply(null, prices));
+  let maxP = Math.max(strike, Math.max.apply(null, prices));
+  let span = Math.max(0.01, maxP - minP);
+  minP -= span * 0.15; maxP += span * 0.15; span = maxP - minP;
+  const t0 = round.open, t1 = Math.max(round.close, ticks[ticks.length - 1][0]);
+  const X = ts => PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2);
+  const Y = pr => H - PAD - ((pr - minP) / span) * (H - PAD * 2);
+  const sy = Y(strike);
+  let s = '<line x1="' + PAD + '" y1="' + sy.toFixed(2) + '" x2="' + (W - PAD) + '" y2="' + sy.toFixed(2)
+    + '" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7" vector-effect="non-scaling-stroke"/>';
+  for (let i = 1; i < ticks.length; i++) {
+    s += '<line x1="' + X(ticks[i - 1][0]).toFixed(2) + '" y1="' + Y(ticks[i - 1][1]).toFixed(2)
+      + '" x2="' + X(ticks[i][0]).toFixed(2) + '" y2="' + Y(ticks[i][1]).toFixed(2)
+      + '" stroke="var(--' + (ticks[i][1] >= strike ? "green" : "red") + ')" stroke-width="' + lw + '" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+  }
+  const last = ticks[ticks.length - 1];
+  s += '<circle cx="' + X(last[0]).toFixed(2) + '" cy="' + Y(last[1]).toFixed(2) + '" r="4" fill="var(--'
+    + (last[1] >= strike ? "green" : "red") + ')" stroke="var(--surface-900)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>';
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + s + "</svg>";
+}
+
+const ICON_ROAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18M8 17V10M13 17V6M18 17v-4"/></svg>';
+const ICON_SPREAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>';
+const ICON_REFRESH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+function tfBar(hrs) {
+  return '<div class="cl-tf">' + TF_CHOICES.map(c =>
+    '<button class="cl-tf-btn' + (c[0] === hrs ? " active" : "") + '" data-tf="' + c[0] + '">' + c[1] + "</button>").join("") + "</div>";
 }
 
 /* Per-panel round browsing for the price track. Kept out of the panel object so it
@@ -1943,6 +2282,297 @@ defViz("roundcard", {
   }
 });
 
+/* ============================ Classic modules ============================
+   The seven modules of the Classic page, as panels. The default board is these,
+   in Classic's own 14/10 split, so "modular Classic" is literally Classic. */
+
+/* --- Live Price & Pick --------------------------------------------------- */
+defViz("livepick", {
+  label: "Live Price & Pick", group: "Classic", accepts: ["ticks"], noMetric: true,
+  icon: '<text x="6" y="19" fill="currentColor" font-size="13" font-weight="800" font-family="monospace">$79k</text><line x1="6" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2" opacity=".7"/><path d="M6 34l6-6 5 3 6-9 5 5 6-3" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+  defaults: { showNav: true, lineWidth: 2.5 },
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const cr = s.current_round;
+    const st = trackState(p.id);
+    const round = trackRound(p, D);
+    let ticks = null;
+    if (round) {
+      if (round.live) ticks = (D.ticks || []).filter(t => t[0] >= round.open && t[0] <= round.close);
+      else if (st.key === round.key && st.ticks) ticks = st.ticks;
+      else loadTrackTicks(p, round);
+    }
+    const big = Math.max(26, Math.min(66, w / 10.5));
+    const mid = Math.max(16, Math.min(34, w / 22));
+    const left = cr ? Math.max(0, cr.close_time - s.now) : null;
+    const locked = !!(cr && s.now >= cr.lock_ts);
+
+    let html = '<div class="cl-live">';
+    html += '<div class="cl-eyebrow">Live Bitcoin Price <i>live</i></div>';
+    html += '<div class="cl-price" style="font-size:' + big.toFixed(0) + 'px">' + esc(s.catching_up ? "—" : fmtUSD(s.live_price)) + "</div>";
+
+    html += '<div class="cl-row2">';
+    html += '<div><div class="cl-label">' + (locked ? "Locked" : "Round Closes") + '</div>'
+      + '<div class="cl-timer' + (locked ? " locked" : "") + '" style="font-size:' + mid.toFixed(0) + 'px">' + (cr ? esc(fmtMS(left)) : "—") + "</div></div>";
+    html += '<div class="cl-div"></div>';
+    let delta = "";
+    const ls = s.last_settled;
+    if (ls && ls.settlement_value !== null && ls.settlement_value !== undefined) {
+      const d = ls.settlement_value - ls.floor_strike;
+      delta = '<div class="cl-delta ' + (d >= 0 ? "up" : "down") + '">' + (d >= 0 ? "▲ +" : "▼ -") + "$" + Math.abs(d).toFixed(2) + " vs last round</div>";
+    }
+    html += '<div><div class="cl-label">Target Strike</div><div class="cl-strike" style="font-size:' + mid.toFixed(0) + 'px">'
+      + (cr ? esc(fmtUSD(cr.floor_strike)) : "—") + "</div>" + delta + "</div>";
+    html += "</div>";
+
+    if (p.options.showNav !== false) {
+      const rs = D.rounds || [];
+      html += '<div class="cl-nav">'
+        + '<button class="tbtn" data-track="prev"' + (st.offset >= rs.length ? " disabled" : "") + '>&#9664; Prev</button>'
+        + '<button class="tbtn' + (st.offset === 0 ? " on" : "") + '" data-track="live">Live</button>'
+        + '<button class="tbtn" data-track="next"' + (st.offset <= 0 ? " disabled" : "") + '>Next &#9654;</button>'
+        + "</div>";
+    }
+    html += '<div class="cl-range"><span>' + (round
+      ? esc(fmtHHMM(round.open) + "–" + fmtHHMM(round.close) + " · TARGET " + fmtUSD(round.strike))
+        + (round.result ? ' · <b style="color:var(--' + (round.result === "yes" ? "green" : "red") + ')">' + esc(round.result.toUpperCase()) + "</b>" : "")
+      : "") + "</span><span>DASHED LINE = TARGET</span></div>";
+
+    let chart;
+    if (!round) chart = '<div class="empty">' + (st.offset > 0 ? "No settled round that far back" : "Waiting for the next round…") + "</div>";
+    else if (ticks === null) chart = '<div class="empty">Loading this round’s ticks…</div>';
+    else if (!ticks.length) chart = '<div class="empty">No live ticks recorded for this round yet</div>';
+    else chart = trackSvgStretch(ticks, round, num(p.options.lineWidth, 2.5));
+    html += '<div class="cl-chart">' + chart + "</div>";
+
+    resolveSettledPick(D);
+    const mine = cr ? picks[cr.ticker] : null;
+    const pb = (c, col) => '<button class="cl-pickbtn' + (mine && mine.choice === c ? " on" : "") + '" data-pick="' + c + '"'
+      + ((locked || !cr) ? " disabled" : "") + ' style="--pc:var(--' + col + ')">' + c.toUpperCase() + "</button>";
+    let status = "No pick yet", set = false;
+    if (mine) { status = locked ? "Locked in: " + mine.choice.toUpperCase() : "Your pick: " + mine.choice.toUpperCase() + " — tap the other to change"; set = true; }
+    else if (locked) status = "Locked — no call this round";
+    html += '<div class="cl-pickrow"><span class="cl-label">Personal Pick</span>' + pb("yes", "green") + pb("no", "red")
+      + '<span class="cl-pickstatus' + (set ? " set" : "") + '">' + esc(status) + "</span>"
+      + '<span class="cl-calls">Your calls:<b>' + record.wins + "-" + record.losses + "</b></span></div>";
+    return html + "</div>";
+  }
+});
+
+/* --- Round Confidence ---------------------------------------------------- */
+defViz("confidence", {
+  label: "Round Confidence", group: "Classic", accepts: ["scalar"], noMetric: true,
+  icon: '<text x="5" y="20" fill="currentColor" font-size="13" font-weight="900" font-family="monospace">YES</text><text x="26" y="20" fill="currentColor" font-size="11" font-weight="700" font-family="monospace" opacity=".7">69%</text><rect x="5" y="28" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="30" cy="30" r="3.5" fill="currentColor"/>',
+  defaults: { hours: 24 },
+  render(p, D, w, h) {
+    const hist = histFor(p);
+    if (!hist) loadHist(panelHours(p), () => renderPanelBody(p));
+    const c = computeConfidence(D.state, hist ? hist.rounds : (D.rounds || []));
+    if (!c) return '<div class="cl-label" style="padding:0.5rem 0">Waiting for a round</div>';
+    const big = Math.max(22, Math.min(40, w / 16));
+    let html = '<div class="cl-signal">';
+    html += '<div class="cl-signal-top"><div class="cl-signal-call">'
+      + '<span class="cl-side ' + c.side + '" style="font-size:' + big.toFixed(0) + 'px">' + c.side.toUpperCase() + "</span>"
+      + '<span class="cl-pct" style="font-size:' + big.toFixed(0) + 'px">' + c.pct + "%</span></div>"
+      + '<span class="cl-band ' + c.band.key + '">' + esc(c.band.label) + "</span></div>";
+    html += '<div class="cl-track"><div class="cl-track-mid"></div><div class="cl-track-marker" style="left:' + (c.pYes * 100).toFixed(1) + '%"></div></div>';
+    html += '<div class="cl-scale"><span>Certain no</span><span>Neutral</span><span>Certain yes</span></div>';
+    html += '<div class="cl-reasons">' + c.reasons.map(r => '<div class="cl-reason"><span class="k">' + esc(r.k) + '</span><span class="v">' + esc(r.v) + "</span></div>").join("") + "</div>";
+    html += '<div class="cl-disclaimer">Estimate only, from live market pricing and recent round history. Not advice.</div>';
+    return html + "</div>";
+  }
+});
+
+/* --- Current Spread ------------------------------------------------------ */
+defViz("spreadnow", {
+  label: "Current Spread", group: "Classic", accepts: ["scalar"], noMetric: true,
+  icon: '<rect x="5" y="16" width="22" height="12" rx="6" fill="currentColor" opacity=".25"/><text x="9" y="25" fill="currentColor" font-size="9" font-weight="800" font-family="monospace">+$45</text><path d="M32 25l3-3 3 3M35 22v6" fill="none" stroke="currentColor" stroke-width="2"/>',
+  defaults: {},
+  render(p, D) {
+    const s = D.state;
+    const lean = s && s.lean, cr = s && s.current_round;
+    if (!lean) return empty("Waiting for a live price…");
+    const up = lean.direction === "yes";
+    return '<div class="cl-spreadnow"><span class="cl-label">Vs Target</span>'
+      + '<span class="cl-pill ' + (up ? "up" : "down") + '">' + (up ? "▲ +" : "▼ -") + "$" + Math.abs(lean.delta).toFixed(2) + "</span>"
+      + (cr && cr.robinhood_url ? '<a class="cl-rh" href="' + esc(cr.robinhood_url) + '" target="_blank" rel="noopener">View on Robinhood &#8599;</a>' : "")
+      + "</div>";
+  }
+});
+
+/* --- Market Gauges ------------------------------------------------------- */
+defViz("gauges", {
+  label: "Market Gauges", group: "Classic", accepts: ["scalar"], noMetric: true,
+  icon: '<rect x="5" y="11" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="26" cy="13" r="3.5" fill="currentColor"/><rect x="5" y="21" width="20" height="4" rx="2" fill="currentColor"/><rect x="25" y="21" width="14" height="4" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="31" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><rect x="5" y="31" width="14" height="4" rx="2" fill="currentColor" opacity=".8"/>',
+  defaults: {},
+  render(p, D) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const cr = s.current_round, lean = s.lean;
+    let g = "";
+    if (lean && cr) {
+      const pos = 50 + (lean.direction === "yes" ? 1 : -1) * lean.strength * 45;
+      const col = lean.direction === "yes" ? "var(--green)" : "var(--red)";
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span>'
+        + '<span class="cl-lean-status" style="color:' + col + '"><span class="cl-lean-dot" style="background:' + col + '"></span>' + lean.direction.toUpperCase() + " BIAS</span></div>"
+        + '<div class="cl-gtrack"><div class="cl-chip ' + lean.direction + '" style="left:' + pos.toFixed(1) + '%"></div></div>'
+        + '<span class="cl-gsub">Instant price delta strength: ' + lean.strength.toFixed(2) + "</span></div>";
+    } else {
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span><span class="cl-lean-status" style="color:var(--dim)">—</span></div>'
+        + '<div class="cl-gtrack"></div><span class="cl-gsub">reading the table…</span></div>';
+    }
+    if (cr && cr.kalshi_yes_price !== null && cr.kalshi_yes_price !== undefined) {
+      const yesPct = Math.max(0, Math.min(100, cr.kalshi_yes_price * 100));
+      const noPrice = (cr.kalshi_no_price !== null && cr.kalshi_no_price !== undefined) ? cr.kalshi_no_price : (1 - cr.kalshi_yes_price);
+      const noPct = Math.max(0, Math.min(100, noPrice * 100));
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">' + Math.round(yesPct) + "% YES / " + Math.round(noPct) + "% NO</span></div>"
+        + '<div class="cl-odds"><div class="y" style="width:' + yesPct.toFixed(1) + '%"></div><div class="n" style="width:' + noPct.toFixed(1) + '%"></div></div>'
+        + '<span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+    } else {
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">—</span></div><div class="cl-odds"></div><span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+    }
+    if (cr) {
+      const secLeft = Math.max(0, cr.close_time - s.now);
+      const span = cr.close_time - cr.open_time;
+      const pct = Math.max(0, Math.min(100, (secLeft / span) * 100));
+      const locked = s.now >= cr.lock_ts;
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">' + esc(fmtMS(secLeft)) + " remaining</span></div>"
+        + '<div class="cl-rail' + (locked ? " urgent" : "") + '"><div style="width:' + pct.toFixed(1) + '%"></div></div>'
+        + '<span class="cl-gsub">Closes in ' + Math.round(secLeft) + " seconds</span></div>";
+    } else {
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">—</span></div><div class="cl-rail"><div style="width:0%"></div></div><span class="cl-gsub">&nbsp;</span></div>';
+    }
+    return '<div class="cl-gauges">' + g + "</div>";
+  }
+});
+
+/* --- Results Sidebar ----------------------------------------------------- */
+defViz("results", {
+  label: "Results Sidebar", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/><rect x="24" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="24" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/>',
+  defaults: { hours: 24 },
+  render(p, D) {
+    const s = D.state;
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading results…"); }
+    const t = hist.tallies || {};
+    resolveSettledPick(D);
+    const nowSec = s ? s.now : Date.now() / 1000;
+    const yes = t.yes || 0, no = t.no || 0;
+    let html = '<div class="cl-results">';
+    html += '<div class="cl-win-head"><span class="cl-win-label">Results — Last ' + esc(WINDOW_LABELS[hrs] || hrs + "H") + "</span>"
+      + '<span class="cl-win-range">' + esc(fmtDateTime(nowSec - hrs * 3600) + " to " + fmtDateTime(nowSec)) + "</span></div>";
+    const tile = (label, val, cls, lead) => '<div class="cl-tile' + (lead ? " leading " + lead : "") + '">'
+      + (lead ? '<span class="cl-leading">LEADING</span>' : "")
+      + '<span class="label">' + label + '</span><span class="num ' + (cls || "") + '">' + val + "</span></div>";
+    const cs = t.current_streak, lg = t.longest_streak;
+    html += '<div class="cl-tiles">'
+      + tile("Yes Wins", yes, "yes", yes > no ? "yes-side" : "")
+      + tile("No Wins", no, "no", no > yes ? "no-side" : "")
+      + tile("Streak", cs ? cs.length + cs.result.toUpperCase().charAt(0) : "—", cs ? cs.result : "")
+      + tile("Longest", lg ? lg.length + lg.result.toUpperCase().charAt(0) : "—", lg ? lg.result : "")
+      + '<div class="cl-tile wide"><span class="label">Chop Rate</span><div><span class="num">'
+      + (t.chop_rate !== null && t.chop_rate !== undefined ? t.chop_rate + "%" : "—") + '</span><span class="sub">'
+      + (t.flips !== null && t.flips !== undefined ? t.flips + " of " + t.pairs + " flipped" : "") + "</span></div></div>"
+      + "</div>";
+    const ls = s && s.last_settled;
+    if (ls && ls.result) {
+      html += '<div class="cl-last"><span class="label">Last Round Result</span>'
+        + '<div class="cl-last-row"><span class="cl-lr-word ' + ls.result + '">' + ls.result.toUpperCase() + '</span><div class="cl-lr-div"></div>'
+        + '<span class="cl-lr-price">' + esc(fmtUSD(ls.settlement_value)) + "</span></div>"
+        + '<span class="cl-lr-target">Strike target was <b>' + esc(fmtUSD(ls.floor_strike)) + "</b></span>";
+      const mine = picks[ls.ticker];
+      if (mine) {
+        const ok = mine.choice === ls.result;
+        html += '<div class="cl-feedback ' + (ok ? "correct" : "incorrect") + '">Personal call: ' + mine.choice.toUpperCase() + " — " + (ok ? "Correct" : "Incorrect") + "</div>";
+      }
+      html += "</div>";
+    }
+    return html + "</div>";
+  }
+});
+
+/* --- Big Road History ---------------------------------------------------- */
+defViz("roadhistory", {
+  label: "Big Road History", group: "Classic", accepts: ["rounds"], noMetric: true,
+  icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
+  defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    let html = '<div class="cl-road">';
+    html += '<div class="cl-road-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_ROAD + "</div>"
+      + "<div><h2>Big Road History</h2><p>Vertical columns represent consecutive YES/NO streaks</p></div></div>"
+      + '<div class="cl-road-ctl">' + tfBar(hrs) + '<button class="cl-refresh" data-refresh title="Refresh now">' + ICON_REFRESH + "</button></div></div>";
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
+    const rounds = hist.rounds;
+    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
+    const columns = buildColumns(rounds, cap);
+    if (!rounds.length) {
+      html += '<div class="empty">No settled rounds in this window yet</div>';
+    } else {
+      let grid = '<div class="cl-road-grid">';
+      for (const col of columns) {
+        grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + '">';
+        for (const r of col) {
+          const hasD = r.delta !== null && r.delta !== undefined;
+          const sign = hasD && r.delta >= 0 ? "+" : "-";
+          const mine = picks[r.kalshi_ticker];
+          const hit = mine && mine.choice === r.result;
+          grid += '<div class="cl-bead ' + r.result + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
+              + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.choice.toUpperCase() : "")) + '">'
+            + '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
+            + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
+            + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
+            + (mine ? '<span class="cl-badge ' + (hit ? "hit" : "miss") + '">' + (hit ? ICON_CHECK : ICON_X) + "</span>" : "")
+            + "</div>";
+        }
+        grid += "</div>";
+      }
+      html += grid + "</div>";
+    }
+    if (p.options.showEye !== false) {
+      const marks = computeBigEyeBoy(columns);
+      html += '<div class="cl-derived"><div class="cl-derived-head"><h3>Big Eye Boy</h3>'
+        + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break (Chaotic)</span><span><span class="cl-dbead repeat"></span>Repeat (Predictable)</span></div></div>'
+        + '<div class="cl-derived-grid">' + marks.map(m => '<span class="cl-dbead ' + (m ? "repeat" : "break") + '"></span>').join("") + "</div></div>";
+    }
+    return html + "</div>";
+  }
+});
+
+/* --- Round-to-Round Spread ----------------------------------------------- */
+defViz("spreadledger", {
+  label: "Round-to-Round Spread", group: "Classic", accepts: ["rounds"], noMetric: true,
+  icon: '<line x1="22" y1="6" x2="22" y2="38" stroke="currentColor" stroke-width="1.5" opacity=".4"/><rect x="22" y="8" width="12" height="5" rx="2" fill="currentColor"/><rect x="14" y="16" width="8" height="5" rx="2" fill="currentColor" opacity=".55"/><rect x="22" y="24" width="15" height="5" rx="2" fill="currentColor"/><rect x="8" y="32" width="14" height="5" rx="2" fill="currentColor" opacity=".55"/>',
+  defaults: { hours: 24, compact: true },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    const withDelta = hist ? hist.rounds.filter(r => r.delta !== null && r.delta !== undefined) : [];
+    let html = '<div class="cl-ledger">';
+    html += '<div class="cl-ledger-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_SPREAD + "</div>"
+      + "<div><h2>Round-to-Round Spread</h2><p>How much price moved during each settled round · green up, red down</p></div></div>"
+      + '<div class="cl-ledger-ctl"><button class="cl-tf-btn solo" data-spreadsize>' + (p.options.compact !== false ? "Compact" : "Expanded") + "</button>"
+      + '<span class="cl-range-lbl">' + (hist ? esc("Last " + (WINDOW_LABELS[hrs] || hrs + "H") + " · " + withDelta.length + " rounds recorded") : "") + "</span></div></div>";
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
+    if (!withDelta.length) return html + '<div class="empty">No settled rounds with a recorded spread in this window yet</div></div>';
+    const maxAbs = withDelta.reduce((m, r) => Math.max(m, Math.abs(r.delta)), 0.01);
+    let list = '<div class="cl-ledger-list' + (p.options.compact !== false ? " compact" : "") + '">';
+    for (const r of withDelta.slice().reverse()) {
+      const up = r.delta >= 0;
+      const pct = Math.min(50, (Math.abs(r.delta) / maxAbs) * 50);
+      list += '<div class="cl-ledger-row" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)) + '">'
+        + '<span class="time">' + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time) + "</span>"
+        + '<div class="barwrap"><div class="bar ' + (up ? "up" : "down") + '" style="width:' + pct.toFixed(1) + '%"></div></div>'
+        + '<span class="amt ' + (up ? "up" : "down") + '">' + (up ? "▲ +" : "▼ -") + "$" + Math.abs(r.delta).toFixed(2) + "</span></div>";
+    }
+    return html + list + "</div></div>";
+  }
+});
+
 /* --- text -------------------------------------------------------------- */
 defViz("text", {
   label: "Note", group: "Other", accepts: ["scalar", "series", "rounds", "ohlc", "profile", "ticks"],
@@ -1976,7 +2606,7 @@ function mkPanel(type, metric, gridPos, title, opts, fc) {
   };
 }
 
-function defaultDashboard() {
+function analyticsPreset() {
   return {
     version: 1,
     range: "all",
@@ -2016,10 +2646,30 @@ function defaultDashboard() {
   };
 }
 
+/* Classic, exactly: 7fr/5fr top grid = 14/10 of 24 columns, the price column's four
+   modules stacked left, Results Sidebar right, Big Road then Spread full-width below. */
+function defaultDashboard() {
+  return {
+    version: 2,
+    range: "24h",
+    bucket: "round",
+    refresh: 10,
+    panels: [
+      mkPanel("livepick", "ticks", { x: 0, y: 0, w: 14, h: 17 }, "Live Price & Pick"),
+      mkPanel("results", "yes_rate", { x: 14, y: 0, w: 10, h: 14 }, "Results Sidebar"),
+      mkPanel("confidence", "yes_odds", { x: 0, y: 17, w: 14, h: 8 }, "Round Confidence"),
+      mkPanel("spreadnow", "distance", { x: 0, y: 25, w: 14, h: 3 }, "Current Spread"),
+      mkPanel("gauges", "live_price", { x: 0, y: 28, w: 14, h: 5 }, "Market Gauges"),
+      mkPanel("roadhistory", "results", { x: 0, y: 33, w: 24, h: 13 }, "Big Road History"),
+      mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread")
+    ]
+  };
+}
+
 /* ============================ state ============================ */
 
 let DASH = null;
-let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day" };
+let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day", hist: {} };
 let editing = false;
 let timer = null, lastFetch = 0;
 
@@ -2056,7 +2706,7 @@ function migrate(d) {
     if (allowed.length && allowed.indexOf(p.metric) < 0) p.metric = allowed[0];
     return p;
   });
-  if (!RANGES.some(r => r.id === d.range)) d.range = "all";
+  if (!RANGES.some(r => r.id === d.range)) d.range = "24h";
   if (!BUCKETS.some(b => b.id === d.bucket)) d.bucket = "day";
   return d;
 }
@@ -2291,8 +2941,33 @@ gridEl.addEventListener("click", e => {
     const cr = DATA.state && DATA.state.current_round;
     if (cr && DATA.state.now < cr.lock_ts) {
       makePick(cr.ticker, pb.getAttribute("data-pick"));
-      for (const q of DASH.panels) if (q.type === "pick") renderPanelBody(q);
+      for (const q of DASH.panels) if (q.type === "pick" || q.type === "livepick") renderPanelBody(q);
     }
+    return;
+  }
+  const host0 = e.target.closest(".panel");
+  const p0 = host0 && DASH.panels.find(q => q.id === host0.id);
+  const tf = e.target.closest("[data-tf]");
+  if (tf && p0) {
+    const hrs = Number(tf.getAttribute("data-tf"));
+    // Classic's one timeframe selector drives the road, the sidebar and the spread
+    // together; keep that unless the panel is told not to.
+    const targets = p0.options.linkWindows === false ? [p0] : DASH.panels.filter(q => HIST_TYPES[q.type]);
+    for (const q of targets) q.options.hours = hrs;
+    save();
+    const go = () => { for (const q of targets) renderPanelBody(q); };
+    if (DATA.hist[hrs]) go(); else loadHist(hrs, go);
+    go();
+    return;
+  }
+  if (e.target.closest("[data-refresh]") && p0) {
+    fetchData(true);
+    return;
+  }
+  const ss = e.target.closest("[data-spreadsize]");
+  if (ss && p0) {
+    p0.options.compact = !(p0.options.compact !== false);
+    save(); renderPanelBody(p0);
     return;
   }
   const btn = e.target.closest("[data-track]");
@@ -2320,7 +2995,9 @@ function addPanel(type, metric) {
     statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
     heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
     pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
-    pick: { w: 7, h: 6 }
+    pick: { w: 7, h: 6 },
+    livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
+    gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 }
   };
   const sz = sizes[type] || { w: 12, h: 7 };
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
@@ -2381,7 +3058,8 @@ function openPicker(panel) {
     (groups[g] = groups[g] || []).push(k);
   });
   let html = "";
-  Object.keys(groups).forEach(g => {
+  const gkeys = Object.keys(groups).sort((a, b) => (a === "Classic" ? -1 : b === "Classic" ? 1 : 0));
+  gkeys.forEach(g => {
     html += '<div class="group-label">' + esc(g) + "</div>";
     html += '<div class="viz-grid">';
     groups[g].forEach(k => {
@@ -2442,7 +3120,7 @@ function openEditor(p) {
         + '<button class="btn" id="f_viz" style="width:100%;justify-content:space-between">' + esc(v.label)
         + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M9 18l6-6-6-6"/></svg></button></div>';
 
-  if (mets.length) {
+  if (mets.length && !v.noMetric) {
     html += '<div class="field"><label>Metric</label><select id="f_metric">' + metOpts + "</select></div>";
     html += '<p class="hint">One data source, so there is no query to write — pick what the panel should show.</p>';
   }
@@ -2504,6 +3182,23 @@ function openEditor(p) {
     html += chk("o_showNav", "Show Prev / Live / Next", p.options.showNav !== false);
     html += '<div class="field"><label>Line width</label><input id="o_lineWidth" type="number" min="1" max="6" step="0.5" value="' + num(p.options.lineWidth, 2.5) + '"></div>';
     html += '<p class="hint">Ticks are kept for 3 hours, so Prev reaches about 12 rounds back before a round has no track to draw.</p>';
+  }
+  if (HIST_TYPES[p.type]) {
+    html += '<div class="field"><label>Window</label><select id="o_hours">'
+      + TF_CHOICES.map(c => '<option value="' + c[0] + '"' + (panelHours(p) === c[0] ? " selected" : "") + ">Last " + esc(WINDOW_LABELS[c[0]]) + "</option>").join("")
+      + "</select></div>";
+  }
+  if (p.type === "roadhistory") {
+    html += '<div class="field"><label>Rows before wrapping</label><input id="o_maxRows" type="number" min="3" max="10" value="' + num(p.options.maxRows, 6) + '"></div>';
+    html += chk("o_showEye", "Show Big Eye Boy", p.options.showEye !== false);
+    html += chk("o_linkWindows", "Timeframe buttons also set the Results and Spread windows", p.options.linkWindows !== false);
+  }
+  if (p.type === "spreadledger") {
+    html += chk("o_compact", "Compact list", p.options.compact !== false);
+  }
+  if (p.type === "livepick") {
+    html += chk("o_showNav", "Show Prev / Live / Next", p.options.showNav !== false);
+    html += '<div class="field"><label>Line width</label><input id="o_lineWidth" type="number" min="1" max="6" step="0.5" value="' + num(p.options.lineWidth, 2.5) + '"></div>';
   }
   if (p.type === "leanbar") {
     html += '<div class="field"><label>Full tilt (± dollars)</label><input id="o_fullTilt" type="number" min="10" max="5000" step="10" value="' + num(p.options.fullTilt, 300) + '"></div>';
@@ -2571,8 +3266,14 @@ function openEditor(p) {
   ["o_colorMode", "o_display"].forEach(id => bind(id, () => {
     p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save();
   }));
+  bind("o_hours", () => {
+    p.options.hours = Number($("o_hours").value); save();
+    if (DATA.hist[p.options.hours]) renderPanelBody(p); else loadHist(p.options.hours, () => renderPanelBody(p));
+    renderPanelBody(p);
+  });
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
-   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast"].forEach(id =>
+   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast",
+   "o_showEye", "o_linkWindows", "o_compact"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
   ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt", "o_hours"].forEach(id =>
     bindIn(id, () => { p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save(); }));
@@ -2738,12 +3439,25 @@ document.getElementById("jsonLoad").addEventListener("click", () => {
     toast("That is not valid dashboard JSON");
   }
 });
-document.getElementById("jsonReset").addEventListener("click", () => {
-  DASH = defaultDashboard();
+function loadBoard(d, msg) {
+  DASH = migrate(d);
   closeSheets(); syncSegs(); save();
   Array.prototype.slice.call(gridEl.querySelectorAll(".panel")).forEach(el => el.remove());
   renderAll(); fetchData(true);
-  toast("Reset to the default board");
+  toast(msg);
+}
+document.getElementById("jsonReset").addEventListener("click", () => loadBoard(defaultDashboard(), "Classic board — same modules, same places"));
+document.getElementById("jsonAnalytics").addEventListener("click", () => loadBoard(analyticsPreset(), "Analytics board"));
+document.getElementById("jsonPrev").addEventListener("click", () => {
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_KEY_V1));
+    if (d && Array.isArray(d.panels)) loadBoard(d, "Your previous board");
+  } catch (e) { toast("No previous board found"); }
+});
+document.getElementById("jsonBtn").addEventListener("click", () => {
+  let has = false;
+  try { has = !!localStorage.getItem(LS_KEY_V1); } catch (e) { /* ignore */ }
+  document.getElementById("jsonPrev").style.display = has ? "" : "none";
 });
 
 /* --- toast --- */
@@ -2768,13 +3482,13 @@ function rangeDays() {
 function needsRounds() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return (m && m.kind === "rounds") || p.type === "pricetrack";  // pricetrack pages back through them
+    return (m && m.kind === "rounds") || p.type === "pricetrack" || p.type === "livepick";  // both page back through them
   });
 }
 function needsTicks() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return (m && m.kind === "ticks") || p.type === "pricetrack";
+    return (m && m.kind === "ticks") || p.type === "pricetrack" || p.type === "livepick";
   });
 }
 
@@ -2805,6 +3519,9 @@ async function fetchData(full) {
     DATA.bucket = se.bucket;
     if (hi) DATA.rounds = hi.rounds || [];
     if (tk) DATA.ticks = tk.ticks || [];
+    await Promise.all(Array.from(histWindowsNeeded()).map(hh => getJSON("/api/history?hours=" + hh)
+      .then(d => { DATA.hist[hh] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() }; })
+      .catch(() => { /* keep the previous window's data */ })));
     lastFetch = Date.now();
     dot.classList.remove("stale");
     updateChip();
@@ -2832,7 +3549,7 @@ function updateChip() {
 function localTick() {
   if (DATA.state) DATA.state.now += 1;
   for (const p of DASH.panels) {
-    if (p.type === "countdown" || (METRICS[p.metric] && METRICS[p.metric].group === "Live")) renderPanelBody(p);
+    if (LIVE_TYPES[p.type] || (METRICS[p.metric] && METRICS[p.metric].group === "Live")) renderPanelBody(p);
   }
 }
 
