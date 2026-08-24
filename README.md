@@ -6,7 +6,7 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-Eight versions of the same dashboard, all reading the same backend and cross-linked
+Eleven versions of the same dashboard, all reading the same backend and cross-linked
 via the "Switch" button in each header:
 
 - `GET /` — **Classic**, the original 2-column dashboard.
@@ -27,6 +27,13 @@ via the "Switch" button in each header:
 - `GET /tape` — **The Tape**, a dense Bloomberg-style order-book read: a real YES/NO
   depth ladder off Kalshi's live prices, a scrolling ticker tape of settled rounds
   across the top, steel-blue accent.
+- `GET /blueprint` — **Blueprint**, the round as an engineering drawing: a gridded
+  sheet inside a ruled drawing frame, modules as drafting frames with corner ticks,
+  captions set like drafting callouts. Cyan on blueprint navy, ink-blue on white paper.
+- `GET /arcade` — **Arcade**, a coin-op attract screen: zero blur anywhere, hard offset
+  shadows and 3px keylines, square corners, saturated cabinet palette.
+- `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
+  felt and gold rules, chip-round controls and a serif face.
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
@@ -57,7 +64,7 @@ pick is `localStorage`-only and never leaves the browser.
 
 Inter, Manrope and JetBrains Mono are **self-hosted** (`fonts/`, served at
 `/fonts/<name>.woff2`) rather than linked from a CDN — one latin-subset variable file
-per family covering the whole weight axis, ~113KB total, shared across all eight pages.
+per family covering the whole weight axis, ~113KB total, shared across all eleven pages.
 All three are SIL OFL 1.1; see `fonts/LICENSE.md`.
 
 ## Run
@@ -82,7 +89,8 @@ container starts with an empty Big Road / spread ledger every time.
 
 ## Endpoints
 
-- `GET /`, `/fluid`, `/ticket`, `/board`, `/gauge`, `/algo` — the 6 pages
+- `GET /`, `/fluid`, `/ticket`, `/board`, `/gauge`, `/algo`, `/terminal`, `/tape`,
+  `/blueprint`, `/arcade`, `/pit` — the 11 pages
 - `GET /fonts/<name>.woff2` — self-hosted webfonts (whitelisted names only)
 - `GET /api/state` — current round, live price, lean, Kalshi market odds, last settled round
 - `GET /api/history?hours=24` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760)

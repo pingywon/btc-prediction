@@ -22,7 +22,7 @@
     --cream: #baffc9;
     --soft: #7fe89a;
     --dim: #4d9963;
-    --faint: #2e6642;
+    --faint: #3f8b5a;
     --amber: #d9ff33;
     --amber-deep: #a8cc1f;
     --amber-soft: #e8ff80;
@@ -44,7 +44,7 @@
     --cream: #0d3018;
     --soft: #1e4d2b;
     --dim: #3c6b48;
-    --faint: #6b8f74;
+    --faint: #5b7a63;
     --amber: #7a6b00;
     --amber-deep: #5c5100;
     --amber-soft: #9a8a1a;
@@ -649,6 +649,104 @@
   .odds-fill { height: 100%; transition: width 0.6s ease-out; }
   .odds-fill.yes { background: var(--green); }
   .odds-fill.no { background: var(--red); }
+
+  /* ===================================================================
+     CONTROL ERGONOMICS -- v4.6.0
+     Every control here was authored between 17px and 30px with 0.6-0.7rem
+     labels: under the ~44px a thumb needs, and hard to read at a glance.
+     This block is intentionally LAST in the sheet so it wins on equal
+     specificity, and keeps the whole skin's control scale in one place.
+     border-radius is deliberately not touched -- each skin keeps its own
+     control shape (round / pill / square).
+     =================================================================== */
+  :root {
+    --ctl: 40px;              /* square icon-button box */
+    --ctl-icon: 19px;         /* glyph inside it */
+    --ctl-font: 0.82rem;      /* text-label controls */
+    --ctl-pad-y: 0.5rem;
+    --ctl-pad-x: 1rem;
+    --ctl-tap: 44px;          /* comfortable touch target for primary actions */
+    --ctl-border: rgba(var(--ink-rgb), 0.28);
+  }
+
+  .module-actions { gap: 0.4rem; }
+  .module-btn { width: var(--ctl); height: var(--ctl); border-color: var(--ctl-border); color: var(--dim); }
+  .module-btn svg { width: var(--ctl-icon); height: var(--ctl-icon); }
+  .module-title-row .module-name { font-size: 0.8rem; }
+  .module-info { width: 27px; height: 27px; font-size: 0.86rem; color: var(--dim); border-color: var(--dim); }
+  .tf-btn { font-size: var(--ctl-font); padding: var(--ctl-pad-y) var(--ctl-pad-x); min-height: var(--ctl); }
+  .chart-nav-btn { font-size: var(--ctl-font); padding: var(--ctl-pad-y) var(--ctl-pad-x);
+    min-height: var(--ctl); border-color: var(--ctl-border); }
+  .pick-btn { font-size: 0.95rem; padding: 0.6rem 1.5rem; min-height: var(--ctl-tap); }
+  .theme-toggle { width: var(--ctl); height: var(--ctl); border-color: var(--ctl-border); }
+  .theme-toggle svg { width: var(--ctl-icon); height: var(--ctl-icon); }
+  .refresh-btn { width: var(--ctl); height: var(--ctl); border-color: var(--ctl-border); }
+  .refresh-btn svg { width: var(--ctl-icon); height: var(--ctl-icon); }
+  .switcher-btn { font-size: var(--ctl-font); padding: var(--ctl-pad-y) var(--ctl-pad-x);
+    min-height: var(--ctl); border-color: var(--ctl-border); }
+  .switcher-btn svg { width: 17px; height: 17px; }
+  .customize-toggle { font-size: var(--ctl-font); padding: var(--ctl-pad-y) var(--ctl-pad-x);
+    min-height: var(--ctl); border-color: var(--ctl-border); }
+  .customize-toggle svg { width: 17px; height: 17px; }
+  .switcher-item { font-size: 0.85rem; padding: 0.7rem 0.85rem; min-height: var(--ctl-tap); }
+  .tip-modal-close { width: 38px; height: 38px; }
+  .spread-size-toggle { font-size: var(--ctl-font); padding: var(--ctl-pad-y) var(--ctl-pad-x);
+    min-height: var(--ctl); border-color: var(--ctl-border); }
+
+  /* The spread window: it opened at 420px and its "Compact" setting cut it to
+     180px -- roughly three visible rows. Both heights grow, and the rows grow
+     with them so the extra height shows more data rather than more padding. */
+  .spread-list { max-height: 640px; }
+  .spread-list.compact { max-height: 340px; }
+  .spread-row-item { padding: 0.8rem 1.1rem; }
+  .spread-time { font-size: 0.8rem; width: 124px; }
+  .spread-amount { font-size: 0.9rem; width: 104px; }
+  .spread-label { font-size: 0.78rem; }
+
+
+  /* ===================================================================
+     LIVE PRICE HERO -- v4.6.0
+     The round clock and target strike live directly under the live price,
+     which is right -- but they were set as fine print (0.6rem captions,
+     0.64rem delta) beneath a price up to 3.6rem, so they read as footnotes
+     instead of as this round's headline numbers. Placement is unchanged;
+     only the scale is, so both are findable at a glance.
+     =================================================================== */
+  .price-sub-row { gap: 1.6rem; }
+  .price-sub-item { gap: 0.3rem; }
+  .price-sub-label { font-size: 0.82rem; letter-spacing: 0.06em; color: var(--dim); }
+  .price-sub-item .value,
+  .round-timer-value { font-size: clamp(1.9rem, 6vw, 2.5rem); }
+  .target-delta { font-size: 0.85rem; }
+
+  /* ===================================================================
+     HOVER TOOLTIP STACKING
+     .bead:hover applies a transform, which creates a stacking context and
+     traps [data-tip]::after's z-index inside the bead -- so beads later in
+     DOM order painted over the tooltip. Raise the hovered element itself
+     (it is already position:relative) and its tooltip rises with it. 70
+     clears sibling beads while staying under the switcher menu (90) and
+     the tip modal (200).
+     =================================================================== */
+  [data-tip]:hover { z-index: 70; }
+
+  /* ===================================================================
+     PERSONAL PICK CLARITY
+     The pick was write-once and near-invisible once made, and the Big Road
+     badge scoring it was 15px of muted grey. The pick is now changeable
+     until lock, stated in words beside the buttons, and the badge is large
+     and high-contrast. The badge stays a corner mark rather than a ring --
+     a ring would collide with the Dragon Tail column highlight.
+     =================================================================== */
+  .pick-status { font-size: 0.82rem; font-weight: 800; color: var(--dim); }
+  .pick-status.show.yes { color: var(--green); }
+  .pick-status.show.no { color: var(--red); }
+  .pick-btn.selected { box-shadow: inset 0 0 0 2px currentColor; }
+
+  .bead-pick-badge { width: 22px; height: 22px; bottom: -7px; right: -7px; border-width: 2.5px; }
+  .bead-pick-badge svg { width: 13px; height: 13px; stroke-width: 4; }
+  .bead-pick-badge.hit { background: var(--amber); color: #0b0b0f; }
+  .bead-pick-badge.miss { background: #14161d; color: #ffffff; }
 </style>
 <script>
   (function () {
@@ -697,6 +795,9 @@
           <a class="switcher-item" href="/algo">ALGO Desk</a>
           <a class="switcher-item current" href="/terminal">Terminal</a>
           <a class="switcher-item" href="/tape">The Tape</a>
+          <a class="switcher-item" href="/blueprint">Blueprint</a>
+          <a class="switcher-item" href="/arcade">Arcade</a>
+          <a class="switcher-item" href="/pit">The Pit</a>
         </div>
       </div>
       <div class="header-sentence" id="headerSentence">&nbsp;</div>
@@ -768,6 +869,7 @@
             <span class="pick-label">Personal Pick</span>
             <button class="pick-btn yes" id="pickYes">YES</button>
             <button class="pick-btn no" id="pickNo">NO</button>
+            <span class="pick-status" id="pickStatus"></span>
           </div>
           <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
         </div>
@@ -984,7 +1086,7 @@
       <div class="derived-head">
         <div class="derived-title-row">
           <h3>Big Eye Boy</h3>
-          <button class="module-info" data-tip-title="Big Eye Boy" data-tip-full="Shows whether the last two rounds matched the two before them -- steady repeats vs. choppy breaks. Hollow blue = repeat (predictable), solid red = break (chaotic).">i</button>
+          <button class="module-info" data-tip-title="Big Eye Boy" data-tip-full="Reads the shape of the Big Road above it, not the YES/NO results themselves. Each mark asks one thing: is the streak pattern repeating? While a column is still growing, it checks whether the column before it ran at least this deep. When a fresh column has just started, it checks whether the two columns before it were the same length. Hollow blue = it repeated, so streaks are falling into a rhythm. Solid red = it broke, so they are running ragged. Big Eye Boy is simply the traditional baccarat name for this derived road. It describes how orderly the recent pattern looks -- never which way the next round will go, and the shape does not change the odds.">i</button>
         </div>
         <div class="derived-legend">
           <div class="legend-item"><div class="derived-bead break"></div><span>Break (Chaotic)</span></div>
@@ -1550,7 +1652,10 @@
   })();
 
   function makePick(ticker, choice) {
-    if (picks[ticker]) return;
+    // Changeable until the round locks -- a mis-tap has to be correctable.
+    // Only lock_ts closes a pick, never the fact that one already exists.
+    var existing = picks[ticker];
+    if (existing && existing.choice === choice) return;
     picks[ticker] = { choice: choice, ts: Date.now() };
     saveJSON(PICK_KEY, picks);
     renderPick();
@@ -1558,19 +1663,33 @@
 
   function renderPick() {
     var yesBtn = document.getElementById('pickYes'), noBtn = document.getElementById('pickNo');
+    var status = document.getElementById('pickStatus');
     document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
     var cur = state && state.current_round;
     if (!cur) {
       yesBtn.disabled = true; noBtn.disabled = true;
       yesBtn.classList.remove('selected'); noBtn.classList.remove('selected');
+      if (status) { status.className = 'pick-status'; status.textContent = ''; }
       return;
     }
     var locked = (now() / 1000) >= cur.lock_ts;
     var mine = picks[cur.ticker];
     yesBtn.classList.toggle('selected', !!mine && mine.choice === 'yes');
     noBtn.classList.toggle('selected', !!mine && mine.choice === 'no');
-    yesBtn.disabled = locked || !!mine;
-    noBtn.disabled = locked || !!mine;
+    yesBtn.disabled = locked;
+    noBtn.disabled = locked;
+    // Runs on every render tick, so the wording follows the round: it states the
+    // side you are on while you can still change it, then that it is locked.
+    if (status) {
+      if (!mine) {
+        status.className = 'pick-status' + (locked ? ' locked' : '');
+        status.textContent = locked ? 'No pick this round' : 'No pick yet';
+      } else {
+        status.className = 'pick-status show ' + mine.choice + (locked ? ' locked' : '');
+        status.textContent = (locked ? 'Locked in: ' : 'Your pick: ') + mine.choice.toUpperCase() +
+          (locked ? '' : ' \u2014 tap the other to change');
+      }
+    }
   }
 
   document.getElementById('pickYes').addEventListener('click', function () {
