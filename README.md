@@ -36,17 +36,31 @@ its own:
 - `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
   felt and gold rules, chip-round controls and a serif face.
 - `GET /studio` — **The Studio**, a build-your-own board. A 24-column drag-and-drop grid
-  in the style of Grafana: add a panel, pick one of 17 visualizations (gauge, bar gauge,
+  in the style of Grafana: add a panel, pick one of 18 visualizations (gauge, bar gauge,
   stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
-  Big Road, table, countdown, note, plus three live ones — **price vs target**, drawing
+  Big Road, table, countdown, note, plus the live ones — **price vs target**, drawing
   this round's tick track green above the strike and red below it with a dashed line at
   the target and Prev/Live/Next to page back through settled rounds; **lean bar**, a
-  green/red bar measuring distance from the target; and **round card**, the live price,
-  countdown, target and round-over-round delta in one block), pick the metric it reads, then drag the header to move it and
+  green/red bar measuring distance from the target; **round card**, the live price,
+  countdown, round window, target and round-over-round delta in one block; and **your
+  call**, the YES/NO pick and running record), pick the metric it reads, then drag the header to move it and
   the corner to resize it. Per-panel unit, min/max, decimals, colour mode and threshold
   steps. There is only one data source, so — as in Netdata — there is no query language:
   metrics are a dropdown. Layout persists to `localStorage` and the whole board can be
   exported and re-imported as JSON.
+
+  It also carries a **skin picker**: the same board renders in any of the ten looks —
+  Classic, Fluid, The Ticket, The Board, The Gauge, Terminal, The Tape, Blueprint, Arcade
+  and The Pit. Each skin's palette is lifted from that page's own token block; shape, type
+  and texture are set alongside it (Arcade goes square with hard offset shadows, The Pit
+  goes felt-and-gold with a serif face and chip-round buttons, Terminal goes green
+  phosphor and monospace, Blueprint gets its drawing grid). The fixed pages are untouched
+  — `/` is still exactly the Classic dashboard it always was.
+
+  **Your call is shared across every page.** The Studio reads and writes the same
+  `btc15_picks` / `btc15_record` / `btc15_resolved` keys the fixed pages use, so a YES/NO
+  made on The Board shows up here and counts toward the same record. Light/dark is shared
+  through `btc15_theme` too. Still browser-local, still never sent to the server.
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the

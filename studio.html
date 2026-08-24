@@ -13,6 +13,14 @@
     font-family: 'JetBrainsMono'; src: url('/fonts/jetbrains-mono.woff2') format('woff2');
     font-weight: 100 800; font-display: swap;
   }
+  @font-face {
+    font-family: 'JetBrainsMonoVar'; src: url('/fonts/jetbrains-mono.woff2') format('woff2');
+    font-weight: 100 800; font-display: swap;
+  }
+  @font-face {
+    font-family: 'ManropeVar'; src: url('/fonts/manrope.woff2') format('woff2-variations');
+    font-weight: 200 800; font-display: swap;
+  }
   :root {
     --bg-deep: #05060a;
     --surface-900: #0d0f16;
@@ -42,6 +50,9 @@
     --ctl-tap: 44px;
     --ctl-border: rgba(var(--ink-rgb), 0.28);
     --grid-line: rgba(var(--ink-rgb), 0.06);
+    --r-lg: 9px;
+    --r-md: 7px;
+    --r-sm: 6px;
   }
   :root[data-theme="light"] {
     --bg-deep: #f3f4f8;
@@ -92,7 +103,7 @@
     display: inline-flex; align-items: center; gap: 0.4rem;
     font-size: var(--ctl-font); font-weight: 600;
     color: var(--soft); background: var(--surface-800);
-    border: 1px solid var(--ctl-border); border-radius: 7px;
+    border: 1px solid var(--ctl-border); border-radius: var(--r-md);
     padding: var(--ctl-pad-y) var(--ctl-pad-x); cursor: pointer;
     min-height: var(--ctl-tap); white-space: nowrap;
     transition: color .15s, border-color .15s, background .15s;
@@ -104,7 +115,7 @@
   .btn svg { width: var(--ctl-icon); height: var(--ctl-icon); }
   .btn.icon { padding: 0; width: var(--ctl); height: var(--ctl); min-height: var(--ctl); justify-content: center; }
 
-  .seg { display: inline-flex; border: 1px solid var(--ctl-border); border-radius: 7px; overflow: hidden; }
+  .seg { display: inline-flex; border: 1px solid var(--ctl-border); border-radius: var(--r-md); overflow: hidden; }
   .seg button {
     font-size: 0.78rem; font-weight: 600; color: var(--dim);
     background: var(--surface-850); border: 0; border-right: 1px solid var(--border);
@@ -122,7 +133,7 @@
   .switcher-btn {
     display: inline-flex; align-items: center; gap: 0.4rem;
     font-size: var(--ctl-font); font-weight: 600; color: var(--soft);
-    background: var(--surface-800); border: 1px solid var(--ctl-border); border-radius: 7px;
+    background: var(--surface-800); border: 1px solid var(--ctl-border); border-radius: var(--r-md);
     padding: var(--ctl-pad-y) var(--ctl-pad-x); cursor: pointer; min-height: var(--ctl-tap);
   }
   .switcher-btn svg { width: 17px; height: 17px; }
@@ -130,7 +141,7 @@
   .switcher-menu {
     display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 90;
     flex-direction: column; min-width: 190px; padding: 0.3rem;
-    background: var(--surface-850); border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-lg);
     box-shadow: 0 18px 40px rgba(0,0,0,0.45);
   }
   .switcher-menu.show { display: flex; }
@@ -143,10 +154,18 @@
   .switcher-item.current { color: var(--amber); }
   .switcher-item.current::after { content: "\25CF"; font-size: 0.5rem; }
 
+  .skin-select {
+    font-family: var(--sans); font-size: var(--ctl-font); font-weight: 600;
+    color: var(--soft); background: var(--surface-800);
+    border: 1px solid var(--ctl-border); border-radius: var(--r-md);
+    padding: 0 0.6rem; min-height: var(--ctl-tap); cursor: pointer;
+  }
+  .skin-select:hover { color: var(--amber); border-color: var(--amber); }
+
   .chip {
     display: inline-flex; align-items: center; gap: 0.4rem;
     font-family: var(--mono); font-size: 0.72rem; color: var(--dim);
-    padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--r-sm);
     background: var(--surface-850); white-space: nowrap;
   }
   .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: none; }
@@ -165,7 +184,7 @@
   .panel {
     position: absolute; display: flex; flex-direction: column;
     background: var(--surface-900); border: 1px solid var(--border);
-    border-radius: 9px; overflow: hidden;
+    border-radius: var(--r-lg); overflow: hidden;
     transition: box-shadow .15s, border-color .15s;
   }
   .panel.dragging, .panel.resizing {
@@ -213,7 +232,7 @@
 
   .ghost {
     position: absolute; z-index: 1; pointer-events: none; display: none;
-    border: 1px dashed var(--amber); border-radius: 9px;
+    border: 1px dashed var(--amber); border-radius: var(--r-lg);
     background: color-mix(in srgb, var(--amber) 9%, transparent);
   }
 
@@ -254,13 +273,23 @@
   .tbtn {
     font-family: var(--sans); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.04em;
     color: var(--soft); background: var(--surface-800);
-    border: 1px solid var(--ctl-border); border-radius: 5px;
+    border: 1px solid var(--ctl-border); border-radius: var(--r-sm);
     padding: 0.25rem 0.5rem; cursor: pointer; min-height: 26px; white-space: nowrap;
   }
   .tbtn:hover:not(:disabled) { color: var(--amber); border-color: var(--amber); }
   .tbtn.on { color: #05060a; background: var(--amber); border-color: var(--amber); }
   :root[data-theme="light"] .tbtn.on { color: #ffffff; }
   .tbtn:disabled { opacity: 0.4; cursor: default; }
+
+  .pickbtn {
+    font-family: var(--sans); font-weight: 800; letter-spacing: 0.06em;
+    color: var(--pc); background: transparent;
+    border: 2px solid var(--pc); border-radius: var(--r-md); cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .pickbtn:hover:not(:disabled) { background: color-mix(in srgb, var(--pc) 18%, transparent); }
+  .pickbtn.on { background: var(--pc); color: var(--surface-900); }
+  .pickbtn:disabled { opacity: 0.45; cursor: default; }
 
   .legend { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.2rem 0.1rem 0; font-size: 0.64rem; color: var(--dim); font-family: var(--mono); }
   .legend span { display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -295,21 +324,21 @@
 
   #pickerSheet {
     top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: min(860px, 94vw); max-height: 88vh; border-radius: 12px;
+    width: min(860px, 94vw); max-height: 88vh; border-radius: var(--r-lg);
   }
   #editSheet {
     top: 0; right: 0; bottom: 0; width: min(400px, 96vw); border-radius: 0;
   }
   #jsonSheet {
     top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: min(760px, 94vw); max-height: 88vh; border-radius: 12px;
+    width: min(760px, 94vw); max-height: 88vh; border-radius: var(--r-lg);
   }
 
   .viz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 0.55rem; }
   .viz-card {
     display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
     padding: 0.7rem 0.5rem; cursor: pointer; text-align: center;
-    background: var(--surface-850); border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-lg);
     color: var(--soft); font-size: 0.72rem; font-weight: 600;
   }
   .viz-card:hover { border-color: var(--amber); color: var(--amber); background: var(--surface-800); }
@@ -329,7 +358,7 @@
   .field input, .field select, .field textarea {
     width: 100%; font-family: var(--sans); font-size: 0.82rem;
     color: var(--cream); background: var(--surface-800);
-    border: 1px solid var(--ctl-border); border-radius: 6px;
+    border: 1px solid var(--ctl-border); border-radius: var(--r-sm);
     padding: 0.5rem 0.6rem; min-height: var(--ctl-tap);
   }
   .field textarea { font-family: var(--mono); font-size: 0.72rem; min-height: 260px; resize: vertical; line-height: 1.45; }
@@ -360,6 +389,406 @@
     .brand { font-size: 0.8rem; }
     .canvas-wrap { padding: 0.5rem; }
     #grid.editing { background-image: none; }
+  }
+  /* ================= SKINS =================
+     Palettes lifted from each fixed page's own token block; shape, type and
+     texture authored here, since that is where those skins carry their identity.
+     Classic is the base, so it only needs its own radii. */
+  :root[data-skin="classic"] {
+    --r-lg: 9px;
+    --r-md: 7px;
+    --r-sm: 6px;
+    --amber: #ffd23f;
+    --amber-deep: #e6ac00;
+    --amber-soft: #ffe28a;
+    --bg-deep: #05060a;
+    --blue-derived: #22e6ff;
+    --border: rgba(var(--ink-rgb), 0.18);
+    --cream: #f5f7fa;
+    --dim: #80859b;
+    --faint: #737a98;
+    --green: #39ff88;
+    --ink-rgb: 255, 255, 255;
+    --red: #ff3d6e;
+    --soft: #c7ccd9;
+    --surface-700: #232838;
+    --surface-800: #171b28;
+    --surface-850: #12151f;
+    --surface-900: #0d0f16;
+  }
+  :root[data-skin="classic"][data-theme="light"] {
+    --amber: #a9670a;
+    --amber-deep: #7d4d06;
+    --amber-soft: #c98a2e;
+    --bg-deep: #f3f4f8;
+    --blue-derived: #0a7ea8;
+    --cream: #12141c;
+    --dim: #666b81;
+    --faint: #6e7690;
+    --green: #0f8a52;
+    --ink-rgb: 20, 22, 32;
+    --red: #c8285a;
+    --soft: #454a5c;
+    --surface-700: #dde1e9;
+    --surface-800: #eef0f5;
+    --surface-850: #f9fafc;
+    --surface-900: #ffffff;
+  }
+  :root[data-skin="fluid"] {
+    --r-lg: 16px;
+    --r-md: 12px;
+    --r-sm: 9px;
+    --amber: #ffd23f;
+    --amber-deep: #e6ac00;
+    --amber-soft: #ffe28a;
+    --bg-deep: #05060a;
+    --blue-derived: #22e6ff;
+    --border: rgba(var(--ink-rgb), 0.18);
+    --cream: #f5f7fa;
+    --dim: #80859b;
+    --faint: #737a98;
+    --green: #39ff88;
+    --ink-rgb: 255, 255, 255;
+    --red: #ff3d6e;
+    --soft: #c7ccd9;
+    --surface-700: #232838;
+    --surface-800: #171b28;
+    --surface-850: #12151f;
+    --surface-900: #0d0f16;
+  }
+  :root[data-skin="fluid"][data-theme="light"] {
+    --amber: #a9670a;
+    --amber-deep: #7d4d06;
+    --amber-soft: #c98a2e;
+    --bg-deep: #f3f4f8;
+    --blue-derived: #0a7ea8;
+    --cream: #12141c;
+    --dim: #666b81;
+    --faint: #6e7690;
+    --green: #0f8a52;
+    --ink-rgb: 20, 22, 32;
+    --red: #c8285a;
+    --soft: #454a5c;
+    --surface-700: #dde1e9;
+    --surface-800: #eef0f5;
+    --surface-850: #f9fafc;
+    --surface-900: #ffffff;
+  }
+  :root[data-skin="ticket"] {
+    --r-lg: 4px;
+    --r-md: 4px;
+    --r-sm: 3px;
+    --amber: #a6740a;
+    --amber-deep: #7d5807;
+    --amber-soft: #c99a2e;
+    --bg-deep: #f7f1e3;
+    --blue-derived: #1f6f8a;
+    --border: rgba(var(--ink-rgb), 0.16);
+    --cream: #221d12;
+    --dim: #6b5a3d;
+    --faint: #74654b;
+    --green: #1b6b3a;
+    --ink-rgb: 34, 29, 18;
+    --red: #a31f1f;
+    --soft: #453a26;
+    --surface-700: #cdb989;
+    --surface-800: #e0d1ac;
+    --surface-850: #e9dcc0;
+    --surface-900: #efe5cf;
+  }
+  :root[data-skin="board"] {
+    --r-lg: 10px;
+    --r-md: 8px;
+    --r-sm: 6px;
+    --amber: #22d3ee;
+    --amber-deep: #0ea5e9;
+    --amber-soft: #67e8f9;
+    --bg-deep: #0a0a0c;
+    --blue-derived: #0ea5e9;
+    --border: rgba(var(--ink-rgb), 0.16);
+    --cream: #f4f7fb;
+    --dim: rgba(var(--ink-rgb), 0.5);
+    --faint: rgba(var(--ink-rgb), 0.45);
+    --green: #4ade80;
+    --ink-rgb: 255, 255, 255;
+    --red: #ef4444;
+    --soft: rgba(var(--ink-rgb), 0.72);
+    --surface-700: rgba(var(--ink-rgb), 0.12);
+    --surface-800: rgba(var(--ink-rgb), 0.07);
+    --surface-850: rgba(var(--ink-rgb), 0.05);
+    --surface-900: rgba(var(--ink-rgb), 0.03);
+    --sans: 'ManropeVar', ui-monospace, SFMono-Regular, Menlo, sans-serif;
+  }
+  :root[data-skin="board"][data-theme="light"] {
+    --amber: #0e8fa8;
+    --amber-deep: #0a6a7d;
+    --amber-soft: #14a8c4;
+    --bg-deep: #eef1f6;
+    --blue-derived: #0a6a7d;
+    --cream: #12141c;
+    --green: #1a9d5c;
+    --ink-rgb: 20, 22, 32;
+    --red: #c8343f;
+  }
+  :root[data-skin="gauge"] {
+    --r-lg: 12px;
+    --r-md: 10px;
+    --r-sm: 8px;
+    --amber: #ffb703;
+    --amber-deep: #fb8500;
+    --amber-soft: #ffd166;
+    --bg-deep: #050505;
+    --blue-derived: #4cc9f0;
+    --border: rgba(var(--ink-rgb), 0.20);
+    --cream: #ffffff;
+    --dim: rgba(var(--ink-rgb), 0.5);
+    --faint: rgba(var(--ink-rgb), 0.45);
+    --green: #55a630;
+    --ink-rgb: 255, 255, 255;
+    --red: #ff2d20;
+    --soft: rgba(var(--ink-rgb), 0.72);
+    --surface-700: rgba(var(--ink-rgb), 0.14);
+    --surface-800: rgba(var(--ink-rgb), 0.08);
+    --surface-850: rgba(var(--ink-rgb), 0.05);
+    --surface-900: rgba(var(--ink-rgb), 0.03);
+    --sans: 'ManropeVar', ui-monospace, SFMono-Regular, Menlo, sans-serif;
+  }
+  :root[data-skin="gauge"][data-theme="light"] {
+    --amber: #b5790a;
+    --amber-deep: #8a5c05;
+    --amber-soft: #d99a2e;
+    --bg-deep: #f0f0ee;
+    --blue-derived: #0f7ea8;
+    --cream: #0a0a0a;
+    --dim: rgba(10,10,10, 0.63);
+    --faint: rgba(10,10,10, 0.58);
+    --green: #2f7a1a;
+    --ink-rgb: 10, 10, 10;
+    --red: #c8241f;
+    --soft: rgba(10,10,10,0.72);
+  }
+  :root[data-skin="terminal"] {
+    --r-lg: 2px;
+    --r-md: 2px;
+    --r-sm: 2px;
+    --amber: #d9ff33;
+    --amber-deep: #a8cc1f;
+    --amber-soft: #e8ff80;
+    --bg-deep: #030a03;
+    --blue-derived: #33ff66;
+    --border: rgba(var(--ink-rgb), 0.28);
+    --cream: #baffc9;
+    --dim: #4d9963;
+    --faint: #3f8b5a;
+    --green: #33ff66;
+    --ink-rgb: 51, 255, 102;
+    --red: #ff4433;
+    --soft: #7fe89a;
+    --surface-700: #0d2e16;
+    --surface-800: #082010;
+    --surface-850: #061a0d;
+    --surface-900: #04140a;
+    --sans: 'JetBrainsMonoVar', ui-monospace, SFMono-Regular, Menlo, sans-serif;
+  }
+  :root[data-skin="terminal"][data-theme="light"] {
+    --amber: #7a6b00;
+    --amber-deep: #5c5100;
+    --amber-soft: #9a8a1a;
+    --bg-deep: #eef2ea;
+    --blue-derived: #146b30;
+    --cream: #0d3018;
+    --dim: #3c6b48;
+    --faint: #5b7a63;
+    --green: #146b30;
+    --ink-rgb: 13, 48, 24;
+    --red: #a3271b;
+    --soft: #1e4d2b;
+    --surface-700: #cddabf;
+    --surface-800: #e3ebdc;
+    --surface-850: #eff4ea;
+    --surface-900: #f8faf6;
+  }
+  :root[data-skin="terminal"] body {
+    background-image: repeating-linear-gradient(0deg, rgba(51,255,102,0.035) 0 1px, transparent 1px 3px);
+  }
+  :root[data-skin="tape"] {
+    --r-lg: 4px;
+    --r-md: 4px;
+    --r-sm: 3px;
+    --amber: #4f8ef7;
+    --amber-deep: #2f6bd6;
+    --amber-soft: #8ab4fb;
+    --bg-deep: #08090c;
+    --blue-derived: #4f8ef7;
+    --border: rgba(var(--ink-rgb), 0.18);
+    --cream: #eef1f6;
+    --dim: #818896;
+    --faint: #747d8f;
+    --green: #2ecc71;
+    --ink-rgb: 255, 255, 255;
+    --red: #e5484d;
+    --soft: #b8c0cc;
+    --surface-700: #22262f;
+    --surface-800: #171a22;
+    --surface-850: #12151b;
+    --surface-900: #0e1015;
+    --sans: 'JetBrainsMonoVar', ui-monospace, SFMono-Regular, Menlo, sans-serif;
+  }
+  :root[data-skin="tape"][data-theme="light"] {
+    --amber: #2f6bd6;
+    --amber-deep: #1f4f9e;
+    --amber-soft: #4f8ef7;
+    --bg-deep: #f4f5f7;
+    --blue-derived: #2f6bd6;
+    --cream: #10131a;
+    --dim: #666c7a;
+    --faint: #6f7785;
+    --green: #17803d;
+    --ink-rgb: 16, 19, 26;
+    --red: #c0272c;
+    --soft: #454b57;
+    --surface-700: #dde0e6;
+    --surface-800: #eef0f3;
+    --surface-850: #f9fafb;
+    --surface-900: #ffffff;
+  }
+  :root[data-skin="blueprint"] {
+    --r-lg: 2px;
+    --r-md: 2px;
+    --r-sm: 2px;
+    --amber: #4fd3ff;
+    --amber-deep: #1ea7dd;
+    --amber-soft: #a5e7ff;
+    --bg-deep: #071726;
+    --blue-derived: #7fd8ff;
+    --border: rgba(var(--ink-rgb), 0.24);
+    --cream: #eaf6ff;
+    --dim: #8fbcd8;
+    --faint: #7aa9c8;
+    --green: #4ce0a5;
+    --ink-rgb: 205, 232, 252;
+    --red: #ff7a85;
+    --soft: #bcdcf3;
+    --surface-700: #1a3d59;
+    --surface-800: #123049;
+    --surface-850: #0d2439;
+    --surface-900: #0b2036;
+  }
+  :root[data-skin="blueprint"][data-theme="light"] {
+    --amber: #0b6f9c;
+    --amber-deep: #08536f;
+    --amber-soft: #2790bd;
+    --bg-deep: #eef3f8;
+    --blue-derived: #0a6f9e;
+    --cream: #0a2237;
+    --dim: #3f6d8e;
+    --faint: #4a7592;
+    --green: #0d7a52;
+    --ink-rgb: 10, 34, 55;
+    --red: #b3352f;
+    --soft: #24506e;
+    --surface-700: #d3e3f0;
+    --surface-800: #e8f0f8;
+    --surface-850: #f8fbfe;
+    --surface-900: #ffffff;
+  }
+  :root[data-skin="blueprint"] body {
+    background-image: linear-gradient(rgba(79,211,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(79,211,255,0.07) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+  :root[data-skin="arcade"] {
+    --r-lg: 0px;
+    --r-md: 0px;
+    --r-sm: 0px;
+    --amber: #ffe14d;
+    --amber-deep: #e0bc00;
+    --amber-soft: #fff0a0;
+    --bg-deep: #0a0715;
+    --blue-derived: #4de1ff;
+    --border: rgba(var(--ink-rgb), 0.35);
+    --cream: #fff8e7;
+    --dim: #ab9de0;
+    --faint: #9a8bd4;
+    --green: #4dff9e;
+    --ink-rgb: 235, 226, 255;
+    --red: #ff3b6b;
+    --soft: #ded2ff;
+    --surface-700: #33246e;
+    --surface-800: #251a52;
+    --surface-850: #1d1440;
+    --surface-900: #171033;
+  }
+  :root[data-skin="arcade"][data-theme="light"] {
+    --amber: #8a5d00;
+    --amber-deep: #6b4800;
+    --amber-soft: #a87400;
+    --bg-deep: #f4ecff;
+    --blue-derived: #0a6f9e;
+    --border: rgba(var(--ink-rgb), 0.4);
+    --cream: #190f33;
+    --dim: #58428a;
+    --faint: #644e99;
+    --green: #0a7a45;
+    --ink-rgb: 25, 15, 51;
+    --red: #c31d4d;
+    --soft: #3b2a66;
+    --surface-700: #ddccf7;
+    --surface-800: #efe4ff;
+    --surface-850: #faf5ff;
+    --surface-900: #ffffff;
+  }
+  :root[data-skin="arcade"] .panel {
+    border-width: 2px; box-shadow: 4px 4px 0 rgba(0,0,0,0.55);
+  }
+  :root[data-skin="arcade"] .btn,
+  :root[data-skin="arcade"] .seg,
+  :root[data-skin="arcade"] .switcher-btn { border-width: 2px; }
+  :root[data-skin="arcade"] .panel.dragging,
+  :root[data-skin="arcade"] .panel.resizing { box-shadow: 7px 7px 0 rgba(0,0,0,0.6); }
+  :root[data-skin="pit"] {
+    --r-lg: 14px;
+    --r-md: 999px;
+    --r-sm: 10px;
+    --amber: #e3c15c;
+    --amber-deep: #b8952f;
+    --amber-soft: #f4de9c;
+    --bg-deep: #06211a;
+    --blue-derived: #86cfdd;
+    --border: rgba(227, 193, 92, 0.32);
+    --cream: #f7f1e0;
+    --dim: #c2ae87;
+    --faint: #b09b74;
+    --green: #57d98b;
+    --ink-rgb: 247, 241, 224;
+    --red: #e8556b;
+    --soft: #ded3b6;
+    --surface-700: #17573f;
+    --surface-800: #114633;
+    --surface-850: #0d3a2a;
+    --surface-900: #0b3325;
+    --sans: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  }
+  :root[data-skin="pit"][data-theme="light"] {
+    --amber: #8a6a12;
+    --amber-deep: #6b520b;
+    --amber-soft: #a8830f;
+    --bg-deep: #e8e1cd;
+    --blue-derived: #146b7d;
+    --border: rgba(138, 106, 18, 0.34);
+    --cream: #1b2a21;
+    --dim: #5b6a55;
+    --faint: #667359;
+    --green: #0f7a4a;
+    --ink-rgb: 27, 42, 33;
+    --red: #b32639;
+    --soft: #3a473d;
+    --surface-700: #dccfae;
+    --surface-800: #f0e8d2;
+    --surface-850: #fbf7ea;
+    --surface-900: #fffdf7;
+  }
+  :root[data-skin="pit"] body {
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 5px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 5px);
   }
 </style>
 </head>
@@ -396,6 +825,19 @@
   <div class="seg" id="bucketSeg"></div>
 
   <div class="spacer"></div>
+
+  <select class="skin-select" id="skinSelect" title="Render this board in any skin">
+    <option value="classic">Classic</option>
+    <option value="fluid">Fluid</option>
+    <option value="ticket">The Ticket</option>
+    <option value="board">The Board</option>
+    <option value="gauge">The Gauge</option>
+    <option value="terminal">Terminal</option>
+    <option value="tape">The Tape</option>
+    <option value="blueprint">Blueprint</option>
+    <option value="arcade">Arcade</option>
+    <option value="pit">The Pit</option>
+  </select>
 
   <div class="chip" id="dataChip"><span class="dot" id="liveDot"></span><span id="dataText">loading…</span></div>
 
@@ -459,7 +901,7 @@
 
 const COLS = 24, ROW_H = 34, GAP = 8;
 const LS_KEY = "btc_studio_dashboard_v1";
-const LS_THEME = "btc_studio_theme";
+const LS_THEME = "btc15_theme";  // shared with every other page
 
 const RANGES = [
   { id: "24h", label: "24h", days: 1,  bucket: "round" },
@@ -660,6 +1102,58 @@ function seriesFor(p, D) {
 const VIZ = {};
 
 function defViz(id, def) { VIZ[id] = def; }
+
+/* ---- personal pick -------------------------------------------------------
+   Deliberately the SAME localStorage keys the fixed pages use, so a call made on
+   /board or /pit is the same call here. Browser-local only, never sent to the
+   server -- the multiplayer version of this was removed on purpose long ago. */
+const PICK_KEY = "btc15_picks", RECORD_KEY = "btc15_record", RESOLVED_KEY = "btc15_resolved";
+const MAX_PICKS = 500;
+
+function loadJSON(k, dflt) {
+  try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : dflt; }
+  catch (e) { return dflt; }
+}
+function saveJSON(k, v) {
+  try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ }
+}
+
+let picks = loadJSON(PICK_KEY, {});
+let record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
+let resolvedPicks = loadJSON(RESOLVED_KEY, []);
+
+(function prunePicks() {
+  const keys = Object.keys(picks);
+  if (keys.length <= MAX_PICKS) return;
+  keys.sort((a, b) => picks[a].ts - picks[b].ts);
+  keys.slice(0, keys.length - 400).forEach(k => delete picks[k]);
+  saveJSON(PICK_KEY, picks);
+  if (resolvedPicks.length > MAX_PICKS) {
+    resolvedPicks = resolvedPicks.slice(resolvedPicks.length - 400);
+    saveJSON(RESOLVED_KEY, resolvedPicks);
+  }
+})();
+
+function makePick(ticker, choice) {
+  // Changeable until the round locks -- a mis-tap has to be correctable.
+  const existing = picks[ticker];
+  if (existing && existing.choice === choice) return;
+  picks[ticker] = { choice: choice, ts: Date.now() };
+  saveJSON(PICK_KEY, picks);
+}
+
+/* Score a settled round exactly once, matching the fixed pages' bookkeeping. */
+function resolveSettledPick(D) {
+  const s = D.state && D.state.last_settled;
+  if (!s || !s.result) return;
+  const mine = picks[s.ticker];
+  if (!mine) return;
+  if (resolvedPicks.indexOf(s.ticker) !== -1) return;
+  if (mine.choice === s.result) record.wins++; else record.losses++;
+  resolvedPicks.push(s.ticker);
+  saveJSON(RECORD_KEY, record);
+  saveJSON(RESOLVED_KEY, resolvedPicks);
+}
 
 /* Per-panel round browsing for the price track. Kept out of the panel object so it
    never lands in the saved JSON. offset 0 = the round in progress, 1 = previous, ...
@@ -1106,9 +1600,17 @@ defViz("statetimeline", {
 defViz("bigroad", {
   label: "Big Road", group: "Rounds", accepts: ["rounds"],
   icon: '<circle cx="10" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".55"/><circle cx="34" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="34" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>',
-  defaults: { maxRows: 6 },
+  defaults: { maxRows: 6, hours: 6 },
   render(p, D, w, h) {
-    const rounds = D.rounds || [];
+    let rounds = D.rounds || [];
+    // Own window, independent of the board's range -- the road is about the recent
+    // run of streaks, not the whole 68 days.
+    const hrs = num(p.options.hours, 6);
+    if (hrs > 0 && D.state) {
+      const cut = D.state.now - hrs * 3600;
+      const win = rounds.filter(r => r.close_time >= cut);
+      if (win.length) rounds = win;
+    }
     if (!rounds.length) return empty("No rounds in range");
     const maxRows = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, 6))));
     const size = Math.max(8, Math.min(26, Math.floor((h - 8) / maxRows) - 3));
@@ -1163,14 +1665,15 @@ defViz("table", {
 defViz("countdown", {
   label: "Countdown", group: "Live", accepts: ["scalar"],
   icon: '<circle cx="22" cy="23" r="14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 15v8l6 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
-  defaults: {},
+  defaults: { showRange: true },
   render(p, D, w, h) {
     const s = D.state;
     if (!s || !s.current_round) return empty("Waiting for the next round…");
-    const left = Math.max(0, s.current_round.close_time - s.now);
-    const total = s.current_round.close_time - s.current_round.open_time;
+    const cr = s.current_round;
+    const left = Math.max(0, cr.close_time - s.now);
+    const total = cr.close_time - cr.open_time;
     const frac = total > 0 ? Math.max(0, Math.min(1, left / total)) : 0;
-    const locked = s.now >= s.current_round.lock_ts;
+    const locked = s.now >= cr.lock_ts;
     const col = locked ? "var(--red)" : left < 180 ? "var(--amber)" : "var(--green)";
     const R = 40, C = 50, circ = 2 * Math.PI * R;
     let g = '<circle cx="' + C + '" cy="' + C + '" r="' + R + '" fill="none" stroke="var(--surface-700)" stroke-width="7"/>';
@@ -1178,7 +1681,16 @@ defViz("countdown", {
        + ' stroke-dasharray="' + (frac * circ).toFixed(2) + ' ' + circ.toFixed(2) + '" transform="rotate(-90 ' + C + ' ' + C + ')"/>';
     g += '<text x="' + C + '" y="' + (C + 3) + '" text-anchor="middle" fill="' + col + '" font-size="21" font-weight="700" font-family="var(--mono)">' + esc(fmtNum(left, "sec")) + '</text>';
     g += '<text x="' + C + '" y="' + (C + 16) + '" text-anchor="middle" fill="var(--faint)" font-size="7" font-family="var(--sans)" letter-spacing="1">' + (locked ? "LOCKED" : "TO CLOSE") + '</text>';
-    return svgFixed(100, 100, g);
+    const dial = '<div style="flex:1 1 auto;min-height:0">' + svgFixed(100, 100, g) + "</div>";
+    if (p.options.showRange === false) return dial;
+    // The round's window, sized to the panel -- it was tiny and easy to miss before.
+    const rf = Math.max(13, Math.min(30, w / 11));
+    const range = '<div style="flex:none;text-align:center;padding-top:2px">'
+      + '<div style="font-family:var(--mono);font-weight:700;line-height:1.1;font-size:' + rf.toFixed(0)
+      + 'px;color:var(--cream)">' + esc(fmtClock(cr.open_time) + " – " + fmtClock(cr.close_time)) + "</div>"
+      + '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">THIS ROUND</div>'
+      + "</div>";
+    return '<div style="display:flex;flex-direction:column;height:100%">' + dial + range + "</div>";
   }
 });
 
@@ -1329,6 +1841,64 @@ defViz("leanbar", {
   }
 });
 
+/* --- personal pick ------------------------------------------------------ */
+defViz("pick", {
+  label: "Your call", group: "Live", accepts: ["scalar"],
+  icon: '<path d="M9 22l7 7 14-15" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
+  defaults: { showRecord: true, showLast: true },
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    resolveSettledPick(D);
+    const cr = s.current_round;
+    const locked = cr ? s.now >= cr.lock_ts : false;
+    const mine = cr ? picks[cr.ticker] : null;
+    const btn = Math.max(30, Math.min(56, h * 0.30));
+    const fs = Math.max(12, Math.min(22, btn * 0.42));
+
+    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:5px;justify-content:center">';
+    html += '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">PERSONAL PICK</div>';
+
+    if (!cr) {
+      html += '<div class="stat-sub">Waiting for the next round…</div>';
+    } else {
+      const mk = (c, col) => {
+        const on = mine && mine.choice === c;
+        return '<button class="pickbtn' + (on ? " on " + c : "") + '" data-pick="' + c + '"' + (locked ? " disabled" : "")
+          + ' style="flex:1 1 0;min-height:' + btn.toFixed(0) + 'px;font-size:' + fs.toFixed(0) + 'px;--pc:var(--' + col + ')">'
+          + c.toUpperCase() + "</button>";
+      };
+      html += '<div style="display:flex;gap:6px">' + mk("yes", "green") + mk("no", "red") + "</div>";
+      let status, scol = "var(--dim)";
+      if (!mine) status = locked ? "Locked — no call this round" : "No call yet";
+      else if (locked) { status = "Locked in: " + mine.choice.toUpperCase(); scol = "var(--amber)"; }
+      else status = "Your pick: " + mine.choice.toUpperCase() + " — tap the other to change";
+      html += '<div style="font-family:var(--mono);font-size:0.66rem;color:' + scol + '">' + esc(status) + "</div>";
+    }
+
+    if (p.options.showLast !== false) {
+      const ls = s.last_settled;
+      const lm = ls ? picks[ls.ticker] : null;
+      if (ls && lm && ls.result) {
+        const right = lm.choice === ls.result;
+        html += '<div style="font-family:var(--mono);font-size:0.66rem;color:var(--' + (right ? "green" : "red") + ')">'
+          + "Last call: " + esc(lm.choice.toUpperCase()) + " — " + (right ? "correct" : "wrong") + "</div>";
+      }
+    }
+    if (p.options.showRecord !== false) {
+      const tot = record.wins + record.losses;
+      const pct = tot ? Math.round((record.wins / tot) * 100) : null;
+      html += '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">'
+        + '<span style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">YOUR CALLS</span>'
+        + '<span style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(14, Math.min(26, h * 0.16)).toFixed(0) + 'px;color:var(--cream)">'
+        + record.wins + "-" + record.losses + "</span>"
+        + (pct === null ? "" : '<span style="font-family:var(--mono);font-size:0.66rem;color:var(--dim)">' + pct + "% right</span>")
+        + "</div>";
+    }
+    return html + "</div>";
+  }
+});
+
 /* --- round card --------------------------------------------------------- */
 defViz("roundcard", {
   label: "Round card", group: "Live", accepts: ["scalar"],
@@ -1353,7 +1923,9 @@ defViz("roundcard", {
       html += '<div><div style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">'
             + (locked ? "LOCKED &middot; CLOSES" : "ROUND CLOSES") + '</div>'
             + '<div style="font-family:var(--mono);font-weight:700;font-size:' + sub.toFixed(0) + 'px;color:' + dcol + '">'
-            + esc(fmtNum(left, "sec")) + "</div></div>";
+            + esc(fmtNum(left, "sec")) + "</div>"
+            + '<div style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(11, sub * 0.62).toFixed(0) + 'px;color:var(--soft)">'
+            + esc(fmtClock(cr.open_time) + " – " + fmtClock(cr.close_time)) + "</div></div>";
       html += '<div><div style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">TARGET STRIKE</div>'
             + '<div style="font-family:var(--mono);font-weight:700;font-size:' + sub.toFixed(0) + 'px;color:var(--amber)">'
             + esc(fmtNum(cr.floor_strike, "usd", 2)) + "</div>";
@@ -1411,19 +1983,20 @@ function defaultDashboard() {
     bucket: "day",
     refresh: 10,
     panels: [
-      mkPanel("roundcard", "live_price", { x: 0, y: 0, w: 9, h: 6 }, "Live price & round"),
-      mkPanel("pricetrack", "ticks", { x: 9, y: 0, w: 15, h: 6 }, "Price vs Target"),
+      mkPanel("roundcard", "live_price", { x: 0, y: 0, w: 9, h: 7 }, "Live price & round"),
+      mkPanel("pricetrack", "ticks", { x: 9, y: 0, w: 9, h: 7 }, "Price vs Target"),
+      mkPanel("countdown", "to_close", { x: 18, y: 0, w: 6, h: 7 }, "This round"),
 
-      mkPanel("leanbar", "distance", { x: 0, y: 6, w: 24, h: 3 }, "Lean — distance to target"),
+      mkPanel("leanbar", "distance", { x: 0, y: 7, w: 17, h: 3 }, "Lean — distance to target"),
+      mkPanel("pick", "live_price", { x: 17, y: 7, w: 7, h: 6 }, "Your call"),
 
-      mkPanel("gauge", "yes_rate", { x: 0, y: 9, w: 6, h: 4 }, "YES rate",
+      mkPanel("gauge", "yes_rate", { x: 0, y: 10, w: 6, h: 3 }, "YES rate",
         {}, { min: 40, max: 60, decimals: 2, baseColor: "red",
               thresholds: [{ value: 48, color: "amber" }, { value: 50, color: "green" }] }),
-      mkPanel("stat", "rounds", { x: 6, y: 9, w: 6, h: 4 }, "Rounds tracked",
+      mkPanel("stat", "rounds", { x: 6, y: 10, w: 6, h: 3 }, "Rounds tracked",
         { colorMode: "none", sparkline: false }, { colorMode: "fixed", fixedColor: "blue" }),
-      mkPanel("stat", "span_days", { x: 12, y: 9, w: 6, h: 4 }, "History depth",
+      mkPanel("stat", "span_days", { x: 12, y: 10, w: 5, h: 3 }, "History depth",
         { colorMode: "none", sparkline: false }, { colorMode: "fixed", fixedColor: "violet", decimals: 1 }),
-      mkPanel("countdown", "to_close", { x: 18, y: 9, w: 6, h: 4 }, "This round"),
 
       mkPanel("candlestick", "ohlc", { x: 0, y: 13, w: 16, h: 8 }, "Settlement price"),
       mkPanel("donut", "results", { x: 16, y: 13, w: 8, h: 8 }, "YES vs NO"),
@@ -1437,7 +2010,7 @@ function defaultDashboard() {
       mkPanel("heatmap", "by_hour", { x: 0, y: 28, w: 12, h: 6 }, "YES rate by hour (ET)"),
       mkPanel("histogram", "deltas", { x: 12, y: 28, w: 12, h: 6 }, "Move distribution"),
 
-      mkPanel("bigroad", "results", { x: 0, y: 34, w: 14, h: 7 }, "Big Road"),
+      mkPanel("bigroad", "results", { x: 0, y: 34, w: 14, h: 7 }, "Big Road — last 6h"),
       mkPanel("table", "results", { x: 14, y: 34, w: 10, h: 7 }, "Recent rounds")
     ]
   };
@@ -1713,6 +2286,15 @@ function renderBodies() { for (const p of DASH.panels) renderPanelBody(p); }
 /* Prev/Live/Next inside a price-track panel. Delegated, since panel bodies are
    replaced wholesale on every render. */
 gridEl.addEventListener("click", e => {
+  const pb = e.target.closest("[data-pick]");
+  if (pb && !pb.disabled) {
+    const cr = DATA.state && DATA.state.current_round;
+    if (cr && DATA.state.now < cr.lock_ts) {
+      makePick(cr.ticker, pb.getAttribute("data-pick"));
+      for (const q of DASH.panels) if (q.type === "pick") renderPanelBody(q);
+    }
+    return;
+  }
   const btn = e.target.closest("[data-track]");
   if (!btn || btn.disabled) return;
   const host = btn.closest(".panel");
@@ -1737,7 +2319,8 @@ function addPanel(type, metric) {
     countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
     statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
     heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
-    pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 }
+    pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
+    pick: { w: 7, h: 6 }
   };
   const sz = sizes[type] || { w: 12, h: 7 };
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
@@ -1899,7 +2482,19 @@ function openEditor(p) {
     html += '<p class="hint">A few very large moves would flatten every other bar. The clip bounds the axis at that percentile; anything past it stacks into the end bins.</p>';
   }
   if (p.type === "bigroad") {
-    html += '<div class="field"><label>Rows before wrapping</label><input id="o_maxRows" type="number" min="3" max="10" value="' + num(p.options.maxRows, 6) + '"></div>';
+    html += '<div class="row2">'
+      + '<div class="field"><label>Rows before wrapping</label><input id="o_maxRows" type="number" min="3" max="10" value="' + num(p.options.maxRows, 6) + '"></div>'
+      + '<div class="field"><label>Window (hours)</label><input id="o_hours" type="number" min="0" max="720" value="' + num(p.options.hours, 6) + '"></div>'
+      + "</div>";
+    html += '<p class="hint">The road keeps its own window regardless of the board’s range. 0 uses everything loaded.</p>';
+  }
+  if (p.type === "countdown") {
+    html += chk("o_showRange", "Show the round’s time range", p.options.showRange !== false);
+  }
+  if (p.type === "pick") {
+    html += chk("o_showRecord", "Show your win/loss record", p.options.showRecord !== false);
+    html += chk("o_showLast", "Show how the last call went", p.options.showLast !== false);
+    html += '<p class="hint">Calls are stored in this browser only and shared with every other page — a pick made here shows up on Classic, The Board and the rest.</p>';
   }
   if (p.type === "table") {
     html += '<div class="field"><label>Rows</label><input id="o_limit" type="number" min="5" max="500" value="' + num(p.options.limit, 40) + '"></div>';
@@ -1977,9 +2572,9 @@ function openEditor(p) {
     p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save();
   }));
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
-   "o_showFill", "o_showNav", "o_showScale"].forEach(id =>
+   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
-  ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt"].forEach(id =>
+  ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt", "o_hours"].forEach(id =>
     bindIn(id, () => { p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save(); }));
   bindIn("o_subtitle", () => { p.options.subtitle = $("o_subtitle").value; renderPanelBody(p); save(); });
   bindIn("f_body", () => { p.options.body = $("f_body").value; renderPanelBody(p); save(); });
@@ -2087,6 +2682,18 @@ document.getElementById("editBtn").addEventListener("click", () => {
   document.getElementById("editLabel").textContent = editing ? "Done" : "Edit";
   toast(editing ? "Edit mode — drag headers to move, corners to resize" : "Layout saved");
 });
+
+const LS_SKIN = "btc_studio_skin";
+const skinSel = document.getElementById("skinSelect");
+skinSel.addEventListener("change", () => {
+  applySkin(skinSel.value);
+  try { localStorage.setItem(LS_SKIN, skinSel.value); } catch (e) { /* ignore */ }
+});
+function applySkin(name) {
+  document.documentElement.setAttribute("data-skin", name || "classic");
+  skinSel.value = name || "classic";
+  renderBodies();  // panels draw with token colours baked into their SVG strings
+}
 
 document.getElementById("themeBtn").addEventListener("click", () => {
   const cur = document.documentElement.getAttribute("data-theme");
@@ -2236,6 +2843,10 @@ function boot() {
     const th = localStorage.getItem(LS_THEME);
     if (th) document.documentElement.setAttribute("data-theme", th);
   } catch (e) { /* ignore */ }
+  let skin = "classic";
+  try { skin = localStorage.getItem(LS_SKIN) || "classic"; } catch (e) { /* ignore */ }
+  document.documentElement.setAttribute("data-skin", skin);
+  skinSel.value = skin;
 
   DASH = load();
   DASH = DASH ? migrate(DASH) : defaultDashboard();
