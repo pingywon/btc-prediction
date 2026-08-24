@@ -1234,6 +1234,10 @@ function migrate(d) {
       colorMode: "thresholds", fixedColor: "amber", baseColor: "green",
       thresholdMode: "absolute", thresholds: [] }, p.fieldConfig || {});
     if (!Array.isArray(p.fieldConfig.thresholds)) p.fieldConfig.thresholds = [];
+    // A board saved before a metric was renamed (or pasted in by hand) would otherwise
+    // render "No metric" forever -- fall back to the first one this viz can take.
+    const allowed = metricsFor(p.type);
+    if (allowed.length && allowed.indexOf(p.metric) < 0) p.metric = allowed[0];
     return p;
   });
   if (!RANGES.some(r => r.id === d.range)) d.range = "all";
@@ -1678,7 +1682,12 @@ function openEditor(p) {
   const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener("change", fn); };
   const bindIn = (id, fn) => { const el = $(id); if (el) el.addEventListener("input", fn); };
 
-  bindIn("f_title", () => { p.title = $("f_title").value; renderAll(); save(); });
+  bindIn("f_title", () => {
+    p.title = $("f_title").value;
+    const el = document.getElementById(p.id);          // just the one label -- a full
+    if (el) el.querySelector(".panel-title").textContent = p.title;  // re-render per keystroke janks
+    save();
+  });
   bind("f_metric", () => {
     p.metric = $("f_metric").value;
     const m = METRICS[p.metric];
