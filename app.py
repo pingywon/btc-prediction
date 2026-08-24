@@ -26,6 +26,13 @@ PORT = int(os.environ.get("PORT", "80"))
 BIND = os.environ.get("BIND", "0.0.0.0")
 
 FONT_DIR = os.path.join(HERE, "fonts")
+# The skins stopped being their own pages; these old URLs redirect into the
+# Studio with that skin selected.
+SKIN_ROUTES = {}
+for _s in ("ticket", "board", "gauge", "terminal", "tape", "blueprint", "arcade", "pit"):
+    SKIN_ROUTES["/" + _s] = _s
+    SKIN_ROUTES["/" + _s + ".html"] = _s
+
 FONT_NAME_RE = re.compile(r"^[a-z0-9-]+\.woff2$")  # no dots or slashes -> no traversal
 
 KALSHI_HOST = "api.elections.kalshi.com"  # trading-api.kalshi.com is the dead old host
@@ -544,6 +551,9 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionError):
             pass
 
+    def _redirect(self, location):
+        self._send(302, b"", "text/plain; charset=utf-8", {"Location": location})
+
     def do_GET(self):
         # Any unhandled exception below this point previously propagated straight out
         # of do_GET with no response ever sent -- the client just saw the connection
@@ -557,24 +567,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._serve_page("index.html")
             if path in ("/algo", "/algo.html"):
                 return self._serve_page("algo.html")
+            # Two views: Classic above (fixed on purpose) and the Studio below
+            # (movable modules, wearing any skin). The skins are no longer their
+            # own pages, so their old URLs land on the Studio already set to that
+            # skin. /fluid is gone outright and just opens the Studio.
             if path in ("/fluid", "/fluid.html"):
-                return self._serve_page("fluid.html")
-            if path in ("/ticket", "/ticket.html"):
-                return self._serve_page("ticket.html")
-            if path in ("/board", "/board.html"):
-                return self._serve_page("board.html")
-            if path in ("/gauge", "/gauge.html"):
-                return self._serve_page("gauge.html")
-            if path in ("/terminal", "/terminal.html"):
-                return self._serve_page("terminal.html")
-            if path in ("/tape", "/tape.html"):
-                return self._serve_page("tape.html")
-            if path in ("/blueprint", "/blueprint.html"):
-                return self._serve_page("blueprint.html")
-            if path in ("/arcade", "/arcade.html"):
-                return self._serve_page("arcade.html")
-            if path in ("/pit", "/pit.html"):
-                return self._serve_page("pit.html")
+                return self._redirect("/studio")
+            _skin = SKIN_ROUTES.get(path)
+            if _skin:
+                return self._redirect("/studio?skin=" + _skin)
             if path in ("/studio", "/studio.html"):
                 return self._serve_page("studio.html")
             if path.startswith("/fonts/"):

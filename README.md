@@ -6,36 +6,18 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-Twelve pages, all reading the same backend and cross-linked via the "Switch" button in
-each header. Eleven are fixed-layout versions of the same dashboard; the twelfth builds
-its own:
+**Two views**, cross-linked via the "Switch" button in each header, plus the ALGO Desk.
+Classic is deliberately fixed; everything else is one modular board that can wear any
+skin:
 
-- `GET /` — **Classic**, the original 2-column dashboard.
-- `GET /fluid` — **Fluid**, a genuine flex-wrap layout with fully unconstrained
-  module reordering (no fixed columns).
-- `GET /ticket` — **The Ticket**, a from-scratch visual redesign (paper/ink exchange
-  ticket look) on the same modular system.
-- `GET /board` — **The Board**, a real pegboard: drag tiles by the header, resize
-  from the corner grip, on a 12-column grid with collision push-down and upward
-  compaction. Executive-glassmorphism skin.
-- `GET /gauge` — **The Gauge**, the confidence readout as the entire page — a 16-cell
-  segmented meter with a needle, on a dark-brutalist card whose atmospheric glow
-  changes colour with how certain the round is.
+- `GET /` — **Classic**, the original 2-column dashboard. **Not movable, on purpose** —
+  this is the fixed reference layout. Modules can still be collapsed or hidden, but
+  nothing reorders.
 - `GET /algo` — **ALGO Desk**, an AI making its own YES/NO call every round, tracked
-  against your own picks.
-- `GET /terminal` — **Terminal**, a retro green-phosphor CRT trading terminal —
-  monochrome monospace, scanline overlay, ASCII corner brackets on every card.
-- `GET /tape` — **The Tape**, a dense Bloomberg-style order-book read: a real YES/NO
-  depth ladder off Kalshi's live prices, a scrolling ticker tape of settled rounds
-  across the top, steel-blue accent.
-- `GET /blueprint` — **Blueprint**, the round as an engineering drawing: a gridded
-  sheet inside a ruled drawing frame, modules as drafting frames with corner ticks,
-  captions set like drafting callouts. Cyan on blueprint navy, ink-blue on white paper.
-- `GET /arcade` — **Arcade**, a coin-op attract screen: zero blur anywhere, hard offset
-  shadows and 3px keylines, square corners, saturated cabinet palette.
-- `GET /pit` — **The Pit**, the baccarat table this scoreboard's Big Road came from:
-  felt and gold rules, chip-round controls and a serif face.
-- `GET /studio` — **The Studio**, a build-your-own board. A 24-column drag-and-drop grid
+  against your own picks. Kept as its own page because it is a distinct feature, not a
+  skin.
+- `GET /studio` — **The Studio**, the modular view and the home of every skin.
+  A build-your-own board. A 24-column drag-and-drop grid
   in the style of Grafana: add a panel, pick one of 25 visualizations (the seven Classic
   modules, plus gauge, bar gauge,
   stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
@@ -76,6 +58,21 @@ its own:
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
 Prev/Live/Next controls above it (not just the live one).
+
+
+### Skins, layouts and reset
+
+The Studio carries all nine skins (Classic, The Ticket, The Board, The Gauge, Terminal,
+The Tape, Blueprint, Arcade, The Pit) in its skin picker — they are looks applied to the
+one modular board, not separate pages any more. **Fluid was removed.**
+
+- **Layouts** — name and save the current arrangement. A layout stores the skin *and*
+  every module's position and size, so you can keep several and switch between them.
+  Saved under `btc_studio_layouts_v1`, browser-local like everything else here.
+- **Reset to Classic** — a toolbar button that puts every module back exactly where the
+  fixed Classic page has it.
+- The current skin and board are remembered on their own (`btc_studio_skin`,
+  `btc_studio_dashboard_v2`) — a named layout is for keeping more than one.
 
 ## Round Confidence
 
@@ -127,8 +124,10 @@ container starts with an empty Big Road / spread ledger every time.
 
 ## Endpoints
 
-- `GET /`, `/fluid`, `/ticket`, `/board`, `/gauge`, `/algo`, `/terminal`, `/tape`,
-  `/blueprint`, `/arcade`, `/pit`, `/studio` — the 12 pages
+- `GET /`, `/studio`, `/algo` — the three pages. The retired per-skin URLs
+  (`/ticket`, `/board`, `/gauge`, `/terminal`, `/tape`, `/blueprint`, `/arcade`,
+  `/pit`) 302-redirect to `/studio?skin=<name>`; `/fluid` is gone and redirects
+  to `/studio`
 - `GET /fonts/<name>.woff2` — self-hosted webfonts (whitelisted names only)
 - `GET /api/state` — current round, live price, lean, Kalshi market odds, last settled round
 - `GET /api/history?hours=24[&limit=N]` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760). `limit` returns only the newest N rounds, which is how the bead/table panels stay cheap over a multi-month window.
