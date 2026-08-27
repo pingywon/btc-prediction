@@ -720,6 +720,48 @@
   .bead-pick-badge svg { width: 13px; height: 13px; stroke-width: 4; }
   .bead-pick-badge.hit { background: var(--amber); color: #0b0b0f; }
   .bead-pick-badge.miss { background: #14161d; color: #ffffff; }
+
+  /* ===================================================================
+     HISTORY CALL
+     A verdict read only from past sequences. The bar is centred on 50%
+     and spans 40-60% because everything this market does lives in that
+     band -- a wider scale would make every lean look like nothing.
+     =================================================================== */
+  .hc-top { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .hc-call { display: flex; align-items: baseline; gap: 0.6rem; }
+  .hc-side { font-size: clamp(1.9rem, 6vw, 2.6rem); font-weight: 900; letter-spacing: -0.02em; }
+  .hc-side.yes { color: var(--green); }
+  .hc-side.no { color: var(--red); }
+  .hc-pct { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; color: var(--cream); }
+  .hc-band {
+    font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); color: var(--dim);
+  }
+  .hc-band.weak { color: var(--dim); }
+  .hc-band.real { color: var(--amber); border-color: var(--amber); }
+  .hc-ctx { margin-top: 0.4rem; font-size: 0.82rem; font-weight: 700; color: var(--soft); }
+  .hc-scale { margin-top: 0.9rem; }
+  .hc-track {
+    position: relative; height: 12px; border-radius: 999px;
+    background: var(--surface-800); border: 1px solid var(--border); overflow: hidden;
+  }
+  .hc-range { position: absolute; top: 0; bottom: 0; background: rgba(var(--ink-rgb), 0.22); }
+  .hc-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--dim); }
+  .hc-marker {
+    position: absolute; top: 50%; width: 14px; height: 14px; margin-left: -7px;
+    border-radius: 50%; background: var(--cream); border: 2px solid var(--bg-deep);
+    transform: translateY(-50%);
+  }
+  .hc-scale-labels {
+    display: flex; justify-content: space-between; margin-top: 0.3rem;
+    font-size: 0.68rem; font-weight: 700; color: var(--faint); text-transform: uppercase;
+  }
+  .hc-rows { margin-top: 0.9rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .hc-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8rem; }
+  .hc-row .k { color: var(--dim); font-weight: 700; }
+  .hc-row .v { color: var(--soft); font-weight: 800; text-align: right; }
+  .hc-disclaimer { margin-top: 0.8rem; font-size: 0.72rem; font-style: italic; color: var(--faint); }
+  .hc-empty { padding: 1.5rem 0; color: var(--faint); font-size: 0.8rem; font-weight: 700; }
 </style>
 <script>
   // Runs synchronously before first paint so there's no flash of the wrong theme.
@@ -875,6 +917,38 @@
         </div>
       </div>
 
+      <div class="panel histcall-card" data-section="histcall">
+        <div class="module-head">
+          <div class="module-title-row">
+            <span class="module-name">History Call</span>
+            <button class="module-info" data-tip-title="History Call" data-tip-full="A yes/no call read purely from what this market has done before -- no live pricing, no market odds. It looks at how the last three rounds settled and reports how often the NEXT round came up YES after that exact three-round pattern, across 6,682 settled rounds. The percentage is that historical frequency, and the range beneath it is the 95% confidence interval. Read the reliability line honestly: across 105 patterns tested, none survived correction for having tested that many, and out-of-sample the best rule scored 50.5%. The lean is real in the data; it is not evidence of a real edge.">i</button>
+          </div>
+          <div class="module-actions">
+            <button class="module-btn module-chevron" title="Collapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="module-btn module-eye" title="Hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="module-summary" id="summaryHistcall">&nbsp;</div>
+        <div class="module-body">
+          <div id="histcallContent">
+            <div class="hc-top">
+              <div class="hc-call">
+                <span class="hc-side" id="hcSide">&mdash;</span>
+                <span class="hc-pct tabular" id="hcPct">&mdash;</span>
+              </div>
+              <span class="hc-band" id="hcBand">&nbsp;</span>
+            </div>
+            <div class="hc-ctx" id="hcCtx">&nbsp;</div>
+            <div class="hc-scale">
+              <div class="hc-track"><div class="hc-range" id="hcRange"></div><div class="hc-mid"></div><div class="hc-marker" id="hcMarker"></div></div>
+              <div class="hc-scale-labels"><span>40%</span><span>coin flip</span><span>60%</span></div>
+            </div>
+            <div class="hc-rows" id="hcRows"></div>
+            <div class="hc-disclaimer" id="hcNote">&nbsp;</div>
+          </div>
+          <div class="hc-empty" id="hcEmpty" style="display:none">Waiting for three settled rounds</div>
+        </div>
+      </div>
       <div class="panel spread-now-card" data-section="spread-now">
         <div class="module-head">
           <div class="module-title-row">
@@ -1222,9 +1296,9 @@
   // two small groups rather than one flat list: price-col's two children (price,
   // gauges) and the bottom stack's two children (bigroad, spread). `stats` sits alone
   // in side-col -- nothing to reorder it against, so it gets no move buttons.
-  var SECTION_IDS = ['price', 'signal', 'spread-now', 'gauges', 'stats', 'bigroad', 'spread'];
-  var SECTION_LABELS = { price: 'Live Price & Pick', signal: 'Round Confidence', 'spread-now': 'Current Spread', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
-  var GROUP_PRICE = ['price', 'signal', 'spread-now', 'gauges'];
+  var SECTION_IDS = ['price', 'signal', 'histcall', 'spread-now', 'gauges', 'stats', 'bigroad', 'spread'];
+  var SECTION_LABELS = { price: 'Live Price & Pick', signal: 'Round Confidence', histcall: 'History Call', 'spread-now': 'Current Spread', gauges: 'Market Gauges', stats: 'Results Sidebar', bigroad: 'Big Road History', spread: 'Round-to-Round Spread' };
+  var GROUP_PRICE = ['price', 'signal', 'histcall', 'spread-now', 'gauges'];
   var GROUP_BOTTOM = ['bigroad', 'spread'];
   var MODULE_STATE_KEY = 'btc15_index_modules';
   function defaultModuleState() { return { hidden: {}, collapsed: {}, orderPrice: GROUP_PRICE.slice(), orderBottom: GROUP_BOTTOM.slice() }; }
@@ -1859,6 +1933,99 @@
     return marks;
   }
 
+
+  /* ===================== History Call =====================
+     A static lookup, not a live fit: the table below was measured once over
+     6,682 settled rounds and is baked in so the module is reproducible.
+
+     Honest framing matters here. The study tested 105 pre-registered patterns.
+     Seven cleared p<0.05 -- and about 5 are expected to by chance when you test
+     105 things -- and NONE survived Benjamini-Hochberg correction. Out of
+     sample the best rule scored 0.5112. So this module reports the lean the
+     history shows and says plainly when that lean is inside coin-flip range,
+     which it essentially always is. Regenerate with research.py + table.py. */
+  var HC_TABLE = {
+    NNN: { p: 0.5359, n: 767, lo: 0.5005, hi: 0.5709 },
+    NNY: { p: 0.5069, n: 870, lo: 0.4737, hi: 0.5400 },
+    NYN: { p: 0.5068, n: 876, lo: 0.4738, hi: 0.5399 },
+    NYY: { p: 0.4731, n: 835, lo: 0.4394, hi: 0.5070 },
+    YNN: { p: 0.5276, n: 870, lo: 0.4944, hi: 0.5606 },
+    YNY: { p: 0.4685, n: 841, lo: 0.4350, hi: 0.5023 },
+    YYN: { p: 0.4761, n: 836, lo: 0.4424, hi: 0.5100 },
+    YYY: { p: 0.4962, n: 784, lo: 0.4613, hi: 0.5311 }
+  };
+  var HC_STUDY = { rounds: 6682, days: 70.7, base: 0.4988,
+                   hypotheses: 105, survivors: 0, oos: 0.5112 };
+
+  function hcContext(rounds) {
+    if (!rounds || rounds.length < 3) return null;
+    return rounds.slice(-3).map(function (r) { return r.result === 'yes' ? 'Y' : 'N'; }).join('');
+  }
+
+  function renderHistCall() {
+    var content = document.getElementById('histcallContent');
+    var empty = document.getElementById('hcEmpty');
+    if (!content) return;
+    var ctx = hcContext(historyRounds);
+    var row = ctx && HC_TABLE[ctx];
+    if (!row) {
+      content.style.display = 'none';
+      empty.style.display = '';
+      document.getElementById('summaryHistcall').textContent = 'History Call — waiting';
+      return;
+    }
+    content.style.display = '';
+    empty.style.display = 'none';
+
+    var yes = row.p >= 0.5;
+    var pct = yes ? row.p : 1 - row.p;
+    // the interval belongs to the side being called, so mirror it for NO
+    var lo = yes ? row.lo : 1 - row.hi;
+    var hi = yes ? row.hi : 1 - row.lo;
+    // "coin flip not ruled out" is the honest read whenever 50% sits inside the CI
+    var solid = row.lo > 0.5 || row.hi < 0.5;
+
+    var sideEl = document.getElementById('hcSide');
+    sideEl.textContent = yes ? 'YES' : 'NO';
+    sideEl.className = 'hc-side ' + (yes ? 'yes' : 'no');
+    document.getElementById('hcPct').textContent = (pct * 100).toFixed(1) + '%';
+
+    var band = document.getElementById('hcBand');
+    band.textContent = solid ? 'Outside coin-flip range' : 'Coin flip not ruled out';
+    band.className = 'hc-band ' + (solid ? 'real' : 'weak');
+
+    document.getElementById('hcCtx').textContent =
+      'After ' + ctx.split('').join(' ') + ' \u00b7 ' + row.n + ' past rounds ended this way';
+
+    // scale runs 40%-60%
+    var toPct = function (v) { return Math.max(0, Math.min(100, (v - 0.40) / 0.20 * 100)); };
+    var rEl = document.getElementById('hcRange');
+    rEl.style.left = toPct(lo) + '%';
+    rEl.style.width = Math.max(1, toPct(hi) - toPct(lo)) + '%';
+    document.getElementById('hcMarker').style.left = toPct(pct) + '%';
+
+    var edge = (pct - 0.5) * 100;
+    var rowsEl = document.getElementById('hcRows');
+    rowsEl.innerHTML =
+      '<div class="hc-row"><span class="k">95% confidence interval</span><span class="v">'
+        + (lo * 100).toFixed(1) + '% \u2013 ' + (hi * 100).toFixed(1) + '%</span></div>'
+      + '<div class="hc-row"><span class="k">Lean over a coin flip</span><span class="v">'
+        + (edge >= 0 ? '+' : '') + edge.toFixed(1) + ' pts</span></div>'
+      + '<div class="hc-row"><span class="k">Sample</span><span class="v">' + row.n
+        + ' of ' + HC_STUDY.rounds + ' rounds</span></div>'
+      + '<div class="hc-row"><span class="k">Out-of-sample accuracy</span><span class="v">'
+        + (HC_STUDY.oos * 100).toFixed(1) + '%</span></div>';
+
+    document.getElementById('hcNote').textContent =
+      'Static lookup over ' + HC_STUDY.rounds + ' settled rounds (' + HC_STUDY.days + ' days). '
+      + 'Of ' + HC_STUDY.hypotheses + ' patterns tested, ' + HC_STUDY.survivors
+      + ' survived correction for multiple testing. Base rate ' + (HC_STUDY.base * 100).toFixed(2)
+      + '% YES. This is what history did, not a forecast.';
+
+    document.getElementById('summaryHistcall').textContent =
+      'History Call — ' + (yes ? 'YES' : 'NO') + ' ' + (pct * 100).toFixed(1) + '%';
+  }
+
   function renderBigRoad(rounds, tallies) {
     var grid = document.getElementById('bigroadGrid');
     grid.innerHTML = '';
@@ -2003,6 +2170,7 @@
       progressDone();
       if (reqId !== historyReqId) return;
       historyRounds = d.rounds;
+      renderHistCall();
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
       historyDirty = false;

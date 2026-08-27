@@ -916,6 +916,35 @@
   :root[data-skin="pit"] body {
     background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0 2px, transparent 2px 5px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 5px);
   }
+
+  /* History Call panel */
+  .cl-hc { display: flex; flex-direction: column; gap: 0.5rem; }
+  .cl-hc-top { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .cl-hc-side { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 900; }
+  .cl-hc-side.yes { color: var(--green); }
+  .cl-hc-side.no { color: var(--red); }
+  .cl-hc-pct { font-size: clamp(1.2rem, 3vw, 1.7rem); font-weight: 800; color: var(--cream); }
+  .cl-hc-band {
+    font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem; border-radius: 999px; border: 1px solid var(--border); color: var(--dim);
+  }
+  .cl-hc-band.real { color: var(--amber); border-color: var(--amber); }
+  .cl-hc-ctx { font-size: 0.76rem; font-weight: 700; color: var(--soft); }
+  .cl-hc-track {
+    position: relative; height: 10px; border-radius: 999px;
+    background: var(--surface-800); border: 1px solid var(--border); overflow: hidden;
+  }
+  .cl-hc-range { position: absolute; top: 0; bottom: 0; background: rgba(var(--ink-rgb), 0.22); }
+  .cl-hc-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--dim); }
+  .cl-hc-dot {
+    position: absolute; top: 50%; width: 12px; height: 12px; margin-left: -6px;
+    border-radius: 50%; background: var(--cream); border: 2px solid var(--bg-deep);
+    transform: translateY(-50%);
+  }
+  .cl-hc-rows { display: flex; flex-direction: column; gap: 0.2rem; }
+  .cl-hc-row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.75rem; color: var(--dim); font-weight: 700; }
+  .cl-hc-row b { color: var(--soft); font-weight: 800; }
+  .cl-hc-note { font-size: 0.68rem; font-style: italic; color: var(--faint); }
 </style>
 </head>
 <body>
@@ -1386,7 +1415,7 @@ function computeBigEyeBoy(columns) {
 const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours", 6: "6 Hours", 8: "8 Hours", 12: "12 Hours", 24: "24 Hours", 168: "7 Days" };
 const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
 const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1 };
-const LIVE_TYPES = { countdown: 1, livepick: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
 
 function panelHours(p) { return num(p.options.hours, 24); }
 function histWindowsNeeded() {
@@ -2351,6 +2380,76 @@ defViz("confidence", {
 });
 
 /* --- Current Spread ------------------------------------------------------ */
+/* --- History Call -------------------------------------------------------
+   The same static lookup Classic carries: how often the NEXT round came up
+   YES after each three-round pattern, measured once over 6682 settled
+   rounds. It is deliberately not refit live -- baking it is what makes the
+   number reproducible.
+
+   The study tested 105 pre-registered patterns; 0 survived
+   Benjamini-Hochberg correction, and out-of-sample the best rule scored
+   51.1%. The panel therefore reports the lean AND says when a coin flip
+   is still inside the interval, which is nearly always. */
+const HC_TABLE = {
+  NNN: { p: 0.5359, n: 767, lo: 0.5005, hi: 0.5709 },
+  NNY: { p: 0.5069, n: 870, lo: 0.4737, hi: 0.5400 },
+  NYN: { p: 0.5068, n: 876, lo: 0.4738, hi: 0.5399 },
+  NYY: { p: 0.4731, n: 835, lo: 0.4394, hi: 0.5070 },
+  YNN: { p: 0.5276, n: 870, lo: 0.4944, hi: 0.5606 },
+  YNY: { p: 0.4685, n: 841, lo: 0.4350, hi: 0.5023 },
+  YYN: { p: 0.4761, n: 836, lo: 0.4424, hi: 0.5100 },
+  YYY: { p: 0.4962, n: 784, lo: 0.4613, hi: 0.5311 }
+};
+const HC_STUDY = { rounds: 6682, days: 70.7, base: 0.4988,
+                   hypotheses: 105, survivors: 0, oos: 0.5112 };
+
+defViz("histcall", {
+  label: "History Call", group: "Classic", accepts: ["scalar"], noMetric: true,
+  icon: '<path d="M6 30l8-9 7 6 9-13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="21" r="2.5" fill="currentColor"/><circle cx="21" cy="27" r="2.5" fill="currentColor"/><text x="24" y="17" fill="currentColor" font-size="10" font-weight="800" font-family="monospace">?</text>',
+  defaults: {},
+  render(p, D) {
+    const rs = D.rounds || [];
+    if (rs.length < 3) return empty("Waiting for three settled rounds\u2026");
+    const ctx = rs.slice(-3).map(r => (r.result === "yes" ? "Y" : "N")).join("");
+    const row = HC_TABLE[ctx];
+    if (!row) return empty("No history for this pattern");
+
+    const yes = row.p >= 0.5;
+    const pct = yes ? row.p : 1 - row.p;
+    const lo = yes ? row.lo : 1 - row.hi;
+    const hi = yes ? row.hi : 1 - row.lo;
+    const solid = row.lo > 0.5 || row.hi < 0.5;
+    const sc = v => Math.max(0, Math.min(100, (v - 0.40) / 0.20 * 100));
+    const edge = (pct - 0.5) * 100;
+
+    return '<div class="cl-hc">'
+      + '<div class="cl-hc-top">'
+        + '<span class="cl-hc-side ' + (yes ? "yes" : "no") + '">' + (yes ? "YES" : "NO") + "</span>"
+        + '<span class="cl-hc-pct">' + (pct * 100).toFixed(1) + "%</span>"
+        + '<span class="cl-hc-band ' + (solid ? "real" : "weak") + '">'
+          + (solid ? "Outside coin-flip range" : "Coin flip not ruled out") + "</span>"
+      + "</div>"
+      + '<div class="cl-hc-ctx">After ' + ctx.split("").join(" ") + " \u00b7 " + row.n
+        + " past rounds ended this way</div>"
+      + '<div class="cl-hc-track"><div class="cl-hc-range" style="left:' + sc(lo)
+        + "%;width:" + Math.max(1, sc(hi) - sc(lo)) + '%"></div>'
+        + '<div class="cl-hc-mid"></div>'
+        + '<div class="cl-hc-dot" style="left:' + sc(pct) + '%"></div></div>'
+      + '<div class="cl-hc-rows">'
+        + '<div class="cl-hc-row"><span>95% confidence interval</span><b>'
+          + (lo * 100).toFixed(1) + "% \u2013 " + (hi * 100).toFixed(1) + "%</b></div>"
+        + '<div class="cl-hc-row"><span>Lean over a coin flip</span><b>'
+          + (edge >= 0 ? "+" : "") + edge.toFixed(1) + " pts</b></div>"
+        + '<div class="cl-hc-row"><span>Out-of-sample accuracy</span><b>'
+          + (HC_STUDY.oos * 100).toFixed(1) + "%</b></div>"
+      + "</div>"
+      + '<div class="cl-hc-note">Static lookup over ' + HC_STUDY.rounds + " settled rounds. Of "
+        + HC_STUDY.hypotheses + " patterns tested, " + HC_STUDY.survivors
+        + " survived correction. This is what history did, not a forecast.</div>"
+      + "</div>";
+  }
+});
+
 defViz("spreadnow", {
   label: "Current Spread", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="16" width="22" height="12" rx="6" fill="currentColor" opacity=".25"/><text x="9" y="25" fill="currentColor" font-size="9" font-weight="800" font-family="monospace">+$45</text><path d="M32 25l3-3 3 3M35 22v6" fill="none" stroke="currentColor" stroke-width="2"/>',
@@ -3453,7 +3552,7 @@ function rangeDays() {
 function needsRounds() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return (m && m.kind === "rounds") || p.type === "pricetrack" || p.type === "livepick";  // both page back through them
+    return (m && m.kind === "rounds") || p.type === "pricetrack" || p.type === "livepick" || p.type === "histcall";  // both page back through them
   });
 }
 function needsTicks() {
