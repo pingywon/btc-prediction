@@ -1718,6 +1718,54 @@
     if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'no');
   });
 
+  /* Score every settled round that carries a pick, not just the newest one.
+     resolvePersonalFeedback() only ever saw state.last_settled, so any pick
+     whose round settled while the tab was closed was never counted. */
+  function reconcilePicks(rounds) {
+    if (!rounds || !rounds.length) return 0;
+    var seen = {};
+    for (var i = 0; i < resolved.length; i++) seen[resolved[i]] = 1;
+    var added = 0;
+    for (var j = 0; j < rounds.length; j++) {
+      var r = rounds[j];
+      if (!r || !r.result) continue;
+      var t = r.kalshi_ticker;
+      var mine = picks[t];
+      if (!mine || seen[t]) continue;
+      if (mine.choice === r.result) record.wins++; else record.losses++;
+      resolved.push(t);
+      seen[t] = 1;
+      added++;
+    }
+    if (added) {
+      saveJSON(RECORD_KEY, record);
+      saveJSON(RESOLVED_KEY, resolved);
+      var el = document.getElementById('pickRecord');
+      if (el) el.textContent = record.wins + '-' + record.losses;
+    }
+    return added;
+  }
+
+  /* Ask for exactly as much history as the oldest unscored pick needs. The
+     visible Big Road window is often only a few hours, which is far too short
+     to catch up a record after a day away. */
+  function catchUpPicks() {
+    var seen = {}, oldest = null;
+    for (var i = 0; i < resolved.length; i++) seen[resolved[i]] = 1;
+    for (var t in picks) {
+      if (!picks.hasOwnProperty(t) || seen[t]) continue;
+      var ts = picks[t].ts || Date.now();
+      if (oldest === null || ts < oldest) oldest = ts;
+    }
+    if (oldest === null) return;
+    var hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
+    hours = Math.min(Math.max(hours, 24), 24 * 90);
+    fetch('/api/history?hours=' + hours + '&limit=5000')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) reconcilePicks(d.rounds || []); })
+      .catch(function () { /* offline; it will catch up next load */ });
+  }
+
   function resolvePersonalFeedback() {
     var s = state.last_settled;
     var fb = document.getElementById('personalFeedback');
@@ -2170,6 +2218,7 @@
       progressDone();
       if (reqId !== historyReqId) return;
       historyRounds = d.rounds;
+      reconcilePicks(d.rounds);
       renderHistCall();
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
@@ -2177,6 +2226,8 @@
       updateChartNavUI();
     }).catch(function () { progressDone(); });
   }
+
+  catchUpPicks();
 
   document.getElementById('refreshBtn').addEventListener('click', function () {
     // poll()/loadHistory() don't return their fetch promises (they self-manage the

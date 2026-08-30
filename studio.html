@@ -191,7 +191,7 @@
     z-index: 40; box-shadow: 0 20px 46px rgba(0,0,0,0.5);
     border-color: var(--amber); transition: none; opacity: 0.95;
   }
-  .panel-head {
+  .panel-head { position: relative;
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.42rem 0.55rem; flex: none;
     border-bottom: 1px solid var(--border); background: var(--surface-850);
@@ -430,7 +430,7 @@
   .cl-road-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
   .cl-road-col { display: flex; flex-direction: column; gap: 4px; padding: 3px; border-radius: 9px; border: 2px solid transparent; }
   .cl-road-col.dragon { border-color: var(--amber); }
-  .cl-bead { position: relative; width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; cursor: default; transition: transform .12s; }
+  .cl-bead { position: relative; width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: transform .12s; }
   .cl-bead:hover { transform: scale(1.06); z-index: 2; }
   .cl-bead.yes { background: var(--green); color: #05060a; }
   .cl-bead.no { background: var(--red); color: #05060a; }
@@ -871,6 +871,76 @@
   :root[data-skin="arcade"] .switcher-btn { border-width: 2px; }
   :root[data-skin="arcade"] .panel.dragging,
   :root[data-skin="arcade"] .panel.resizing { box-shadow: 7px 7px 0 rgba(0,0,0,0.6); }
+  :root[data-skin="solari"] {
+    --r-lg: 4px;
+    --r-md: 3px;
+    --r-sm: 2px;
+    --amber: #f0a92b;
+    --amber-deep: #c4841a;
+    --amber-soft: #ffd28a;
+    --bg-deep: #14161a;
+    --blue-derived: #6fc3d6;
+    --border: rgba(var(--ink-rgb), 0.20);
+    --cream: #f4efe4;
+    --dim: #b3ab99;
+    --faint: #9d9583;
+    --green: #4fd08a;
+    --ink-rgb: 244, 239, 228;
+    --red: #f0605f;
+    --red-derived: #f0837a;
+    --soft: #ddd6c6;
+    --surface-700: #363c45;
+    --surface-800: #2a2f36;
+    --surface-850: #22262c;
+    --surface-900: #1c1f24;
+    --sans: 'JetBrainsMono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  :root[data-skin="solari"][data-theme="light"] {
+    --amber: #8a5a06;
+    --amber-deep: #6b4504;
+    --amber-soft: #a87209;
+    --bg-deep: #e8e3d7;
+    --blue-derived: #146b7d;
+    --border: rgba(var(--ink-rgb), 0.22);
+    --cream: #1a1c20;
+    --dim: #5a5d64;
+    --faint: #64676e;
+    --green: #0d7a4e;
+    --ink-rgb: 26, 28, 32;
+    --red: #b8322f;
+    --red-derived: #a8452e;
+    --soft: #3b3e44;
+    --surface-700: #d2ccbe;
+    --surface-800: #e0dace;
+    --surface-850: #f2eee5;
+    --surface-900: #fffdf8;
+  }
+  /* The flap: a hairline across each panel head, and figures set in mono so the
+     numbers line up column-wise the way a real board's do. */
+  :root[data-skin="solari"] .panel {
+    box-shadow: 0 2px 0 rgba(0,0,0,0.35), 0 10px 24px rgba(0,0,0,0.30);
+  }
+  :root[data-skin="solari"][data-theme="light"] .panel {
+    box-shadow: 0 2px 0 rgba(26,28,32,0.10), 0 10px 22px rgba(26,28,32,0.10);
+  }
+  :root[data-skin="solari"] .panel-head {
+    background: var(--surface-850);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  :root[data-skin="solari"] .panel-head::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: rgba(0,0,0,0.30); pointer-events: none;
+  }
+  :root[data-skin="solari"][data-theme="light"] .panel-head::after {
+    background: rgba(26,28,32,0.12);
+  }
+  :root[data-skin="solari"] .btn,
+  :root[data-skin="solari"] .seg button,
+  :root[data-skin="solari"] .switcher-btn {
+    letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;
+  }
   :root[data-skin="pit"] {
     --r-lg: 14px;
     --r-md: 999px;
@@ -945,6 +1015,19 @@
   .cl-hc-row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.75rem; color: var(--dim); font-weight: 700; }
   .cl-hc-row b { color: var(--soft); font-weight: 800; }
   .cl-hc-note { font-size: 0.68rem; font-style: italic; color: var(--faint); }
+  /* Every sheet is position:fixed and gets its placement per id. */
+  #roundSheet {
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: min(460px, 94vw); max-height: 88vh; border-radius: var(--r-lg);
+  }
+  .rd-row { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+  .rd-row:last-child { border-bottom: none; }
+  .rd-row span { color: var(--dim); font-weight: 700; }
+  .rd-row b { color: var(--soft); font-weight: 800; }
+  .rd-row b.yes { color: var(--green); }
+  .rd-row b.no { color: var(--red); }
+  .rd-row b.hit { color: var(--amber); }
+  .rd-row b.miss { color: var(--red); }
 </style>
 </head>
 <body>
@@ -982,6 +1065,7 @@
     <option value="blueprint">Blueprint</option>
     <option value="arcade">Arcade</option>
     <option value="pit">The Pit</option>
+    <option value="solari">Solari</option>
   </select>
 
   <div class="chip" id="dataChip"><span class="dot" id="liveDot"></span><span id="dataText">loading…</span></div>
@@ -1034,10 +1118,20 @@
   <div class="sheet-foot">
     <button class="btn" id="jsonReset">Reset to Classic</button>
     <button class="btn" id="jsonAnalytics">Analytics preset</button>
+    <button class="btn" id="jsonSolari">Solari desk</button>
     <button class="btn" id="jsonPrev" style="display:none">My previous board</button>
     <button class="btn" id="jsonCopy">Copy</button>
     <button class="btn primary" id="jsonLoad">Load</button>
   </div>
+</div>
+
+<!-- one settled round, opened from a Big Road bead -->
+<div class="sheet" id="roundSheet">
+  <div class="sheet-head">
+    <div class="sheet-title" id="roundTitle">Round</div>
+    <button class="btn icon" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="sheet-body" id="roundBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1289,6 +1383,47 @@ function makePick(ticker, choice) {
   if (existing && existing.choice === choice) return;
   picks[ticker] = { choice: choice, ts: Date.now() };
   saveJSON(PICK_KEY, picks);
+}
+
+/* Score every settled round that carries a pick, not just the newest one.
+   resolveSettledPick() only ever saw state.last_settled, so a pick whose round
+   settled while the tab was closed could never be counted. */
+function reconcilePicks(rounds) {
+  if (!rounds || !rounds.length) return 0;
+  const seen = Object.create(null);
+  for (const t of resolvedPicks) seen[t] = 1;
+  let added = 0;
+  for (const r of rounds) {
+    if (!r || !r.result) continue;
+    const t = r.kalshi_ticker;
+    const mine = picks[t];
+    if (!mine || seen[t]) continue;
+    if (mine.choice === r.result) record.wins++; else record.losses++;
+    resolvedPicks.push(t);
+    seen[t] = 1;
+    added++;
+  }
+  if (added) { saveJSON(RECORD_KEY, record); saveJSON(RESOLVED_KEY, resolvedPicks); }
+  return added;
+}
+
+/* Fetch exactly as much history as the oldest unscored pick needs -- the board's
+   own window is often only a few hours, far too short to catch a record up. */
+function catchUpPicks() {
+  const seen = Object.create(null);
+  for (const t of resolvedPicks) seen[t] = 1;
+  let oldest = null;
+  for (const t of Object.keys(picks)) {
+    if (seen[t]) continue;
+    const ts = picks[t].ts || Date.now();
+    if (oldest === null || ts < oldest) oldest = ts;
+  }
+  if (oldest === null) return;
+  let hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
+  hours = Math.min(Math.max(hours, 24), 24 * 90);
+  getJSON("/api/history?hours=" + hours + "&limit=5000")
+    .then(d => { if (reconcilePicks(d.rounds || [])) renderBodies(); })
+    .catch(() => { /* offline; it will catch up next load */ });
 }
 
 /* Score a settled round exactly once, matching the fixed pages' bookkeeping. */
@@ -2586,7 +2721,7 @@ defViz("roadhistory", {
           const sign = hasD && r.delta >= 0 ? "+" : "-";
           const mine = picks[r.kalshi_ticker];
           const hit = mine && mine.choice === r.result;
-          grid += '<div class="cl-bead ' + r.result + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
+          grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
               + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.choice.toUpperCase() : "")) + '">'
             + '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
             + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
@@ -2727,6 +2862,31 @@ function defaultDashboard() {
       mkPanel("gauges", "live_price", { x: 0, y: 28, w: 14, h: 5 }, "Market Gauges"),
       mkPanel("roadhistory", "results", { x: 0, y: 33, w: 24, h: 13 }, "Big Road History"),
       mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread")
+    ]
+  };
+}
+
+/* A board that arrives already set up: the six modules that do not repeat one
+   another. Price-vs-Target, Round Card and Countdown are left out because Live
+   Price already draws the chart and the timer; Lean Bar and Current Spread
+   because Market Gauges already shows lean and distance; Round Confidence
+   because History Call is already a call, read from the other direction. */
+function solariDesk() {
+  return {
+    version: 2,
+    range: "24h",
+    bucket: "round",
+    refresh: 10,
+    panels: [
+      // Two columns that finish level at row 24, then the full-width rows.
+      // Heights are each module's natural size -- Market Gauges is a short
+      // three-bar readout and looks stranded in a tall panel.
+      mkPanel("livepick", "ticks", { x: 0, y: 0, w: 14, h: 17 }, "Live Price & Pick"),
+      mkPanel("results", "yes_rate", { x: 14, y: 0, w: 10, h: 14 }, "Results Sidebar"),
+      mkPanel("gauges", "live_price", { x: 0, y: 17, w: 14, h: 7 }, "Market Gauges"),
+      mkPanel("histcall", "yes_rate", { x: 14, y: 14, w: 10, h: 10 }, "History Call"),
+      mkPanel("roadhistory", "results", { x: 0, y: 24, w: 24, h: 13 }, "Big Road History"),
+      mkPanel("spreadledger", "deltas", { x: 0, y: 37, w: 24, h: 10 }, "Round-to-Round Spread")
     ]
   };
 }
@@ -3106,7 +3266,7 @@ function openSheet(id) {
 }
 function closeSheets() {
   scrim.classList.remove("show");
-  ["pickerSheet", "editSheet", "jsonSheet"].forEach(i => document.getElementById(i).classList.remove("show"));
+  ["pickerSheet", "editSheet", "jsonSheet", "roundSheet"].forEach(i => document.getElementById(i).classList.remove("show"));
 }
 scrim.addEventListener("click", closeSheets);
 document.addEventListener("click", e => {
@@ -3518,6 +3678,12 @@ function loadBoard(d, msg) {
 }
 document.getElementById("jsonReset").addEventListener("click", () => loadBoard(defaultDashboard(), "Classic board — same modules, same places"));
 document.getElementById("jsonAnalytics").addEventListener("click", () => loadBoard(analyticsPreset(), "Analytics board"));
+document.getElementById("jsonSolari").addEventListener("click", () => {
+  // the skin is half the point of this preset, so it comes with it
+  applySkin("solari");
+  try { localStorage.setItem(LS_SKIN, "solari"); } catch (e) { /* ignore */ }
+  loadBoard(solariDesk(), "Solari desk \u2014 six modules, nothing repeated");
+});
 document.getElementById("jsonPrev").addEventListener("click", () => {
   try {
     const d = JSON.parse(localStorage.getItem(LS_KEY_V1));
@@ -3587,7 +3753,7 @@ async function fetchData(full) {
     DATA.buckets = se.buckets || [];
     DATA.sum = se.summary || null;
     DATA.bucket = se.bucket;
-    if (hi) DATA.rounds = hi.rounds || [];
+    if (hi) { DATA.rounds = hi.rounds || []; reconcilePicks(DATA.rounds); }
     if (tk) DATA.ticks = tk.ticks || [];
     await Promise.all(Array.from(histWindowsNeeded()).map(hh => getJSON("/api/history?hours=" + hh)
       .then(d => { DATA.hist[hh] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() }; })
@@ -3628,6 +3794,51 @@ function localTick() {
 document.getElementById("resetClassicBtn").addEventListener("click",
   () => loadBoard(defaultDashboard(), "Classic board \u2014 same modules, same places"));
 
+/* --- Big Road bead -> round detail ------------------------------------
+   Classic pops a detail card on a bead; the Studio's road was display-only.
+   The bead carries its ticker, so the round can be found in whichever window
+   is currently loaded (the board's own rounds, or any cached hist window). */
+function findRound(ticker) {
+  const pools = [DATA.rounds || []];
+  for (const k of Object.keys(DATA.hist || {})) pools.push(DATA.hist[k].rounds || []);
+  for (const pool of pools) {
+    const hit = pool.find(r => r && r.kalshi_ticker === ticker);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+document.addEventListener("click", e => {
+  const bead = e.target.closest(".cl-bead[data-round]");
+  if (!bead) return;
+  const r = findRound(bead.getAttribute("data-round"));
+  if (!r) { toast("That round is outside the loaded window"); return; }
+
+  const hasD = r.delta !== null && r.delta !== undefined;
+  const mine = picks[r.kalshi_ticker];
+  const hit = mine && mine.choice === r.result;
+  const money = v => "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  document.getElementById("roundTitle").textContent =
+    fmtDateShort(r.close_time - 900) + " " + fmtHHMM(r.close_time - 900) + "\u2013" + fmtHHMM(r.close_time);
+
+  let html = '<div class="rd-row"><span>Result</span><b class="' + r.result + '">'
+    + (r.result === "yes" ? "YES" : "NO") + "</b></div>";
+  if (r.floor_strike != null)
+    html += '<div class="rd-row"><span>Target strike</span><b>' + money(r.floor_strike) + "</b></div>";
+  if (r.settlement_value != null)
+    html += '<div class="rd-row"><span>Settled at</span><b>' + money(r.settlement_value) + "</b></div>";
+  if (hasD)
+    html += '<div class="rd-row"><span>Distance from target</span><b>'
+      + (r.delta >= 0 ? "+" : "-") + money(Math.abs(r.delta)) + "</b></div>";
+  html += '<div class="rd-row"><span>Your call</span><b class="' + (mine ? (hit ? "hit" : "miss") : "") + '">'
+    + (mine ? mine.choice.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";
+  html += '<div class="rd-row"><span>Your record</span><b>' + record.wins + "W \u2013 " + record.losses + "L</b></div>";
+
+  document.getElementById("roundBody").innerHTML = html;
+  openSheet("roundSheet");
+});
+
 /* ============================ boot ============================ */
 
 function boot() {
@@ -3662,6 +3873,8 @@ function boot() {
   syncSegs();
   renderAll();
   fetchData(true);
+
+  catchUpPicks();
 
   timer = setInterval(fetchData, 10000);
   setInterval(localTick, 1000);
