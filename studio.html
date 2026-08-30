@@ -1028,6 +1028,85 @@
   .rd-row b.no { color: var(--red); }
   .rd-row b.hit { color: var(--amber); }
   .rd-row b.miss { color: var(--red); }
+
+  /* --- Your Scorecard --- */
+  .cl-sc { display: flex; flex-direction: column; gap: 0.6rem; }
+  .cl-sc-top { display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap; }
+  .cl-sc-rec { font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 900; color: var(--cream); }
+  .cl-sc-rec i { font-style: normal; font-size: 0.5em; color: var(--dim); margin-left: 1px; }
+  .cl-sc-rate { font-size: clamp(1.1rem, 3vw, 1.5rem); font-weight: 800; color: var(--amber); }
+  .cl-sc-band { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--dim); border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem 0.5rem; }
+  .cl-sc-rows { display: flex; flex-direction: column; gap: 0.22rem; }
+  .cl-sc-row { display: flex; justify-content: space-between; gap: 0.6rem; font-size: 0.78rem; color: var(--dim); font-weight: 700; }
+  .cl-sc-row b { color: var(--soft); font-weight: 800; }
+  .cl-sc-row b.ok { color: var(--green); }
+  .cl-sc-row b.bad { color: var(--red); }
+
+  /* --- Streak Ladder --- */
+  .cl-sl { display: flex; flex-direction: column; gap: 0.3rem; }
+  .cl-sl-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+  .cl-sl-row.live .cl-sl-k { color: var(--amber); }
+  .cl-sl-k { width: 1.8rem; text-align: right; font-weight: 800; color: var(--dim); font-family: var(--mono); }
+  .cl-sl-bar { position: relative; flex: 1; height: 12px; background: var(--surface-800); border-radius: 999px; overflow: hidden; }
+  .cl-sl-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--amber); opacity: 0.75; }
+  .cl-sl-bar u { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--cream); opacity: 0.85; }
+  .cl-sl-v { width: 2.4rem; text-align: right; font-weight: 800; color: var(--soft); font-family: var(--mono); }
+  .cl-sl-note { margin-top: 0.35rem; font-size: 0.68rem; color: var(--faint); font-style: italic; }
+
+  /* --- Volatility Clock --- */
+  .cl-vc { display: flex; flex-direction: column; gap: 0.4rem; height: 100%; }
+  .cl-vc-grid { flex: 1; min-height: 60px; display: flex; align-items: flex-end; gap: 2px; }
+  .cl-vc-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+  .cl-vc-col i { display: block; width: 100%; background: var(--amber); opacity: 0.6; border-radius: 2px 2px 0 0; }
+  .cl-vc-col.now i { opacity: 1; background: var(--green); }
+  .cl-vc-col span { font-size: 0.55rem; color: var(--faint); font-family: var(--mono); margin-top: 2px; }
+  .cl-vc-note { font-size: 0.68rem; color: var(--faint); font-style: italic; }
+
+  /* --- Settlement Margin --- */
+  .cl-mg { display: flex; flex-direction: column; gap: 0.5rem; }
+  .cl-mg-top { display: flex; align-items: baseline; gap: 0.5rem; }
+  .cl-mg-big { font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 900; color: var(--cream); }
+  .cl-mg-lab { font-size: 0.72rem; color: var(--dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-mg-seg { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--surface-800); }
+  .cl-mg-seg i { display: block; height: 100%; }
+  .cl-mg-rows { display: flex; flex-direction: column; gap: 0.2rem; }
+  .cl-mg-row { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--dim); font-weight: 700; }
+  .cl-mg-row b { color: var(--soft); font-weight: 800; }
+  .cl-mg-row em { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 0.4rem; }
+  .b0 { background: var(--red); } .b1 { background: var(--amber); } .b2 { background: var(--amber-soft); }
+  .b3 { background: var(--blue-derived); } .b4 { background: var(--green); }
+  .cl-mg-note { font-size: 0.68rem; color: var(--faint); font-style: italic; }
+
+  /* --- Pattern Table --- */
+  .cl-pt { display: flex; flex-direction: column; gap: 0.15rem; font-family: var(--mono); }
+  .cl-pt-head, .cl-pt-row {
+    display: grid; grid-template-columns: 3.6rem 2.6rem 3.4rem 5.6rem 2.6rem 3rem;
+    gap: 0.4rem; align-items: center; font-size: 0.74rem;
+  }
+  .cl-pt-head { color: var(--faint); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em; padding-bottom: 0.2rem; border-bottom: 1px solid var(--border); }
+  .cl-pt-row { padding: 0.18rem 0; border-bottom: 1px solid rgba(var(--ink-rgb), 0.05); }
+  .cl-pt-row.live { background: rgba(var(--ink-rgb), 0.06); border-radius: var(--r-sm); }
+  .cl-pt-row.live .cl-pt-ctx { color: var(--amber); }
+  .cl-pt-ctx { font-weight: 800; color: var(--soft); }
+  .cl-pt-side { font-weight: 900; }
+  .cl-pt-side.yes { color: var(--green); } .cl-pt-side.no { color: var(--red); }
+  .cl-pt-p { font-weight: 800; color: var(--cream); }
+  .cl-pt-ci, .cl-pt-n { color: var(--dim); }
+  .cl-pt-lean { text-align: right; color: var(--dim); font-weight: 700; }
+  .cl-pt-lean.big { color: var(--amber); }
+  .cl-pt-note { margin-top: 0.4rem; font-size: 0.68rem; color: var(--faint); font-style: italic; font-family: var(--sans); }
+
+  /* --- Arrangements sheet --- */
+  #arrangeSheet {
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: min(560px, 94vw); max-height: 88vh; border-radius: var(--r-lg);
+  }
+  .arr-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+  .arr-row:last-child { border-bottom: none; }
+  .arr-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+  .arr-name { font-weight: 800; color: var(--cream); }
+  .arr-desc { font-size: 0.72rem; color: var(--dim); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -1073,6 +1152,7 @@
   <button class="btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add panel</button>
   <button class="btn" id="editBtn" title="Toggle edit mode (move + resize)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span id="editLabel">Edit</span></button>
   <button class="btn" id="resetClassicBtn" title="Put every module back exactly where Classic has it">Reset to Classic</button>
+  <button class="btn" id="arrangeBtn" title="Ready-made board arrangements">Arrangements</button>
   <button class="btn icon" id="jsonBtn" title="Export / import dashboard JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
   <button class="btn icon" id="themeBtn" title="Light / dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
 </div>
@@ -1118,7 +1198,6 @@
   <div class="sheet-foot">
     <button class="btn" id="jsonReset">Reset to Classic</button>
     <button class="btn" id="jsonAnalytics">Analytics preset</button>
-    <button class="btn" id="jsonSolari">Solari desk</button>
     <button class="btn" id="jsonPrev" style="display:none">My previous board</button>
     <button class="btn" id="jsonCopy">Copy</button>
     <button class="btn primary" id="jsonLoad">Load</button>
@@ -1126,6 +1205,18 @@
 </div>
 
 <!-- one settled round, opened from a Big Road bead -->
+<!-- built-in arrangements -->
+<div class="sheet" id="arrangeSheet">
+  <div class="sheet-head">
+    <div class="sheet-title">Arrangements</div>
+    <button class="btn icon" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <p class="hint">Ready-made boards. Picking one replaces the current layout — your skin stays as it is, except the Solari desk which brings its own.</p>
+    <div id="arrangeList"></div>
+  </div>
+</div>
+
 <div class="sheet" id="roundSheet">
   <div class="sheet-head">
     <div class="sheet-title" id="roundTitle">Round</div>
@@ -1549,8 +1640,9 @@ function computeBigEyeBoy(columns) {
    each distinct window in use is fetched once per cycle into DATA.hist[hours]. */
 const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours", 6: "6 Hours", 8: "8 Hours", 12: "12 Hours", 24: "24 Hours", 168: "7 Days" };
 const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
-const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1 };
-const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
+const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1,
+                     scorecard: 1, streakladder: 1, volclock: 1, margin: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
 
 function panelHours(p) { return num(p.options.hours, 24); }
 function histWindowsNeeded() {
@@ -2585,6 +2677,237 @@ defViz("histcall", {
   }
 });
 
+/* ============================ new modules ============================
+   Each reads the panel's own history window (p.options.hours) via histFor(),
+   the same way the Classic ports do, so the timeframe buttons still drive them. */
+
+function wilson95(k, n) {
+  if (!n) return [0, 1];
+  const z = 1.96, p = k / n, d = 1 + z * z / n;
+  const c = (p + z * z / (2 * n)) / d;
+  const h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d;
+  return [c - h, c + h];
+}
+
+/* --- Your Scorecard ----------------------------------------------------- */
+defViz("scorecard", {
+  label: "Your Scorecard", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="6" y="7" width="32" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 20l5 5 11-11" fill="none" stroke="currentColor" stroke-width="3"/>',
+  defaults: { hours: 24 },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading your calls…"); }
+    const rounds = hist.rounds || [];
+
+    // graded calls inside this window, oldest first, so runs read correctly
+    const graded = [];
+    for (const r of rounds) {
+      const mine = picks[r.kalshi_ticker];
+      if (mine && r.result) graded.push(mine.choice === r.result);
+    }
+    const wins = record.wins || 0, losses = record.losses || 0, total = wins + losses;
+
+    if (!total && !graded.length) {
+      return empty("No graded calls yet — make a pick and it will score itself when the round settles");
+    }
+
+    const rate = total ? wins / total : 0;
+    const [lo, hi] = wilson95(wins, total);
+    const beats = total ? (lo > 0.5 ? "ahead of a coin flip" : hi < 0.5 ? "behind a coin flip" : "inside coin-flip range") : "—";
+
+    // current run and best run of correct calls, within the window
+    let run = 0, runKind = null, best = 0, cur = 0;
+    for (const ok of graded) {
+      if (ok) { cur++; best = Math.max(best, cur); } else { cur = 0; }
+    }
+    for (let i = graded.length - 1; i >= 0; i--) {
+      if (runKind === null) { runKind = graded[i]; run = 1; }
+      else if (graded[i] === runKind) run++;
+      else break;
+    }
+
+    const pct = v => (v * 100).toFixed(1) + "%";
+    return '<div class="cl-sc">'
+      + '<div class="cl-sc-top"><span class="cl-sc-rec">' + wins + "<i>W</i> " + losses + "<i>L</i></span>"
+        + '<span class="cl-sc-rate">' + (total ? pct(rate) : "—") + "</span>"
+        + '<span class="cl-sc-band">' + esc(beats) + "</span></div>"
+      + '<div class="cl-sc-rows">'
+        + '<div class="cl-sc-row"><span>Graded calls</span><b>' + total + "</b></div>"
+        + '<div class="cl-sc-row"><span>95% interval</span><b>'
+          + (total ? pct(lo) + " – " + pct(hi) : "—") + "</b></div>"
+        + '<div class="cl-sc-row"><span>Current run</span><b class="' + (runKind ? "ok" : "bad") + '">'
+          + (run ? run + (runKind ? " correct" : " wrong") : "—") + "</b></div>"
+        + '<div class="cl-sc-row"><span>Best run (this window)</span><b>' + (best || "—") + "</b></div>"
+        + '<div class="cl-sc-row"><span>Called in last ' + hrs + "h</span><b>" + graded.length
+          + " of " + rounds.length + "</b></div>"
+      + "</div></div>";
+  }
+});
+
+/* --- Streak Ladder ------------------------------------------------------ */
+defViz("streakladder", {
+  label: "Streak Ladder", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="6" y="28" width="6" height="9" fill="currentColor"/><rect x="15" y="22" width="6" height="15" fill="currentColor" opacity=".8"/><rect x="24" y="16" width="6" height="21" fill="currentColor" opacity=".6"/><rect x="33" y="10" width="6" height="27" fill="currentColor" opacity=".4"/>',
+  defaults: { hours: 168 },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading streaks…"); }
+    const rs = hist.rounds || [];
+    if (rs.length < 20) return empty("Not enough settled rounds in this window");
+
+    // every completed run's length
+    const runs = [];
+    let len = 0, prev = null;
+    for (const r of rs) {
+      if (r.result === prev) len++;
+      else { if (prev !== null) runs.push(len); prev = r.result; len = 1; }
+    }
+    const liveRun = len;                       // the run still in progress
+    if (!runs.length) return empty("No completed runs yet");
+
+    const MAX = 6;
+    const counts = new Array(MAX + 1).fill(0);
+    for (const L of runs) counts[Math.min(L, MAX)]++;
+    // a fair coin makes a run of exactly L with probability 1/2^L
+    const total = runs.length;
+    const expected = i => total * (i >= MAX ? Math.pow(0.5, MAX - 1) : Math.pow(0.5, i));
+    const top = Math.max.apply(null, counts.slice(1).concat([1]));
+
+    let bars = "";
+    for (let L = 1; L <= MAX; L++) {
+      const obs = counts[L], exp = expected(L);
+      const live = L === Math.min(liveRun, MAX);
+      bars += '<div class="cl-sl-row' + (live ? " live" : "") + '">'
+        + '<span class="cl-sl-k">' + (L === MAX ? MAX + "+" : L) + "</span>"
+        + '<span class="cl-sl-bar"><i style="width:' + (obs / top * 100).toFixed(1) + '%"></i>'
+          + '<u style="left:' + Math.min(100, exp / top * 100).toFixed(1) + '%"></u></span>'
+        + '<span class="cl-sl-v">' + obs + "</span></div>";
+    }
+    return '<div class="cl-sl">' + bars
+      + '<div class="cl-sl-note">' + total + " runs in " + hrs + "h · bar = observed, tick = a coin flip's expectation"
+      + (liveRun ? " · live run " + liveRun : "") + "</div></div>";
+  }
+});
+
+/* --- Volatility Clock --------------------------------------------------- */
+defViz("volclock", {
+  label: "Volatility Clock", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<circle cx="22" cy="22" r="15" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M22 12v10l7 5" fill="none" stroke="currentColor" stroke-width="3"/>',
+  defaults: { hours: 168 },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading move sizes…"); }
+    const rs = (hist.rounds || []).filter(r => r.delta !== null && r.delta !== undefined);
+    if (rs.length < 24) return empty("Not enough settled rounds in this window");
+
+    const byHour = Array.from({ length: 24 }, () => []);
+    for (const r of rs) byHour[new Date(r.close_time * 1000).getHours()].push(Math.abs(r.delta));
+    const med = a => {
+      if (!a.length) return null;
+      const b = a.slice().sort((x, y) => x - y);
+      const m = Math.floor(b.length / 2);
+      return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2;
+    };
+    const meds = byHour.map(med);
+    const top = Math.max.apply(null, meds.filter(v => v !== null).concat([1]));
+    const nowH = new Date().getHours();
+
+    let bars = "";
+    for (let h = 0; h < 24; h++) {
+      const v = meds[h];
+      const ht = v === null ? 0 : Math.max(2, v / top * 100);
+      bars += '<div class="cl-vc-col' + (h === nowH ? " now" : "") + '" title="'
+        + esc(String(h).padStart(2, "0") + ":00 — " + (v === null ? "no data" : "median $" + v.toFixed(0) + " over " + byHour[h].length + " rounds"))
+        + '"><i style="height:' + ht.toFixed(1) + '%"></i><span>'
+        + (h % 3 === 0 ? String(h).padStart(2, "0") : "") + "</span></div>";
+    }
+    const overall = med(rs.map(r => Math.abs(r.delta)));
+    return '<div class="cl-vc"><div class="cl-vc-grid">' + bars + "</div>"
+      + '<div class="cl-vc-note">Median move by hour · overall $' + overall.toFixed(0)
+      + " · " + rs.length + " rounds / " + hrs + "h · size clusters even though direction does not</div></div>";
+  }
+});
+
+/* --- Settlement Margin -------------------------------------------------- */
+defViz("margin", {
+  label: "Settlement Margin", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="18" width="34" height="8" rx="4" fill="currentColor" opacity=".25"/><rect x="5" y="18" width="12" height="8" rx="4" fill="currentColor"/><path d="M22 12v20" stroke="currentColor" stroke-width="2.5"/>',
+  defaults: { hours: 24 },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading margins…"); }
+    const rs = (hist.rounds || []).filter(r => r.delta !== null && r.delta !== undefined);
+    if (!rs.length) return empty("No settled rounds in this window");
+
+    const cuts = [10, 25, 50, 100];
+    const labels = ["≤ $10", "≤ $25", "≤ $50", "≤ $100", "> $100"];
+    const buckets = new Array(5).fill(0);
+    for (const r of rs) {
+      const a = Math.abs(r.delta);
+      let i = cuts.findIndex(c => a <= c);
+      buckets[i === -1 ? 4 : i]++;
+    }
+    const sorted = rs.map(r => Math.abs(r.delta)).sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    const within25 = (buckets[0] + buckets[1]) / rs.length;
+
+    let seg = "", rows = "";
+    for (let i = 0; i < 5; i++) {
+      const share = buckets[i] / rs.length;
+      seg += '<i class="b' + i + '" style="width:' + (share * 100).toFixed(2) + '%"></i>';
+      rows += '<div class="cl-mg-row"><span><em class="b' + i + '"></em>' + labels[i] + "</span><b>"
+        + (share * 100).toFixed(1) + "% · " + buckets[i] + "</b></div>";
+    }
+    return '<div class="cl-mg">'
+      + '<div class="cl-mg-top"><span class="cl-mg-big">$' + median.toFixed(0) + '</span>'
+        + '<span class="cl-mg-lab">median distance from target</span></div>'
+      + '<div class="cl-mg-seg">' + seg + "</div>"
+      + '<div class="cl-mg-rows">' + rows + "</div>"
+      + '<div class="cl-mg-note">' + (within25 * 100).toFixed(0) + "% of the last " + rs.length
+      + " rounds finished within $25 of the strike — those were coin flips in all but name</div></div>";
+  }
+});
+
+/* --- Pattern Table ------------------------------------------------------ */
+defViz("patterntable", {
+  label: "Pattern Table", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="6" y="9" width="32" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 18h32M17 9v26" stroke="currentColor" stroke-width="2"/>',
+  defaults: {},
+  render(p, D) {
+    const rs = D.rounds || [];
+    const live = rs.length >= 3
+      ? rs.slice(-3).map(r => (r.result === "yes" ? "Y" : "N")).join("")
+      : null;
+    const order = ["NNN", "NNY", "NYN", "NYY", "YNN", "YNY", "YYN", "YYY"];
+    let rows = "";
+    for (const ctx of order) {
+      const t = HC_TABLE[ctx];
+      if (!t) continue;
+      const yes = t.p >= 0.5;
+      const lean = ((t.p - 0.5) * 100);
+      rows += '<div class="cl-pt-row' + (ctx === live ? " live" : "") + '">'
+        + '<span class="cl-pt-ctx">' + ctx.split("").join(" ") + "</span>"
+        + '<span class="cl-pt-side ' + (yes ? "yes" : "no") + '">' + (yes ? "YES" : "NO") + "</span>"
+        + '<span class="cl-pt-p">' + (t.p * 100).toFixed(1) + "%</span>"
+        + '<span class="cl-pt-ci">' + (t.lo * 100).toFixed(1) + "–" + (t.hi * 100).toFixed(1) + "%</span>"
+        + '<span class="cl-pt-n">' + t.n + "</span>"
+        + '<span class="cl-pt-lean' + (Math.abs(lean) >= 3 ? " big" : "") + '">'
+          + (lean >= 0 ? "+" : "") + lean.toFixed(1) + "</span></div>";
+    }
+    return '<div class="cl-pt">'
+      + '<div class="cl-pt-head"><span>Last 3</span><span>Call</span><span>P(YES)</span>'
+        + "<span>95% CI</span><span>n</span><span>Lean</span></div>"
+      + rows
+      + '<div class="cl-pt-note">' + (live ? "Live pattern " + live.split("").join(" ") + " highlighted. " : "")
+      + "Every interval spans 50%, so none of these eight is distinguishable from a coin flip.</div></div>";
+  }
+});
+
 defViz("spreadnow", {
   label: "Current Spread", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="16" width="22" height="12" rx="6" fill="currentColor" opacity=".25"/><text x="9" y="25" fill="currentColor" font-size="9" font-weight="800" font-family="monospace">+$45</text><path d="M32 25l3-3 3 3M35 22v6" fill="none" stroke="currentColor" stroke-width="2"/>',
@@ -3266,7 +3589,7 @@ function openSheet(id) {
 }
 function closeSheets() {
   scrim.classList.remove("show");
-  ["pickerSheet", "editSheet", "jsonSheet", "roundSheet"].forEach(i => document.getElementById(i).classList.remove("show"));
+  ["pickerSheet", "editSheet", "jsonSheet", "roundSheet", "arrangeSheet"].forEach(i => document.getElementById(i).classList.remove("show"));
 }
 scrim.addEventListener("click", closeSheets);
 document.addEventListener("click", e => {
@@ -3678,12 +4001,7 @@ function loadBoard(d, msg) {
 }
 document.getElementById("jsonReset").addEventListener("click", () => loadBoard(defaultDashboard(), "Classic board — same modules, same places"));
 document.getElementById("jsonAnalytics").addEventListener("click", () => loadBoard(analyticsPreset(), "Analytics board"));
-document.getElementById("jsonSolari").addEventListener("click", () => {
-  // the skin is half the point of this preset, so it comes with it
-  applySkin("solari");
-  try { localStorage.setItem(LS_SKIN, "solari"); } catch (e) { /* ignore */ }
-  loadBoard(solariDesk(), "Solari desk \u2014 six modules, nothing repeated");
-});
+
 document.getElementById("jsonPrev").addEventListener("click", () => {
   try {
     const d = JSON.parse(localStorage.getItem(LS_KEY_V1));
@@ -3718,7 +4036,8 @@ function rangeDays() {
 function needsRounds() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
-    return (m && m.kind === "rounds") || p.type === "pricetrack" || p.type === "livepick" || p.type === "histcall";  // both page back through them
+    return (m && m.kind === "rounds") || p.type === "pricetrack" || p.type === "livepick" || p.type === "histcall"
+      || p.type === "patterntable";  // both page back through them
   });
 }
 function needsTicks() {
@@ -3837,6 +4156,97 @@ document.addEventListener("click", e => {
 
   document.getElementById("roundBody").innerHTML = html;
   openSheet("roundSheet");
+});
+
+/* ============================ arrangements ============================
+   Layouts only -- they leave the skin alone so the look you picked survives,
+   except the Solari desk, whose skin is half its point. */
+
+function boardPlayer() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [
+    mkPanel("livepick", "ticks", { x: 0, y: 0, w: 15, h: 17 }, "Live Price & Pick"),
+    mkPanel("scorecard", "yes_rate", { x: 15, y: 0, w: 9, h: 9 }, "Your Scorecard"),
+    mkPanel("histcall", "yes_rate", { x: 15, y: 9, w: 9, h: 8 }, "History Call"),
+    mkPanel("roadhistory", "results", { x: 0, y: 17, w: 24, h: 13 }, "Big Road History")
+  ] };
+}
+
+function boardAnalyst() {
+  return { version: 2, range: "7d", bucket: "hour", refresh: 10, panels: [
+    mkPanel("patterntable", "yes_rate", { x: 0, y: 0, w: 13, h: 11 }, "Pattern Table"),
+    mkPanel("histcall", "yes_rate", { x: 13, y: 0, w: 11, h: 11 }, "History Call"),
+    mkPanel("streakladder", "results", { x: 0, y: 11, w: 13, h: 9 }, "Streak Ladder"),
+    mkPanel("results", "yes_rate", { x: 13, y: 11, w: 11, h: 9 }, "Results Sidebar"),
+    mkPanel("roadhistory", "results", { x: 0, y: 20, w: 24, h: 13 }, "Big Road History")
+  ] };
+}
+
+function boardTapeRoom() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [
+    mkPanel("livepick", "ticks", { x: 0, y: 0, w: 14, h: 17 }, "Live Price & Pick"),
+    mkPanel("margin", "deltas", { x: 14, y: 0, w: 10, h: 10 }, "Settlement Margin"),
+    mkPanel("gauges", "live_price", { x: 14, y: 10, w: 10, h: 7 }, "Market Gauges"),
+    mkPanel("volclock", "deltas", { x: 0, y: 17, w: 24, h: 8 }, "Volatility Clock"),
+    mkPanel("spreadledger", "deltas", { x: 0, y: 25, w: 24, h: 10 }, "Round-to-Round Spread")
+  ] };
+}
+
+function boardMinimal() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [
+    mkPanel("livepick", "ticks", { x: 0, y: 0, w: 24, h: 17 }, "Live Price & Pick"),
+    mkPanel("roadhistory", "results", { x: 0, y: 17, w: 24, h: 13 }, "Big Road History")
+  ] };
+}
+
+function boardWall() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [
+    mkPanel("roundcard", "live_price", { x: 0, y: 0, w: 10, h: 8 }, "This Round"),
+    mkPanel("countdown", "live_price", { x: 10, y: 0, w: 6, h: 8 }, "Closes In"),
+    mkPanel("scorecard", "yes_rate", { x: 16, y: 0, w: 8, h: 8 }, "Your Scorecard"),
+    mkPanel("leanbar", "distance", { x: 0, y: 8, w: 24, h: 4 }, "Lean"),
+    mkPanel("roadhistory", "results", { x: 0, y: 12, w: 24, h: 14 }, "Big Road History")
+  ] };
+}
+
+const ARRANGEMENTS = [
+  { id: "classic", name: "Classic", desc: "The fixed page's seven modules, module for module.", make: defaultDashboard },
+  { id: "player", name: "Player", desc: "Your own play: the round, your scorecard, the history call, the road.", make: boardPlayer },
+  { id: "analyst", name: "Analyst", desc: "All eight patterns, the streak ladder and the road, over a week.", make: boardAnalyst },
+  { id: "taperoom", name: "Tape Room", desc: "Market motion: margins, the volatility clock and the spread ledger.", make: boardTapeRoom },
+  { id: "wall", name: "Wall", desc: "Big-screen glance: this round, the clock, your record, the road.", make: boardWall },
+  { id: "minimal", name: "Minimal", desc: "Just the round and the Big Road, full width.", make: boardMinimal },
+  { id: "solari", name: "Solari desk", desc: "Six non-repeating modules, and the split-flap skin to go with them.", make: solariDesk, skin: "solari" },
+  { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset }
+];
+
+function renderArrangements() {
+  const wrap = document.getElementById("arrangeList");
+  wrap.innerHTML = "";
+  for (const a of ARRANGEMENTS) {
+    const row = document.createElement("div");
+    row.className = "arr-row";
+    const txt = document.createElement("div");
+    txt.className = "arr-txt";
+    const n = document.createElement("span"); n.className = "arr-name"; n.textContent = a.name;
+    const d = document.createElement("span"); d.className = "arr-desc"; d.textContent = a.desc;
+    txt.appendChild(n); txt.appendChild(d);
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.textContent = "Use";
+    btn.addEventListener("click", () => {
+      if (a.skin) {
+        applySkin(a.skin);
+        try { localStorage.setItem(LS_SKIN, a.skin); } catch (e) { /* ignore */ }
+      }
+      loadBoard(a.make(), a.name + " arrangement");
+    });
+    row.appendChild(txt); row.appendChild(btn);
+    wrap.appendChild(row);
+  }
+}
+document.getElementById("arrangeBtn").addEventListener("click", () => {
+  renderArrangements();
+  openSheet("arrangeSheet");
 });
 
 /* ============================ boot ============================ */
