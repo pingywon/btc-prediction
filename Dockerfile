@@ -1,5 +1,7 @@
 FROM python:3-slim
 
+LABEL org.opencontainers.image.version="4.12.0"
+
 WORKDIR /app
 COPY app.py index.html algo.html studio.html README.md ./
 COPY fonts/ ./fonts/

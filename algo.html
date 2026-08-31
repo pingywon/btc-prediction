@@ -452,6 +452,7 @@
   .foot-link { font-size: 0.68rem; font-weight: 800; color: var(--blue-derived); text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; }
   .foot-link:hover { color: var(--amber); }
   .foot-bar { width: 44px; height: 3px; background: var(--blue-derived); border-radius: 999px; opacity: 0.3; }
+  .foot-version { font-size: 0.62rem; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-deep); }
@@ -467,7 +468,7 @@
   @keyframes topProgressSlide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
 
   /* ===================================================================
-     CONTROL ERGONOMICS -- v4.6.0
+     CONTROL ERGONOMICS
      Every control here was authored between 17px and 30px with 0.6-0.7rem
      labels: under the ~44px a thumb needs, and hard to read at a glance.
      This block is intentionally LAST in the sheet so it wins on equal
@@ -515,7 +516,7 @@
 
 
   /* ===================================================================
-     LIVE PRICE HERO -- v4.6.0
+     LIVE PRICE HERO
      The round clock and target strike live directly under the live price,
      which is right -- but they were set as fine print (0.6rem captions,
      0.64rem delta) beneath a price up to 3.6rem, so they read as footnotes
@@ -877,6 +878,7 @@
   <footer class="page-foot">
     <a class="foot-link" href="/">&larr; Back to the main dashboard</a>
     <div class="foot-bar"></div>
+    <div class="foot-version" id="footVersion"></div>
   </footer>
 </div>
 
@@ -1390,6 +1392,20 @@
     var xScale = function (ts) { return PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2); };
     var yScale = function (p) { return H - PAD - ((p - minP) / span) * (H - PAD * 2); };
 
+    /* Uprights at the 5- and 10-minute marks, splitting the round into thirds. */
+    [300, 600].forEach(function (sec) {
+      var v = document.createElementNS(ns, 'line');
+      var vx = xScale(t0 + sec);
+      v.setAttribute('x1', vx); v.setAttribute('x2', vx);
+      v.setAttribute('y1', PAD); v.setAttribute('y2', H - PAD);
+      v.setAttribute('stroke', 'var(--border)');
+      v.setAttribute('stroke-width', '1');
+      v.setAttribute('stroke-dasharray', '3,3');
+      v.setAttribute('opacity', '0.35');
+      v.setAttribute('vector-effect', 'non-scaling-stroke');
+      svgEl.appendChild(v);
+    });
+
     var strikeY = yScale(strike);
     var strikeLine = document.createElementNS(ns, 'line');
     strikeLine.setAttribute('x1', PAD); strikeLine.setAttribute('x2', W - PAD);
@@ -1699,6 +1715,7 @@
       clockOffsetMs = (d.now * 1000) - Date.now();
       lastPriceUpdateMs = Date.now();
       state = d;
+      if (d.version) document.getElementById('footVersion').textContent = 'v' + d.version;
       render();
       if (chartViewMode === 'live') loadPriceChart(d.current_round);
       handleSettlement(d.last_settled);

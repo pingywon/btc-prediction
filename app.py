@@ -25,6 +25,10 @@ DB_PATH = os.environ.get("BP_DB", os.path.join(HERE, "data.db"))
 PORT = int(os.environ.get("PORT", "80"))
 BIND = os.environ.get("BIND", "0.0.0.0")
 
+# Single source of truth for the app version. Bump here first on every release;
+# the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
+VERSION = "4.12.0"
+
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
 # Studio with that skin selected.
@@ -581,7 +585,7 @@ class Handler(BaseHTTPRequestHandler):
             if path.startswith("/fonts/"):
                 return self._serve_font(path[len("/fonts/"):])
             if path == "/health":
-                return self._send(200, json.dumps({"ok": True, "catching_up": STATE["catching_up"]}).encode())
+                return self._send(200, json.dumps({"ok": True, "version": VERSION, "catching_up": STATE["catching_up"]}).encode())
             if path == "/api/state":
                 return self._api_state()
             if path == "/api/history":
@@ -633,7 +637,7 @@ class Handler(BaseHTTPRequestHandler):
     def _api_state(self):
         touch_client()
         cur = current_round_row()
-        payload = {"now": time.time(), "catching_up": STATE["catching_up"], "current_round": None,
+        payload = {"now": time.time(), "version": VERSION, "catching_up": STATE["catching_up"], "current_round": None,
                    "last_settled": None, "live_price": STATE["live_price"],
                    "live_price_source": STATE["live_price_source"], "lean": None,
                    "ticks": STATE["recent_ticks"][-120:]}

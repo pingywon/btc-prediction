@@ -191,6 +191,7 @@
     z-index: 40; box-shadow: 0 20px 46px rgba(0,0,0,0.5);
     border-color: var(--amber); transition: none; opacity: 0.95;
   }
+  .panel.swap-target { outline: 2px dashed var(--amber); outline-offset: -2px; }
   .panel-head { position: relative;
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.42rem 0.55rem; flex: none;
@@ -1677,7 +1678,14 @@ function trackSvgStretch(ticks, round, lw) {
   const X = ts => PAD + ((ts - t0) / Math.max(1, t1 - t0)) * (W - PAD * 2);
   const Y = pr => H - PAD - ((pr - minP) / span) * (H - PAD * 2);
   const sy = Y(strike);
-  let s = '<line x1="' + PAD + '" y1="' + sy.toFixed(2) + '" x2="' + (W - PAD) + '" y2="' + sy.toFixed(2)
+  /* Uprights at the 5- and 10-minute marks, splitting the round into thirds. */
+  let s = "";
+  [300, 600].forEach(sec => {
+    const vx = X(t0 + sec).toFixed(2);
+    s += '<line x1="' + vx + '" y1="' + PAD + '" x2="' + vx + '" y2="' + (H - PAD)
+      + '" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3" opacity="0.35" vector-effect="non-scaling-stroke"/>';
+  });
+  s += '<line x1="' + PAD + '" y1="' + sy.toFixed(2) + '" x2="' + (W - PAD) + '" y2="' + sy.toFixed(2)
     + '" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7" vector-effect="non-scaling-stroke"/>';
   for (let i = 1; i < ticks.length; i++) {
     s += '<line x1="' + X(ticks[i - 1][0]).toFixed(2) + '" y1="' + Y(ticks[i - 1][1]).toFixed(2)
@@ -2319,6 +2327,12 @@ defViz("pricetrack", {
       const Y = pr => H - PAD - ((pr - minP) / span) * (H - PAD * 2);
       const sy = Y(strike);
       let s = "";
+      /* Uprights at the 5- and 10-minute marks, splitting the round into thirds. */
+      [300, 600].forEach(sec => {
+        const vx = X(t0 + sec).toFixed(2);
+        s += '<line x1="' + vx + '" y1="' + PAD + '" x2="' + vx + '" y2="' + (H - PAD)
+          + '" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3" opacity="0.35"/>';
+      });
 
       if (p.options.showFill) {
         // area between the track and the strike, split at the crossings
@@ -3268,6 +3282,27 @@ function collides(a, b) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
 
+function overlapArea(a, b) {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return (w > 0 && h > 0) ? w * h : 0;
+}
+
+/* The panel the drop "landed on", judged against where every panel stood when the
+   drag STARTED -- the live push-down has already shoved the victim aside by drop
+   time, so current positions are useless for this. A hit needs >= half the smaller
+   panel's area covered, so small-onto-big and big-onto-small both read naturally. */
+function swapCandidate(rect, snapshot) {
+  let best = null, bestArea = 0;
+  for (const entry of snapshot || []) {
+    const area = overlapArea(rect, entry);
+    if (area > bestArea) { bestArea = area; best = entry; }
+  }
+  if (!best) return null;
+  const need = 0.5 * Math.min(rect.w * rect.h, best.w * best.h);
+  return bestArea >= need ? best : null;
+}
+
 /* Grafana-style: whatever the user is holding wins, everything it lands on drops below it. */
 function resolveCollisions(active) {
   let guard = 0, moved = true;
@@ -3339,7 +3374,10 @@ function onPointerDown(e, p, mode) {
   drag = {
     p: p, el: el, mode: mode,
     startX: e.clientX, startY: e.clientY,
-    orig: Object.assign({}, p.gridPos)
+    orig: Object.assign({}, p.gridPos),
+    snapshot: DASH.panels.filter(q => q !== p).map(q => ({
+      p: q, x: q.gridPos.x, y: q.gridPos.y, w: q.gridPos.w, h: q.gridPos.h
+    }))
   };
   el.classList.add(mode === "move" ? "dragging" : "resizing");
   el.setPointerCapture && el.setPointerCapture(e.pointerId);
@@ -3381,7 +3419,13 @@ function onPointerMove(e) {
   }
   positionGhost(g);
   resolveCollisions(drag.p);
-  for (const q of DASH.panels) if (q !== drag.p) placeOnly(q);
+  const cand = drag.mode === "move" ? swapCandidate(g, drag.snapshot) : null;
+  for (const q of DASH.panels) {
+    if (q === drag.p) continue;
+    placeOnly(q);
+    const qel = document.getElementById(q.id);
+    if (qel) qel.classList.toggle("swap-target", !!(cand && cand.p === q));
+  }
   gridEl.style.height = (Math.max.apply(null, DASH.panels.map(q => q.gridPos.y + q.gridPos.h)) * ROW_H + 4) + "px";
 }
 
@@ -3398,11 +3442,23 @@ function placeOnly(p) {
 function onPointerUp() {
   if (!drag) return;
   const p = drag.p, el = drag.el, mode = drag.mode;
+  const orig = drag.orig, snap = drag.snapshot;
   el.classList.remove("dragging", "resizing");
   ghostEl.style.display = "none";
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", onPointerUp);
   drag = null;
+  gridEl.querySelectorAll(".swap-target").forEach(q => q.classList.remove("swap-target"));
+  if (mode === "move" && (p.gridPos.x !== orig.x || p.gridPos.y !== orig.y)) {
+    const hit = swapCandidate(p.gridPos, snap);
+    if (hit) {
+      /* Dropped mostly on top of another panel: trade places. The victim takes the
+         dragged panel's ORIGINAL spot (keeping its own size); any residual overlap
+         from unequal sizes is cleaned by the usual resolve + compact below. */
+      hit.p.gridPos.x = Math.max(0, Math.min(COLS - hit.p.gridPos.w, orig.x));
+      hit.p.gridPos.y = Math.max(0, orig.y);
+    }
+  }
   resolveCollisions(p);
   compact();
   layout();
@@ -4098,6 +4154,8 @@ function updateChip() {
   if (price) parts.push("BTC " + fmtNum(price, "usd", 0));
   parts.push(s.rounds.toLocaleString() + " rounds");
   parts.push(s.span_days.toFixed(1) + "d deep");
+  const v = DATA.state && DATA.state.version;
+  if (v) parts.push("v" + v);
   document.getElementById("dataText").innerHTML = parts.map(esc).join(" &middot; ");
 }
 
