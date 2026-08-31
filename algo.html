@@ -285,7 +285,7 @@
   .spread-title-row h2 { margin: 0; font-size: 0.92rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
   .spread-title-row .sub { margin: 0.1rem 0 0; font-size: 0.62rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
   .spread-range { font-size: 0.62rem; color: var(--dim); font-weight: 600; white-space: nowrap; }
-  .spread-list { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; border-radius: 12px; border: 1px solid rgba(var(--ink-rgb), 0.06); }
+  .spread-list { display: flex; flex-direction: column; max-height: 420px; overflow: hidden; border-radius: 12px; border: 1px solid rgba(var(--ink-rgb), 0.06); }
 
   /* Current Spread -- this page never had one (it has no Robinhood link either), so
      unlike the other pages these are new primitives rather than a lift-and-shift. */
@@ -1707,6 +1707,14 @@
       : 'No settled rounds in this window yet';
   }
 
+  /* No scrollbar inside the module: keep the newest rows that fit its box, drop the rest. */
+  function fitSpreadList(list) {
+    var guard = 0;
+    while (guard++ < 400 && list.children.length > 1 && list.scrollHeight > list.clientHeight + 1) {
+      list.removeChild(list.lastElementChild);
+    }
+  }
+
   function renderSpreadHistory(rounds) {
     var list = document.getElementById('spreadList');
     var summaryEl = document.getElementById('summarySpread');
@@ -1734,6 +1742,7 @@
         '<span class="spread-amount ' + (up ? 'up' : 'down') + '">' + (up ? '▲ +' : '▼ -') + '$' + Math.abs(r.delta).toFixed(2) + '</span>';
       list.appendChild(row);
     });
+    fitSpreadList(list);
     document.getElementById('spreadRange').textContent =
       'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + withDelta.length + ' rounds recorded';
     var lastR = withDelta[withDelta.length - 1];

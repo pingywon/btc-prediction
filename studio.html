@@ -227,7 +227,8 @@
   .pbtn:hover { color: var(--amber); border-color: var(--ctl-border); background: var(--surface-800); }
   .pbtn.danger:hover { color: var(--red); border-color: var(--red); }
   .pbtn svg { width: 14px; height: 14px; }
-  .panel-body { flex: 1 1 auto; min-height: 0; position: relative; padding: 0.5rem; }
+  /* No module ever scrolls: a panel shows what fits and drops the rest (see fitTrim). */
+  .panel-body { flex: 1 1 auto; min-height: 0; position: relative; padding: 0.5rem; overflow: hidden; }
   .panel-body.flush { padding: 0; }
   .panel-body svg { display: block; width: 100%; height: 100%; }
 
@@ -271,11 +272,11 @@
   .tbl th:first-child, .tbl td:first-child { text-align: left; }
   .tbl td { text-align: right; padding: 0.28rem 0.45rem; border-bottom: 1px solid rgba(var(--ink-rgb),0.06); color: var(--soft); }
   .tbl tr:hover td { background: var(--surface-850); }
-  .scroll { height: 100%; overflow: auto; }
+  .scroll { height: 100%; overflow: hidden; }
   .yes { color: var(--green); }
   .no { color: var(--red); }
 
-  .road { display: flex; gap: 2px; height: 100%; overflow-x: auto; align-items: flex-start; padding: 2px; }
+  .road { display: flex; gap: 2px; height: 100%; overflow: hidden; align-items: flex-start; padding: 2px; }
   .road-col { display: flex; flex-direction: column; gap: 2px; flex: none; }
   .bead {
     border-radius: 50%; flex: none;
@@ -313,7 +314,7 @@
     display: flex; align-items: center; justify-content: center; height: 100%;
     color: var(--faint); font-size: 0.72rem; text-align: center; padding: 0.5rem;
   }
-  .note { font-size: 0.8rem; color: var(--soft); line-height: 1.5; height: 100%; overflow: auto; }
+  .note { font-size: 0.8rem; color: var(--soft); line-height: 1.5; height: 100%; overflow: hidden; }
 
   /* ---------------- Classic modules ----------------
      The seven modules of / rebuilt as panels. Same labels, same numbers, same
@@ -345,7 +346,7 @@
   .cl-calls { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.1em; color: var(--faint); font-weight: 800; text-transform: uppercase; }
   .cl-calls b { color: var(--cream); font-family: var(--mono); font-size: 0.78rem; margin-left: 0.2rem; }
 
-  .cl-signal { display: flex; flex-direction: column; height: 100%; overflow: auto; }
+  .cl-signal { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
   .cl-signal-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
   .cl-signal-call { display: flex; align-items: baseline; gap: 0.6rem; }
   .cl-side { font-weight: 900; line-height: 1; letter-spacing: -0.01em; font-family: var(--mono); }
@@ -394,7 +395,7 @@
   .cl-rail div { height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width 0.9s linear; }
   .cl-rail.urgent div { background: linear-gradient(90deg, var(--amber-deep), var(--red)); }
 
-  .cl-results { display: flex; flex-direction: column; gap: 0.6rem; height: 100%; overflow: auto; }
+  .cl-results { display: flex; flex-direction: column; gap: 0.6rem; height: 100%; overflow: hidden; }
   .cl-win-head { display: flex; flex-direction: column; gap: 2px; }
   .cl-win-label { font-size: 0.64rem; letter-spacing: 0.08em; color: var(--soft); font-weight: 900; text-transform: uppercase; }
   .cl-win-range { font-size: 0.58rem; color: var(--faint); font-weight: 700; font-family: var(--mono); }
@@ -441,7 +442,7 @@
   .cl-refresh { width: 34px; height: 34px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--surface-850); color: var(--dim); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
   .cl-refresh:hover { color: var(--amber); border-color: var(--amber); }
   .cl-refresh svg { width: 15px; height: 15px; }
-  .cl-road-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 4px 2px; }
+  .cl-road-grid { display: flex; flex-wrap: wrap; gap: 12px 8px; align-content: flex-start; flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 2px; }
   .cl-road-col { display: flex; flex-direction: column; gap: 4px; padding: 3px; border-radius: 9px; border: 2px solid transparent; }
   .cl-road-col.dragon { border-color: var(--amber); }
   .cl-bead { position: relative; width: 44px; height: 44px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: transform .12s; }
@@ -461,13 +462,13 @@
   .cl-derived-head h3 { margin: 0; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); font-weight: 900; }
   .cl-legend { display: flex; gap: 0.8rem; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); font-weight: 800; }
   .cl-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
-  .cl-derived-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .cl-derived-grid { display: flex; flex-wrap: wrap; gap: 7px; max-height: 33px; overflow: hidden; } /* two rows of the newest marks */
   .cl-dbead { display: inline-block; width: 13px; height: 13px; border-radius: 50%; flex: none; }
   .cl-dbead.repeat { border: 2.5px solid var(--blue-derived, var(--blue)); background: transparent; }
   .cl-dbead.break { background: var(--red-derived, var(--red)); }
 
   .cl-range-lbl { font-size: 0.58rem; color: var(--faint); font-weight: 700; font-family: var(--mono); white-space: nowrap; }
-  .cl-ledger-list { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; overflow: auto; }
+  .cl-ledger-list { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .cl-ledger-list.compact { max-height: 240px; flex: none; }
   .cl-ledger-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.4rem; border-radius: var(--r-sm); }
   .cl-ledger-row:hover { background: var(--surface-850); }
@@ -1873,7 +1874,7 @@ defViz("bargauge", {
     }
     const mn = num(fc.min, 0), mx = num(fc.max, 100);
     const mode = p.options.display || "gradient";
-    let html = '<div style="display:flex;flex-direction:column;gap:3px;height:100%;justify-content:center;overflow:auto">';
+    let html = '<div style="display:flex;flex-direction:column;gap:3px;height:100%;justify-content:center;overflow:hidden">';
     for (const it of items) {
       const pct = (it.v == null || !isFinite(it.v)) ? 0 : Math.max(0, Math.min(1, (it.v - mn) / (mx - mn || 1)));
       const col = colorFor(it.v, p);
@@ -2266,7 +2267,7 @@ defViz("table", {
   render(p, D, w, h) {
     const rounds = (D.rounds || []).slice().reverse().slice(0, Math.max(5, Math.round(num(p.options.limit, 40))));
     if (!rounds.length) return empty("No rounds in range");
-    let s = '<div class="scroll"><table class="tbl"><thead><tr><th>Closed</th><th>Target</th><th>Settled</th><th>Move</th><th>Result</th></tr></thead><tbody>';
+    let s = '<div class="scroll" data-trim="last" data-trim-list="tbody"><table class="tbl"><thead><tr><th>Closed</th><th>Target</th><th>Settled</th><th>Move</th><th>Result</th></tr></thead><tbody>';
     for (const r of rounds) {
       const d = r.delta;
       s += "<tr>"
@@ -3101,7 +3102,7 @@ defViz("roadhistory", {
     if (!rounds.length) {
       html += '<div class="empty">No settled rounds in this window yet</div>';
     } else {
-      let grid = '<div class="cl-road-grid">';
+      let grid = '<div class="cl-road-grid" data-trim="first">';
       for (const col of columns) {
         grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + '">';
         for (const r of col) {
@@ -3125,7 +3126,7 @@ defViz("roadhistory", {
       const marks = computeBigEyeBoy(columns);
       html += '<div class="cl-derived"><div class="cl-derived-head"><h3>Big Eye Boy</h3>'
         + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break (Chaotic)</span><span><span class="cl-dbead repeat"></span>Repeat (Predictable)</span></div></div>'
-        + '<div class="cl-derived-grid">' + marks.map(m => '<span class="cl-dbead ' + (m ? "repeat" : "break") + '"></span>').join("") + "</div></div>";
+        + '<div class="cl-derived-grid" data-trim="first">' + marks.map(m => '<span class="cl-dbead ' + (m ? "repeat" : "break") + '"></span>').join("") + "</div></div>";
     }
     return html + "</div>";
   }
@@ -3148,7 +3149,7 @@ defViz("spreadledger", {
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
     if (!withDelta.length) return html + '<div class="empty">No settled rounds with a recorded spread in this window yet</div></div>';
     const maxAbs = withDelta.reduce((m, r) => Math.max(m, Math.abs(r.delta)), 0.01);
-    let list = '<div class="cl-ledger-list' + (p.options.compact !== false ? " compact" : "") + '">';
+    let list = '<div class="cl-ledger-list' + (p.options.compact !== false ? " compact" : "") + '" data-trim="last">';
     for (const r of withDelta.slice().reverse()) {
       const up = r.delta >= 0;
       const pct = Math.min(50, (Math.abs(r.delta) / maxAbs) * 50);
@@ -3570,6 +3571,29 @@ function buildPanel(p) {
   return el;
 }
 
+/* The owner wants no scrollbar inside any module: a panel shows the newest rows or
+   columns that fit and drops the rest. Any element marked data-trim="first|last" is
+   shrunk after render by removing children from that end until it no longer overflows
+   (data-trim-list names an inner list to remove from, e.g. a table's tbody). Lists that
+   render newest-first trim from the end; the road grid renders oldest-first and trims
+   from the front. */
+function fitTrim(body) {
+  body.querySelectorAll("[data-trim]").forEach(el => {
+    const list = el.dataset.trimList ? el.querySelector(el.dataset.trimList) : el;
+    if (!list) return;
+    const fromEnd = el.dataset.trim === "last";
+    let guard = 0;
+    while (guard++ < 400 && list.children.length > 0 && el.scrollHeight > el.clientHeight + 1) {
+      list.removeChild(fromEnd ? list.lastElementChild : list.firstElementChild);
+    }
+    if (!list.children.length) {
+      // not even one whole item fits: say so rather than show a clipped fragment
+      el.innerHTML = '<div class="empty">Enlarge this panel to see more</div>';
+      el.removeAttribute("data-trim");
+    }
+  });
+}
+
 function renderPanelBody(p) {
   const el = document.getElementById(p.id);
   if (!el) return;
@@ -3580,6 +3604,7 @@ function renderPanelBody(p) {
   if (w < 2 || h < 2) return;
   try {
     body.innerHTML = v.render(p, DATA, w, h);
+    fitTrim(body);
   } catch (err) {
     body.innerHTML = empty("Panel error");
     if (window.console) console.error("panel " + p.id + " (" + p.type + ")", err);

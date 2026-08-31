@@ -468,7 +468,7 @@
   .spread-range { font-size: 0.62rem; color: var(--dim); font-weight: 600; white-space: nowrap; }
 
   .spread-list {
-    display: flex; flex-direction: column; max-height: 420px; overflow-y: auto;
+    display: flex; flex-direction: column; max-height: 420px; overflow: hidden;
     border-radius: 12px; border: 1px solid rgba(var(--ink-rgb), 0.06);
   }
   .spread-row-item {
@@ -1449,6 +1449,7 @@
     var list = document.getElementById('spreadList');
     var compact = list.classList.toggle('compact');
     this.textContent = compact ? 'Expanded' : 'Compact';
+    if (historyRounds) renderSpreadHistory(historyRounds);
   });
 
   function progressStart() {
@@ -2217,6 +2218,14 @@
   // reviewable ledger (newest first). This is derived from data already stored for
   // every round (no new backend recording needed) -- as far back as the timeframe
   // filter reaches, capped by the app's 30-day retention window.
+  /* No scrollbar inside the module: keep the newest rows that fit its box, drop the rest. */
+  function fitSpreadList(list) {
+    var guard = 0;
+    while (guard++ < 400 && list.children.length > 1 && list.scrollHeight > list.clientHeight + 1) {
+      list.removeChild(list.lastElementChild);
+    }
+  }
+
   function renderSpreadHistory(rounds) {
     var list = document.getElementById('spreadList');
     var summaryEl = document.getElementById('summarySpread');
@@ -2244,6 +2253,7 @@
         '<span class="spread-amount ' + (up ? 'up' : 'down') + '">' + (up ? '▲ +' : '▼ -') + '$' + Math.abs(r.delta).toFixed(2) + '</span>';
       list.appendChild(row);
     });
+    fitSpreadList(list);
     document.getElementById('spreadRange').textContent =
       'Last ' + (WINDOW_LABELS[currentHours] || currentHours + 'H') + ' · ' + withDelta.length + ' rounds recorded';
     var lastR = withDelta[withDelta.length - 1];

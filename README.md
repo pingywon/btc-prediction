@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v4.13.0** (the running version is shown at the bottom of every page
+Current release: **v4.14.0** (the running version is shown at the bottom of every page
 and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
 of truth — the git tag, Dockerfile LABEL and this line must match it).
 
@@ -95,6 +95,10 @@ whatever you last chose, and that choice is remembered (`btc_studio_topbar_open`
 
 Dropping a panel mostly on top of another **swaps** them (a dashed outline marks the
 target while you drag); a glancing overlap still pushes the other panel down.
+
+**No module ever scrolls.** A panel shows the newest rows or columns that fit its box
+and drops the rest — resize the panel (or widen its window) to see more. The same goes
+for the spread list on Classic and the ALGO Desk.
 
 ## Round Confidence
 
