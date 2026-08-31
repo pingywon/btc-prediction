@@ -447,6 +447,14 @@
   .tip-modal-row .v.no { color: var(--red); }
   .tip-modal-row .v.hit { color: var(--blue-derived); }
   .tip-modal-row .v.miss { color: var(--faint); }
+  /* Light mode: the modal card itself was hard-coded near-black while every colour inside it
+     flips to dark ink, which left the text unreadable. Give the card a light face too. */
+  [data-theme="light"] .tip-modal-backdrop { background: rgba(20,22,32,0.45); }
+  [data-theme="light"] .tip-modal {
+    background: linear-gradient(160deg, #ffffff, #f2f3f7);
+    border-color: rgba(169,103,10,0.35);
+    box-shadow: 0 20px 60px rgba(20,22,32,0.25);
+  }
 
   footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
   .foot-link { font-size: 0.68rem; font-weight: 800; color: var(--blue-derived); text-decoration: none; text-transform: uppercase; letter-spacing: 0.02em; }
@@ -576,9 +584,9 @@
       <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
     <div class="page-switcher">
-      <button class="switcher-btn" id="switcherBtn" title="Switch dashboard version">
+      <button class="switcher-btn" id="switcherBtn" title="Switch mode">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11M15 4l3 3-3 3M17 17H6M9 20l-3-3 3-3"/></svg>
-        Switch
+        Mode
       </button>
       <div class="switcher-menu" id="switcherMenu">
         <a class="switcher-item" href="/">Classic</a>
@@ -1258,6 +1266,14 @@
   var aiPicks = loadJSON(AI_PICK_KEY, {});
   var aiRecord = loadJSON(AI_RECORD_KEY, { wins: 0, losses: 0 });
   var aiResolved = loadJSON(AI_RESOLVED_KEY, []);
+  (function pruneAiPicks() {
+    var keys = Object.keys(aiPicks);
+    if (keys.length <= 500) return;
+    keys.sort(function (a, b) { return (aiPicks[a].ts || 0) - (aiPicks[b].ts || 0); });
+    keys.slice(0, keys.length - 400).forEach(function (k) { delete aiPicks[k]; });
+    saveJSON(AI_PICK_KEY, aiPicks);
+    if (aiResolved.length > 500) { aiResolved = aiResolved.slice(aiResolved.length - 400); saveJSON(AI_RESOLVED_KEY, aiResolved); }
+  })();
 
   // The user's own picks -- same keys the main dashboard writes to (same origin), read
   // here only to display and resolve for comparison. Never written to from this page:
@@ -1312,7 +1328,63 @@
     return true;
   }
 
+  /* Score every settled round that carries an ALGO pick, not just the newest one.
+     handleSettlement() only ever saw state.last_settled, so any pick whose round
+     settled while the tab was closed was never counted -- the picks themselves were
+     saved fine while the record sat frozen, which read as "predictions not saved". */
+  function reconcileAiPicks(rounds) {
+    if (!rounds || !rounds.length) return 0;
+    var seen = {};
+    for (var i = 0; i < aiResolved.length; i++) seen[aiResolved[i]] = 1;
+    var added = 0;
+    for (var j = 0; j < rounds.length; j++) {
+      var r = rounds[j];
+      if (!r || !r.result) continue;
+      var t = r.kalshi_ticker;
+      var mine = aiPicks[t];
+      if (!mine || seen[t]) continue;
+      if (mine.choice === r.result) aiRecord.wins++; else aiRecord.losses++;
+      aiResolved.push(t);
+      seen[t] = 1;
+      added++;
+    }
+    if (added) {
+      saveJSON(AI_RECORD_KEY, aiRecord);
+      saveJSON(AI_RESOLVED_KEY, aiResolved);
+      renderScoreboard();
+    }
+    return added;
+  }
+
+  /* Ask for exactly as much history as the oldest unscored ALGO pick needs; the
+     visible window is often only a few hours, far too short after a day away. */
+  function catchUpAiPicks() {
+    var seen = {}, oldest = null;
+    for (var i = 0; i < aiResolved.length; i++) seen[aiResolved[i]] = 1;
+    for (var t in aiPicks) {
+      if (!aiPicks.hasOwnProperty(t) || seen[t]) continue;
+      var ts = aiPicks[t].ts || Date.now();
+      if (oldest === null || ts < oldest) oldest = ts;
+    }
+    if (oldest === null) return;
+    var hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
+    hours = Math.min(Math.max(hours, 24), 24 * 90);
+    fetch('/api/history?hours=' + hours + '&limit=5000')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) reconcileAiPicks(d.rounds || []); })
+      .catch(function () { /* offline; it will catch up next load */ });
+  }
+
+  /* The user's record belongs to the main dashboard. This page only mirrors it, so
+     re-read it before every render instead of keeping a copy that races the other tab. */
+  function reloadUserRecord() {
+    picks = loadJSON(PICK_KEY, {});
+    record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
+    resolved = loadJSON(RESOLVED_KEY, []);
+  }
+
   function renderScoreboard() {
+    reloadUserRecord();
     document.getElementById('algoRecord').textContent = aiRecord.wins + '-' + aiRecord.losses;
     var aiTotal = aiRecord.wins + aiRecord.losses;
     document.getElementById('algoWinPct').textContent = aiTotal ? Math.round(aiRecord.wins / aiTotal * 100) + '% correct' : 'no calls yet';
@@ -1532,9 +1604,8 @@
     if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
     if (s.ticker === lastSeenSettled) return;
     lastSeenSettled = s.ticker;
-    var aiChanged = resolveRecord(s, aiPicks, aiResolved, aiRecord, AI_RECORD_KEY, AI_RESOLVED_KEY);
-    var youChanged = resolveRecord(s, picks, resolved, record, RECORD_KEY, RESOLVED_KEY);
-    if (aiChanged || youChanged) renderScoreboard();
+    resolveRecord(s, aiPicks, aiResolved, aiRecord, AI_RECORD_KEY, AI_RESOLVED_KEY);
+    renderScoreboard();
     loadHistory();
   }
 
@@ -1680,6 +1751,7 @@
       progressDone();
       if (reqId !== historyReqId) return;
       historyRounds = d.rounds;
+      reconcileAiPicks(d.rounds);
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
       historyDirty = false;
@@ -1730,6 +1802,7 @@
 
   applyModuleLayout();
   updateChartNavUI();
+  catchUpAiPicks();
   setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();

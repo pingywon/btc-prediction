@@ -27,7 +27,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "4.12.0"
+VERSION = "4.13.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -169,6 +169,11 @@ class DB:
                 kalshi_yes_price REAL, kalshi_no_price REAL, created_at REAL NOT NULL)""")
             self.conn.execute("CREATE INDEX IF NOT EXISTS idx_rounds_close ON rounds(close_time)")
             self.conn.execute("DROP TABLE IF EXISTS votes")
+            # Studio save slots (1..5). Server-side on purpose so a saved board follows the
+            # owner across browsers and devices; picks stay browser-local, this does not.
+            self.conn.execute("""CREATE TABLE IF NOT EXISTS layouts (
+                slot INTEGER PRIMARY KEY, name TEXT NOT NULL, payload TEXT NOT NULL,
+                saved_at REAL NOT NULL)""")
 
     def execute(self, sql, params=()):
         with self.lock, self.conn:
@@ -193,6 +198,21 @@ class DB:
                     kalshi_yes_price=excluded.kalshi_yes_price, kalshi_no_price=excluded.kalshi_no_price
             """, (r["kalshi_ticker"], r["open_time"], r["close_time"], r["lock_ts"], r["floor_strike"],
                   r["result"], r["settlement_value"], r["kalshi_yes_price"], r["kalshi_no_price"], time.time()))
+
+    def list_layouts(self):
+        return self.query("SELECT slot, name, payload, saved_at FROM layouts ORDER BY slot")
+
+    def upsert_layout(self, slot, name, payload_text):
+        with self.lock, self.conn:
+            self.conn.execute("""
+                INSERT INTO layouts (slot, name, payload, saved_at) VALUES (?,?,?,?)
+                ON CONFLICT(slot) DO UPDATE SET
+                    name=excluded.name, payload=excluded.payload, saved_at=excluded.saved_at
+            """, (slot, name, payload_text, time.time()))
+
+    def delete_layout(self, slot):
+        with self.lock, self.conn:
+            self.conn.execute("DELETE FROM layouts WHERE slot=?", (slot,))
 
 
 db = DB(DB_PATH)
@@ -594,6 +614,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._api_series(urllib.parse.parse_qs(parsed.query))
             if path == "/api/ticks":
                 return self._api_ticks(urllib.parse.parse_qs(parsed.query))
+            if path == "/api/layouts":
+                return self._send(200, self._layouts_body())
             self._send(404, b'{"error":"not found"}')
         except Exception as e:  # noqa
             print("[http] GET %s failed: %s" % (self.path, e), file=sys.stderr)
@@ -602,8 +624,55 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:  # noqa
                 pass
 
+    LAYOUT_SLOTS = 5
+    LAYOUT_MAX_BYTES = 200_000
+
+    def _layouts_body(self):
+        slots = []
+        for r in db.list_layouts():
+            try:
+                payload = json.loads(r["payload"])
+            except ValueError:
+                payload = None
+            slots.append({"slot": r["slot"], "name": r["name"], "saved_at": r["saved_at"],
+                          "payload": payload})
+        return json.dumps({"slots": slots, "max": self.LAYOUT_SLOTS}).encode()
+
     def do_POST(self):
-        self._send(404, b'{"error":"not found"}')
+        # The only write endpoint. No auth by design: this is a single-owner LAN app, and
+        # the DB lock serialises concurrent writers.
+        try:
+            path = urllib.parse.urlparse(self.path).path
+            if path != "/api/layouts":
+                return self._send(404, b'{"error":"not found"}')
+            n = int(self.headers.get("Content-Length") or 0)
+            if n > self.LAYOUT_MAX_BYTES + 50_000:
+                return self._send(413, b'{"error":"body too large"}')
+            try:
+                body = json.loads(self.rfile.read(n) or b"{}")
+            except ValueError:
+                return self._send(400, b'{"error":"body must be JSON"}')
+            slot = body.get("slot") if isinstance(body, dict) else None
+            if not isinstance(slot, int) or isinstance(slot, bool) or not (1 <= slot <= self.LAYOUT_SLOTS):
+                return self._send(400, b'{"error":"slot must be 1-%d"}' % self.LAYOUT_SLOTS)
+            if body.get("delete"):
+                db.delete_layout(slot)
+            else:
+                name = (str(body.get("name") or "").strip() or "Slot %d" % slot)[:60]
+                payload = body.get("payload")
+                if not isinstance(payload, dict):
+                    return self._send(400, b'{"error":"payload must be a JSON object"}')
+                raw = json.dumps(payload, separators=(",", ":"))
+                if len(raw) > self.LAYOUT_MAX_BYTES:
+                    return self._send(413, b'{"error":"payload too large"}')
+                db.upsert_layout(slot, name, raw)
+            return self._send(200, self._layouts_body())
+        except Exception as e:  # noqa
+            print("[http] POST %s failed: %s" % (self.path, e), file=sys.stderr)
+            try:
+                self._send(500, json.dumps({"error": "internal error"}).encode())
+            except Exception:
+                pass
 
     def _serve_page(self, filename):
         try:

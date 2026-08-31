@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v4.12.0** (the running version is shown at the bottom of every page
+Current release: **v4.13.0** (the running version is shown at the bottom of every page
 and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
 of truth — the git tag, Dockerfile LABEL and this line must match it).
 
@@ -10,7 +10,7 @@ A live cosmetic price ticker (Coinbase, Kraken fallback) drives a "live lean" in
 
 ## Pages
 
-**Two views**, cross-linked via the "Switch" button in each header, plus the ALGO Desk.
+**Two views**, cross-linked via the "Mode" button in each header, plus the ALGO Desk.
 Classic is deliberately fixed; everything else is one modular board that can wear any
 skin:
 
@@ -64,19 +64,37 @@ header controls, and the price chart can browse the last 12 settled rounds via t
 Prev/Live/Next controls above it (not just the live one).
 
 
-### Skins, layouts and reset
+### Design sheet: skin, arrangement, saves, panels
 
-The Studio carries all nine skins (Classic, The Ticket, The Board, The Gauge, Terminal,
-The Tape, Blueprint, Arcade, The Pit) in its skin picker — they are looks applied to the
-one modular board, not separate pages any more. **Fluid was removed.**
+Everything that changes how the Studio *looks* lives in one place — the **Design**
+button opens a drawer on the right (the board stays visible, so skins preview live):
 
-- **Layouts** — name and save the current arrangement. A layout stores the skin *and*
-  every module's position and size, so you can keep several and switch between them.
-  Saved under `btc_studio_layouts_v1`, browser-local like everything else here.
-- **Reset to Classic** — a toolbar button that puts every module back exactly where the
-  fixed Classic page has it.
-- The current skin and board are remembered on their own (`btc_studio_skin`,
-  `btc_studio_dashboard_v2`) — a named layout is for keeping more than one.
+- **Skin** — the ten looks (Classic, The Ticket, The Board, The Gauge, Terminal, The
+  Tape, Blueprint, Arcade, The Pit, Solari) plus the light/dark toggle. They are looks
+  applied to the one modular board, not separate pages any more. **Fluid was removed.**
+- **Arrangement** — eight ready-made boards (Classic, Player, Analyst, Tape Room, Wall,
+  Minimal, Solari desk, Analytics). Picking one replaces the layout and leaves the skin
+  alone, except the Solari desk which brings its own.
+- **Saves** — **five named slots** for boards of your own: layout, sizes, per-panel
+  colours, range/bucket and the skin. They are kept **on the server** (`layouts` table
+  in the SQLite DB, `GET`/`POST /api/layouts`), so a board saved in one browser is there
+  in every other browser and device on the LAN. The light/dark theme is deliberately
+  not part of a save — it is shared with Classic and the ALGO Desk.
+- **Panels** — **Reset to Classic** (every module back exactly where the fixed page has
+  it) and the JSON export/import dialog. *Add panel* lives in the toolbar while editing.
+
+The current skin and board are still remembered on their own (`btc_studio_skin`,
+`btc_studio_dashboard_v2`, browser-local) — a save slot is for keeping more than one.
+
+### The toolbar gets out of the way
+
+Outside edit mode the Studio's toolbar folds to a slim strip: the status chip (price,
+history depth, running version), **Edit**, and a chevron that brings the full bar back
+(Mode, Range, Bucket, Design). Pressing Edit always expands it; Done returns it to
+whatever you last chose, and that choice is remembered (`btc_studio_topbar_open`).
+
+Dropping a panel mostly on top of another **swaps** them (a dashed outline marks the
+target while you drag); a glancing overlap still pushes the other panel down.
 
 ## Round Confidence
 
@@ -137,6 +155,8 @@ container starts with an empty Big Road / spread ledger every time.
 - `GET /api/history?hours=24[&limit=N]` — settled rounds + tallies (accepts any window: 1, 2, 3, 6, 24, 168, 720, 8760). `limit` returns only the newest N rounds, which is how the bead/table panels stay cheap over a multi-month window.
 - `GET /api/series?days=0&bucket=day` — history bucketed for charting: per-bucket round count, YES/NO split, YES rate, settlement OHLC, average and largest move, plus a summary block (streaks, chop rate, YES rate by hour-of-day and weekday). `days=0` means every round held. The full ~68-day history is ~15KB this way instead of ~1MB of raw rows.
 - `GET /api/ticks?since=<ts>[&until=<ts>]` — raw price ticks for a round's chart; `until` bounds a historical round's fetch to its own 15-minute window
+- `GET /api/layouts` — the Studio's five save slots (`{slots:[{slot,name,saved_at,payload}], max:5}`). Kept on the server so a saved board follows you across browsers and devices.
+- `POST /api/layouts` — `{"slot":1..5,"name":"…","payload":{…}}` saves or overwrites a slot (payload is a JSON object, ≤200KB; blank names default to "Slot N"); `{"slot":N,"delete":true}` clears one. Responds with the full slot list. No auth — single-owner LAN app.
 - `GET /health`
 
 ## Data sources

@@ -155,7 +155,13 @@
   .switcher-item.current { color: var(--amber); }
   .switcher-item.current::after { content: "\25CF"; font-size: 0.5rem; }
 
-  .customize-panel { padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; border: 1px dashed rgba(255,210,63,0.3); }
+  .customize-panel {
+    position: fixed; z-index: 70; display: none; flex-direction: column; gap: 0.7rem;
+    width: min(320px, 92vw); max-height: 60vh; overflow: auto; padding: 0.9rem 1rem;
+    border: 1px solid rgba(255,210,63,0.3); border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  }
+  .customize-panel.open { display: flex; }
   .customize-head { display: flex; flex-direction: column; gap: 0.15rem; }
   .customize-title { font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--amber); }
   .customize-sub { font-size: 0.6rem; color: var(--faint); font-weight: 600; }
@@ -582,6 +588,14 @@
   .tip-modal-row .v.no { color: var(--red); }
   .tip-modal-row .v.hit { color: var(--amber); }
   .tip-modal-row .v.miss { color: var(--faint); }
+  /* Light mode: the modal card itself was hard-coded near-black while every colour inside it
+     flips to dark ink, which left the text unreadable. Give the card a light face too. */
+  [data-theme="light"] .tip-modal-backdrop { background: rgba(20,22,32,0.45); }
+  [data-theme="light"] .tip-modal {
+    background: linear-gradient(160deg, #ffffff, #f2f3f7);
+    border-color: rgba(169,103,10,0.35);
+    box-shadow: 0 20px 60px rgba(20,22,32,0.25);
+  }
 
   footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; opacity: 0.3; }
   .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; }
@@ -807,9 +821,9 @@
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
       <div class="page-switcher">
-        <button class="switcher-btn" id="switcherBtn" title="Switch dashboard version">
+        <button class="switcher-btn" id="switcherBtn" title="Switch mode">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h11M15 4l3 3-3 3M17 17H6M9 20l-3-3 3-3"/></svg>
-          Switch
+          Mode
         </button>
         <div class="switcher-menu" id="switcherMenu">
           <a class="switcher-item current" href="/">Classic</a>
@@ -820,7 +834,7 @@
     </div>
   </header>
 
-  <section class="panel customize-panel" id="customizePanel" style="display:none">
+  <section class="panel customize-panel" id="customizePanel">
     <div class="customize-head">
       <span class="customize-title">Show / Hide Sections</span>
       <span class="customize-sub">Turn parts of this page on or off &mdash; saved on this device only</span>
@@ -1363,13 +1377,31 @@
       list.appendChild(row);
     });
   }
-  document.getElementById('customizeToggle').addEventListener('click', function () {
+  (function () {
+    var toggle = document.getElementById('customizeToggle');
     var panel = document.getElementById('customizePanel');
-    var showing = panel.style.display === 'none';
-    panel.style.display = showing ? '' : 'none';
-    this.classList.toggle('active', showing);
-    if (showing) renderSectionList();
-  });
+    function place() {
+      var r = toggle.getBoundingClientRect();
+      panel.style.top = (r.bottom + 8) + 'px';
+      panel.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+    }
+    function close() { panel.classList.remove('open'); toggle.classList.remove('active'); }
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (panel.classList.contains('open')) return close();
+      renderSectionList();
+      place();
+      panel.classList.add('open');
+      toggle.classList.add('active');
+    });
+    document.addEventListener('click', function (e) {
+      if (!panel.classList.contains('open')) return;
+      if (panel.contains(e.target) || toggle.contains(e.target)) return;
+      close();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    window.addEventListener('resize', function () { if (panel.classList.contains('open')) place(); });
+  })();
 
   // Click tooltip: one shared modal, opened via delegation since beads/rows are torn
   // down and rebuilt via innerHTML='' every render cycle -- per-element listeners
