@@ -32,6 +32,10 @@
     --border: rgba(var(--ink-rgb), 0.18);
     --sans: 'InterVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --bead: 52px;
+    /* BTC-21: one fixed color per caller, everywhere a call is marked. */
+    --call-you: #ffd23f;
+    --call-algo: #22c3e6;
+    --call-hist: #c07ef0;
   }
   :root[data-theme="light"] {
     --bg-deep: #f3f4f8;
@@ -133,6 +137,7 @@
   .price-hero .label { font-size: 0.62rem; color: var(--dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 0.2rem; display: block; }
   .price-hero .value { font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 900; line-height: 1; }
   .freshness { font-size: 0.56rem; color: var(--faint); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+  .freshness.stale { color: var(--red); font-weight: 800; }
 
   .price-sub-row { display: flex; align-items: center; gap: 1.25rem; margin-top: 1rem; flex-wrap: wrap; }
   .price-sub-item { display: flex; flex-direction: column; gap: 0.15rem; }
@@ -248,17 +253,34 @@
   .bead-glyph { font-weight: 900; font-size: 1.05rem; line-height: 1; }
   .bead-time { font-weight: 700; font-size: 0.58rem; opacity: 0.82; margin-top: 1px; letter-spacing: -0.02em; }
   .bead-delta { font-weight: 900; font-size: 0.56rem; opacity: 0.92; }
-  .bead-badge-algo, .bead-badge-you {
-    position: absolute; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--bg-deep);
+  /* BTC-21: every caller gets a corner -- you bottom-right, ALGO top-left,
+     History Call bottom-left; fixed colors, hit = solid + check, miss = dark + X. */
+  .bead-call {
+    position: absolute; width: 15px; height: 15px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-deep);
   }
-  .bead-badge-algo { bottom: -5px; right: -5px; border-radius: 3px; transform: rotate(45deg); }
-  .bead-badge-algo svg { transform: rotate(-45deg); width: 8px; height: 8px; }
-  .bead-badge-you { bottom: -5px; left: -5px; border-radius: 50%; }
-  .bead-badge-you svg { width: 8px; height: 8px; }
-  .bead-badge-algo.hit, .bead-badge-you.hit { background: var(--blue-derived); color: var(--bg-deep); }
-  .bead-badge-algo.miss, .bead-badge-you.miss { background: var(--surface-700); color: var(--faint); }
-  .bead-badge-you.hit { background: var(--amber); }
+  .bead-call svg { width: 9px; height: 9px; }
+  .bead-call.you { bottom: -5px; right: -5px; }
+  .bead-call.algo { top: -5px; left: -5px; }
+  .bead-call.hist { bottom: -5px; left: -5px; }
+  .bead-call.hit { color: #0b0b0f; }
+  .bead-call.you.hit { background: var(--call-you); }
+  .bead-call.algo.hit { background: var(--call-algo); }
+  .bead-call.hist.hit { background: var(--call-hist); }
+  .bead-call.miss { background: #14161d; }
+  .bead-call.you.miss { color: var(--call-you); border-color: var(--call-you); }
+  .bead-call.algo.miss { color: var(--call-algo); border-color: var(--call-algo); }
+  .bead-call.hist.miss { color: var(--call-hist); border-color: var(--call-hist); }
+  /* BTC-22: change-your-call buttons in the round detail modal. */
+  .tip-edit-btns { display: flex; gap: 0.4rem; }
+  .tip-edit-btn {
+    font-size: 0.62rem; font-weight: 900; letter-spacing: 0.04em; cursor: pointer;
+    padding: 0.32rem 0.6rem; border-radius: 7px; border: 1px solid var(--border);
+    background: transparent; color: var(--soft); text-transform: uppercase;
+  }
+  .tip-edit-btn.yes:hover { color: var(--green); border-color: var(--green); }
+  .tip-edit-btn.no:hover { color: var(--red); border-color: var(--red); }
+  .tip-edit-btn.clear:hover { color: var(--amber); border-color: var(--amber); }
 
   .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(var(--ink-rgb), 0.05); }
   .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
@@ -937,6 +959,8 @@
   var polling = true;
   var COLUMN_CAP = 6;
   var lastPriceUpdateMs = null;
+  var priceAgeBaseS = null;   // BTC-18: server-reported price age at last poll
+  var lastBurstPollMs = 0;    // BTC-20: 1s poll burst across the round boundary
   var historyReqId = 0;
   var inFlight = 0;
   var chartRoundTicker = null;
@@ -1232,7 +1256,28 @@
     if (c.algo) rows += tipRow('ALGO called', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
     if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
     if (c.you) rows += tipRow('You called', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
+    // BTC-22: correct your own call on a finished round (sell-early scenario).
+    rows += '<div class="tip-modal-row"><span class="k">' + (c.you ? 'Change your call' : 'Log your call') + '</span>'
+      + '<span class="v tip-edit-btns">'
+      + '<button class="tip-edit-btn yes" data-edit-call="yes" data-edit-ticker="' + r.kalshi_ticker + '">Yes</button>'
+      + '<button class="tip-edit-btn no" data-edit-call="no" data-edit-ticker="' + r.kalshi_ticker + '">No</button>'
+      + (c.you ? '<button class="tip-edit-btn clear" data-edit-call="clear" data-edit-ticker="' + r.kalshi_ticker + '">Clear</button>' : '')
+      + '</span></div>';
     return rows;
+  }
+  function editCall(ticker, choice) {
+    fetch('/api/calls/edit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: ticker, choice: choice === 'clear' ? null : choice })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (d.records) SREC = d.records;
+      closeTipModal();
+      renderScoreboard();
+      loadHistory();
+    }).catch(function () {});
   }
   function openTipModal(title, rowsHtml) {
     document.getElementById('tipModalTitle').textContent = title;
@@ -1243,6 +1288,8 @@
   document.addEventListener('click', function (e) {
     if (e.target.id === 'tipModalClose' || e.target.closest('#tipModalClose')) { closeTipModal(); return; }
     if (e.target.id === 'tipModalBackdrop') { closeTipModal(); return; }
+    var editBtn = e.target.closest('[data-edit-call]');
+    if (editBtn) { editCall(editBtn.dataset.editTicker, editBtn.dataset.editCall); return; }
     var idEl = e.target.closest('[data-tip-id]');
     if (idEl) {
       var info = tipDataStore[idEl.dataset.tipId];
@@ -1445,6 +1492,13 @@
     if (!state) return;
     var t = now() / 1000;
     var cur = state.current_round;
+
+    // BTC-20: poll at ~1s across the round boundary until the server hands over
+    // the next round, instead of waiting out the normal poll interval.
+    if (polling && (!cur || t >= cur.close_time) && Date.now() - lastBurstPollMs > 1000) {
+      lastBurstPollMs = Date.now();
+      poll();
+    }
     var timerValueEl = document.getElementById('roundTimerValue');
     var timerLabelEl = document.getElementById('roundTimerLabel');
 
@@ -1474,9 +1528,14 @@
       document.getElementById('livePrice').textContent = fmtUSD(state.live_price);
     }
     var freshEl = document.getElementById('priceFreshness');
-    if (lastPriceUpdateMs !== null) {
-      var ageS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
-      freshEl.textContent = ageS <= 1 ? 'live' : ageS + 's ago';
+    if (priceAgeBaseS !== null && lastPriceUpdateMs !== null) {
+      // BTC-18: the PRICE's age, not "when did I last poll".
+      var ageS = Math.max(0, Math.round(priceAgeBaseS + (Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = ageS <= 2 ? 'live' : ageS + 's ago';
+      freshEl.classList.toggle('stale', ageS > 15);
+    } else if (lastPriceUpdateMs !== null) {
+      var pollAgeS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = pollAgeS <= 1 ? 'live' : pollAgeS + 's ago';
     }
 
     // Current Spread is new on this page (it had no spread pill and no Robinhood link
@@ -1539,6 +1598,24 @@
     loadHistory();
   }
 
+  // BTC-21: shared corner-mark builder (same fixed colors on every page).
+  var CALL_MARKS = [['you', 'you', 'You'], ['algo', 'algo', 'ALGO'], ['histcall', 'hist', 'History Call']];
+  var MARK_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>';
+  var MARK_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  function appendCallMarks(bead, r) {
+    var c = callsOf(r);
+    CALL_MARKS.forEach(function (m) {
+      var choice = c[m[0]];
+      if (!choice) return;
+      var hit = choice === r.result;
+      var badge = document.createElement('span');
+      badge.className = 'bead-call ' + m[1] + ' ' + (hit ? 'hit' : 'miss');
+      badge.title = m[2] + ' called ' + choice.toUpperCase() + ' — ' + (hit ? 'hit' : 'miss');
+      badge.innerHTML = hit ? MARK_CHECK : MARK_X;
+      bead.appendChild(badge);
+    });
+  }
+
   function buildColumns(rounds) {
     var columns = [];
     var col = null, colResult = null;
@@ -1588,33 +1665,15 @@
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
           '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
-        var ai = callsOf(r).algo;
-        if (ai) {
-          var aiHit = ai === r.result;
-          var aiBadge = document.createElement('span');
-          aiBadge.className = 'bead-badge-algo ' + (aiHit ? 'hit' : 'miss');
-          aiBadge.innerHTML = aiHit
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-          bead.appendChild(aiBadge);
-        }
-        var mine = callsOf(r).you;
-        if (mine) {
-          var youHit = mine === r.result;
-          var youBadge = document.createElement('span');
-          youBadge.className = 'bead-badge-you ' + (youHit ? 'hit' : 'miss');
-          youBadge.innerHTML = youHit
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-          bead.appendChild(youBadge);
-        }
+        // BTC-21: all three callers, one corner each, hit/miss mark per caller.
+        appendCallMarks(bead, r);
         // Hover = date/time only (owner's explicit ask); click = the full detail
         // popup. Structured data lives in tipDataStore keyed by ticker rather than
         // serialized into an HTML attribute -- avoids escaping headaches and keeps
         // presentation (openTipModal) separate from data.
         bead.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
         var tipId = 'bead-' + r.kalshi_ticker;
-        tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, mine, ai) };
+        tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r) };
         bead.setAttribute('data-tip-id', tipId);
         colEl.appendChild(bead);
       });
@@ -1731,6 +1790,8 @@
       progressDone();
       clockOffsetMs = (d.now * 1000) - Date.now();
       lastPriceUpdateMs = Date.now();
+      priceAgeBaseS = (typeof d.live_price_ts === 'number' && d.live_price_ts > 0)
+        ? Math.max(0, d.now - d.live_price_ts) : null;
       state = d;
       if (d.version) document.getElementById('footVersion').textContent = 'v' + d.version;
       if (d.records) SREC = d.records;

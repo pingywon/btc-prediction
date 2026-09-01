@@ -53,6 +53,11 @@
     --r-lg: 9px;
     --r-md: 7px;
     --r-sm: 6px;
+    /* BTC-21: one fixed color per caller, in every skin (skins that redefine :root
+       leave these alone, so the marks read the same on all ten looks). */
+    --call-you: #ffd23f;
+    --call-algo: #22c3e6;
+    --call-hist: #c07ef0;
   }
   :root[data-theme="light"] {
     --bg-deep: #f3f4f8;
@@ -465,10 +470,33 @@
   .cl-bead .g { font-weight: 900; font-size: 0.95rem; }
   .cl-bead .t { font-weight: 700; font-size: 0.52rem; opacity: 0.85; margin-top: 1px; letter-spacing: -0.02em; font-family: var(--mono); }
   .cl-bead .d { font-weight: 900; font-size: 0.5rem; opacity: 0.92; font-family: var(--mono); }
-  .cl-badge { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface-900); }
-  .cl-badge svg { width: 11px; height: 11px; }
-  .cl-badge.hit { background: var(--amber); color: #05060a; }
-  .cl-badge.miss { background: #14161d; color: #ffffff; }
+  /* BTC-21: every caller gets a corner of the chip -- you bottom-right, ALGO
+     top-left, History Call bottom-left; fixed colors, hit = solid + check,
+     miss = dark + X. .sm shrinks the badge on mid beads; .dot is the tiny
+     colored-corner form for scaled-down roads (no glyph, hollow = miss). */
+  .bead-call { position: absolute; width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--surface-900); z-index: 1; }
+  .bead-call svg { width: 9px; height: 9px; }
+  .bead-call.you { bottom: -5px; right: -5px; }
+  .bead-call.algo { top: -5px; left: -5px; }
+  .bead-call.hist { bottom: -5px; left: -5px; }
+  .bead-call.hit { color: #05060a; }
+  .bead-call.you.hit { background: var(--call-you); }
+  .bead-call.algo.hit { background: var(--call-algo); }
+  .bead-call.hist.hit { background: var(--call-hist); }
+  .bead-call.miss { background: #14161d; }
+  .bead-call.you.miss { color: var(--call-you); border-color: var(--call-you); }
+  .bead-call.algo.miss { color: var(--call-algo); border-color: var(--call-algo); }
+  .bead-call.hist.miss { color: var(--call-hist); border-color: var(--call-hist); }
+  .bead-call.sm { width: 11px; height: 11px; }
+  .bead-call.sm svg { width: 7px; height: 7px; }
+  .bead-call.dot { width: 7px; height: 7px; border-width: 1px; }
+  .bead-call.dot svg { display: none; }
+  .bead-call.dot.you { bottom: -2px; right: -2px; }
+  .bead-call.dot.algo { top: -2px; left: -2px; }
+  .bead-call.dot.hist { bottom: -2px; left: -2px; }
+  .bead-call.dot.miss { background: transparent; }
+  .cl-road-col.sm { padding: 1px; border-width: 1.5px; border-radius: 5px; }
+  .cl-road-grid.rb .cl-bead { border-radius: 4px; }
   .cl-derived { flex: none; margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
   .cl-derived-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
   .cl-derived-head h3 { margin: 0; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); font-weight: 900; }
@@ -1051,6 +1079,17 @@
   .rd-row:last-child { border-bottom: none; }
   .rd-row span { color: var(--dim); font-weight: 700; }
   .rd-row b { color: var(--soft); font-weight: 800; }
+  /* BTC-22: change-your-call buttons in the round sheet. */
+  .rd-edit { display: flex; gap: 0.4rem; }
+  .rd-btn {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em;
+    text-transform: uppercase; cursor: pointer; padding: 0.35rem 0.7rem;
+    border-radius: var(--r-sm); border: 1px solid var(--ctl-border);
+    background: transparent; color: var(--soft);
+  }
+  .rd-btn.yes:hover { color: var(--green); border-color: var(--green); }
+  .rd-btn.no:hover { color: var(--red); border-color: var(--red); }
+  .rd-btn.clear:hover { color: var(--amber); border-color: var(--amber); }
   .rd-row b.yes { color: var(--green); }
   .rd-row b.no { color: var(--red); }
   .rd-row b.hit { color: var(--amber); }
@@ -1277,6 +1316,7 @@
       <p class="hint">Add panels from the toolbar while editing. Start over, or carry a board around as JSON.</p>
       <div class="d-row">
         <button class="btn" id="resetClassicBtn" title="Put every module back exactly where Classic has it">Reset to Classic</button>
+        <button class="btn" id="resetCallsBtn" title="Wipe YOUR call record back to 0-0 — the ALGO and History Call records are untouched">Reset Your Calls</button>
         <button class="btn" id="jsonBtn" title="Export / import dashboard JSON">Export / Import JSON</button>
       </div>
     </div>
@@ -1658,6 +1698,46 @@ function buildColumns(rounds, cap) {
   }
   return columns;
 }
+/* BTC-19: size the road to the window instead of throwing history away -- pick the
+   largest bead size whose columns ALL fit the box (wrapping into rows). >=36px keeps
+   the full Y/time/delta bead, 22-35px keeps just the letter, below that it's a plain
+   colored chip. data-trim stays on the grid as a safety net for estimate error only. */
+function roadFit(nCols, cap, availW, availH) {
+  const ladder = [44, 38, 32, 27, 23, 19, 16, 13, 11, 9, 8, 7, 6];
+  for (const s of ladder) {
+    const full = s >= 36;
+    const beadH = full ? s + 4 : s;
+    const g1 = s >= 22 ? 4 : Math.max(2, Math.round(s / 6));        // gap inside a column
+    const g2 = s >= 22 ? 12 : Math.max(3, Math.round(s / 4));       // row gap
+    const g3 = s >= 22 ? 8 : Math.max(2, Math.round(s / 6));        // column gap
+    const pad = s >= 22 ? 10 : 5;                                    // col padding+border
+    const colH = cap * beadH + (cap - 1) * g1 + pad;
+    const rows = Math.max(1, Math.floor((availH + g2) / (colH + g2)));
+    const perRow = Math.max(1, Math.floor((availW + g3) / (s + pad + g3)));
+    if (rows * perRow >= nCols) return { size: s, g1, g2, g3, full, mid: s >= 22 && !full, fits: true };
+  }
+  return { size: 6, g1: 2, g2: 3, g3: 2, full: false, mid: false, fits: false };
+}
+
+/* BTC-21: the three callers' corner marks for one bead. Full badges down to 22px,
+   tiny color dots to 12px, nothing below that (the round modal still tells all). */
+const CALL_MARKS = [["you", "you", "You"], ["algo", "algo", "ALGO"], ["histcall", "hist", "History Call"]];
+function callMarksHtml(r, size) {
+  if (size < 12) return "";
+  const c = callsOf(r);
+  const dot = size < 22, sm = size >= 22 && size < 36;
+  let out = "";
+  for (const [key, cls, label] of CALL_MARKS) {
+    const choice = c[key];
+    if (!choice) continue;
+    const hit = choice === r.result;
+    out += '<span class="bead-call ' + cls + (dot ? " dot" : sm ? " sm" : "") + " " + (hit ? "hit" : "miss")
+      + '" title="' + label + " called " + choice.toUpperCase() + " — " + (hit ? "hit" : "miss") + '">'
+      + (dot ? "" : hit ? ICON_CHECK : ICON_X) + "</span>";
+  }
+  return out;
+}
+
 function computeBigEyeBoy(columns) {
   const marks = [];
   for (let c = 1; c < columns.length; c++) {
@@ -2211,12 +2291,13 @@ defViz("statetimeline", {
 defViz("bigroad", {
   label: "Big Road", group: "Rounds", accepts: ["rounds"],
   icon: '<circle cx="10" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".55"/><circle cx="34" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="34" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>',
-  defaults: { maxRows: 6, hours: 6 },
+  defaults: { maxRows: 6, hours: 0 },
   render(p, D, w, h) {
     let rounds = D.rounds || [];
-    // Own window, independent of the board's range -- the road is about the recent
-    // run of streaks, not the whole 68 days.
-    const hrs = num(p.options.hours, 6);
+    // BTC-19: hours 0 (the default now) = follow the board's range, so setting the
+    // board to 7d actually shows 7 days here. A positive hours still pins its own
+    // window for anyone who prefers the old behaviour.
+    const hrs = num(p.options.hours, 0);
     if (hrs > 0 && D.state) {
       const cut = D.state.now - hrs * 3600;
       const win = rounds.filter(r => r.close_time >= cut);
@@ -2224,7 +2305,6 @@ defViz("bigroad", {
     }
     if (!rounds.length) return empty("No rounds in range");
     const maxRows = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, 6))));
-    const size = Math.max(8, Math.min(26, Math.floor((h - 8) / maxRows) - 3));
     const cols = [];
     let cur = null;
     for (const r of rounds) {
@@ -2234,13 +2314,13 @@ defViz("bigroad", {
       }
       cur.items.push(r);
     }
-    const fit = Math.max(1, Math.floor((w - 6) / (size + 3)));
-    const shown = cols.slice(-fit);
-    let html = '<div class="road">';
-    for (const c of shown) {
-      html += '<div class="road-col">';
+    // Beads scale until every column fits (wrapping into rows) -- nothing is sliced off.
+    const f = roadFit(cols.length, maxRows, Math.max(40, w - 8), Math.max(30, h - 8));
+    let html = '<div class="road" style="flex-wrap:wrap;align-content:flex-start;gap:' + f.g2 + "px " + f.g3 + 'px" data-trim="first">';
+    for (const c of cols) {
+      html += '<div class="road-col" style="gap:' + f.g1 + 'px">';
       for (const it of c.items) {
-        html += '<div class="bead ' + (it.result === "yes" ? "y" : "n") + '" style="width:' + size + 'px;height:' + size + 'px" title="'
+        html += '<div class="bead ' + (it.result === "yes" ? "y" : "n") + '" style="width:' + f.size + "px;height:" + f.size + 'px" title="'
           + esc(new Date(it.close_time * 1000).toLocaleString()) + " — " + esc(it.result.toUpperCase()) + '"></div>';
       }
       html += "</div>";
@@ -2814,15 +2894,19 @@ defViz("accuracy", {
     for (const [key, label, col] of rows) {
       const r = SREC[key] || { wins: 0, losses: 0, scored: 0, pct: null };
       const pct = r.pct;
+      // BTC-17: coverage = "called n of the last N settled rounds" -- the visible
+      // proof the 24/7 recorder is actually recording.
+      const cov = r.coverage && r.coverage.window
+        ? r.coverage.called + "/" + r.coverage.window + " called" : "";
       html += '<div class="acc-row">'
         + '<span class="acc-name">' + label + "</span>"
         + '<span class="acc-rec">' + r.wins + "-" + r.losses + "</span>"
         + '<div class="acc-barwrap"><div class="acc-bar" style="width:' + (pct === null ? 0 : Math.max(2, Math.min(100, pct))) + '%;background:var(--' + col + ')"></div><div class="acc-mid"></div></div>'
         + '<span class="acc-pct">' + (pct === null ? "\u2014" : pct.toFixed(1) + "%") + "</span>"
-        + '<span class="acc-n">' + r.scored + " scored</span>"
+        + '<span class="acc-n">' + r.scored + " scored" + (cov ? " \u00b7 " + cov : "") + "</span>"
         + "</div>";
     }
-    html += '<div class="acc-foot">Every call is logged on the server, every round, and scored when it settles. 50% is a coin flip \u2014 the history study found no real edge; this is the live test.</div>';
+    html += '<div class="acc-foot">Every call is logged on the server, every round, and scored when it settles. "Called n/N" is coverage over the last N settled rounds. 50% is a coin flip \u2014 the history study found no real edge; this is the live test.</div>';
     return html + "</div>";
   }
 });
@@ -3103,7 +3187,7 @@ defViz("roadhistory", {
   label: "Big Road History", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
   defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
-  render(p, D) {
+  render(p, D, w, h) {
     const hrs = panelHours(p);
     const hist = histFor(p);
     let html = '<div class="cl-road">';
@@ -3117,20 +3201,28 @@ defViz("roadhistory", {
     if (!rounds.length) {
       html += '<div class="empty">No settled rounds in this window yet</div>';
     } else {
-      let grid = '<div class="cl-road-grid" data-trim="first">';
+      // BTC-19: beads scale down until the WHOLE loaded window fits -- 7 days shows
+      // all 7 days, not the trailing sliver that happened to fit 44px beads.
+      const eyeOn = p.options.showEye !== false;
+      const f = roadFit(columns.length, cap, Math.max(60, w - 12), Math.max(40, h - 78 - (eyeOn ? 96 : 0)));
+      const beadH = f.full ? f.size + 4 : f.size;
+      let grid = '<div class="cl-road-grid' + (f.full ? "" : " rb") + '" data-trim="first" style="gap:' + f.g2 + "px " + f.g3 + 'px">';
       for (const col of columns) {
-        grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + '">';
+        grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + (f.full ? "" : " sm") + '" style="gap:' + f.g1 + 'px">';
         for (const r of col) {
           const hasD = r.delta !== null && r.delta !== undefined;
           const sign = hasD && r.delta >= 0 ? "+" : "-";
           const mine = callsOf(r).you;
-          const hit = mine && mine === r.result;
-          grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
+          grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" style="width:' + f.size + "px;height:" + beadH + 'px" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
               + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.toUpperCase() : "")) + '">'
-            + '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
-            + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
-            + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
-            + (mine ? '<span class="cl-badge ' + (hit ? "hit" : "miss") + '">' + (hit ? ICON_CHECK : ICON_X) + "</span>" : "")
+            + (f.full
+              ? '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
+                + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
+                + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
+              : f.mid
+              ? '<span class="g" style="font-size:' + Math.max(9, Math.round(f.size * 0.5)) + 'px">' + (r.result === "yes" ? "Y" : "N") + "</span>"
+              : "")
+            + callMarksHtml(r, f.size)
             + "</div>";
         }
         grid += "</div>";
@@ -3656,7 +3748,9 @@ function fitTrim(body) {
     if (!list) return;
     const fromEnd = el.dataset.trim === "last";
     let guard = 0;
-    while (guard++ < 400 && list.children.length > 0 && el.scrollHeight > el.clientHeight + 1) {
+    // 2000: a 7-day road is ~330 columns and the guard must never bail mid-trim
+    // (a bailed loop leaves the OLDEST content clipped and looks like data loss).
+    while (guard++ < 2000 && list.children.length > 0 && el.scrollHeight > el.clientHeight + 1) {
       list.removeChild(fromEnd ? list.lastElementChild : list.firstElementChild);
     }
     if (!list.children.length) {
@@ -4311,6 +4405,9 @@ function updateChip() {
   const price = DATA.state && DATA.state.live_price;
   const parts = [];
   if (price) parts.push("BTC " + fmtNum(price, "usd", 0));
+  // BTC-18: surface a genuinely stale price instead of silently showing an old number.
+  const pts = DATA.state && DATA.state.live_price_ts;
+  if (price && pts && DATA.state.now - pts > 15) parts.push("price " + Math.round(DATA.state.now - pts) + "s old");
   parts.push(s.rounds.toLocaleString() + " rounds");
   parts.push(s.span_days.toFixed(1) + "d deep");
   const v = DATA.state && DATA.state.version;
@@ -4318,9 +4415,34 @@ function updateChip() {
   document.getElementById("dataText").innerHTML = parts.map(esc).join(" &middot; ");
 }
 
+/* BTC-18/20: a light 2s poll of /api/state alone -- price, round pointer, records --
+   so the Studio tracks near-live between the 10s full refreshes. Board-follow and
+   the history windows stay on the full fetch. */
+async function fetchState() {
+  if (fetching) return;
+  try {
+    const st = await getJSON("/api/state");
+    DATA.state = st;
+    if (st && st.records) SREC = st.records;
+    SCALLS = (st && st.calls) || {};
+    updateChip();
+    for (const p of DASH.panels) {
+      if (LIVE_TYPES[p.type] || p.type === "accuracy") renderPanelBody(p);
+    }
+  } catch (e) { /* the full fetch cycle owns the error UI */ }
+}
+
 /* countdown/live panels want a tick even between fetches */
+let lastBurstMs = 0;
 function localTick() {
   if (DATA.state) DATA.state.now += 1;
+  // BTC-20: across the round boundary, hit the server at ~1s until it hands over
+  // the next round instead of waiting out the poll interval.
+  const cr = DATA.state && DATA.state.current_round;
+  if (DATA.state && (!cr || DATA.state.now >= cr.close_time) && Date.now() - lastBurstMs > 1000) {
+    lastBurstMs = Date.now();
+    fetchState();
+  }
   for (const p of DASH.panels) {
     if (LIVE_TYPES[p.type] || (METRICS[p.metric] && METRICS[p.metric].group === "Live")) renderPanelBody(p);
   }
@@ -4329,6 +4451,24 @@ function localTick() {
 /* --- Reset to Classic, as a toolbar action rather than buried in the JSON sheet --- */
 document.getElementById("resetClassicBtn").addEventListener("click",
   () => loadBoard(defaultDashboard(), "Classic board \u2014 same modules, same places"));
+
+/* BTC-16: wipe the personal record server-side. The server stamps a reset epoch so
+   a stale browser's one-time migration can't quietly re-import the wiped picks. */
+document.getElementById("resetCallsBtn").addEventListener("click", async () => {
+  if (!confirm("Reset YOUR call record to 0-0?\n\nOnly your calls are wiped \u2014 the ALGO and History Call records are untouched. This cannot be undone.")) return;
+  try {
+    const r = await fetch("/api/calls/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    if (d.records) SREC = d.records;
+    SCALLS = d.current || {};
+    DATA.hist = {};  // every cached window still carries your old call marks
+    toast("Your call record is reset");
+    fetchData(true);
+  } catch (err) {
+    toast("Could not reset the record");
+  }
+});
 
 /* --- Big Road bead -> round detail ------------------------------------
    Classic pops a detail card on a bead; the Studio's road was display-only.
@@ -4374,9 +4514,40 @@ document.addEventListener("click", e => {
     + (mine ? mine.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";
   const recNow = (SREC && SREC.you) || { wins: 0, losses: 0 };
   html += '<div class="rd-row"><span>Your record</span><b>' + recNow.wins + "W \u2013 " + recNow.losses + "L</b></div>";
+  // BTC-22: correct (or log) your own call on a finished round -- the owner sometimes
+  // sells before close, and the settled result then misrepresents the call they traded.
+  html += '<div class="rd-row"><span>' + (mine ? "Change your call" : "Log your call") + "</span><b class=\"rd-edit\">"
+    + '<button class="rd-btn yes" data-edit-call="yes" data-edit-ticker="' + esc(r.kalshi_ticker) + '">Yes</button>'
+    + '<button class="rd-btn no" data-edit-call="no" data-edit-ticker="' + esc(r.kalshi_ticker) + '">No</button>'
+    + (mine ? '<button class="rd-btn clear" data-edit-call="clear" data-edit-ticker="' + esc(r.kalshi_ticker) + '">Clear</button>' : "")
+    + "</b></div>";
 
   document.getElementById("roundBody").innerHTML = html;
   openSheet("roundSheet");
+});
+
+/* BTC-22: the edit buttons in the round sheet. The server owns the record; on
+   success every cached window is refetched so the corner marks follow the edit. */
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-edit-call]");
+  if (!btn) return;
+  const choice = btn.getAttribute("data-edit-call");
+  try {
+    const resp = await fetch("/api/calls/edit", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: btn.getAttribute("data-edit-ticker"),
+                             choice: choice === "clear" ? null : choice })
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const d = await resp.json();
+    if (d.records) SREC = d.records;
+    DATA.hist = {};  // stale call marks live in every cached window
+    closeSheets();
+    toast(choice === "clear" ? "Call cleared" : "Call set to " + choice.toUpperCase());
+    fetchData(true);
+  } catch (err) {
+    toast("Could not update the call");
+  }
 });
 
 /* ============================ arrangements ============================
@@ -4621,6 +4792,7 @@ async function boot() {
   migrateLocalCalls();
 
   timer = setInterval(fetchData, 10000);
+  setInterval(fetchState, 2000);  // BTC-18: near-live price between full refreshes
   setInterval(localTick, 1000);
 
   let rt = null;

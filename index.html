@@ -33,6 +33,10 @@
     --border: rgba(var(--ink-rgb), 0.18);
     --sans: 'InterVar', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --bead: 52px;
+    /* BTC-21: one fixed color per caller, everywhere a call is marked. */
+    --call-you: #ffd23f;
+    --call-algo: #22c3e6;
+    --call-hist: #c07ef0;
   }
   /* Light theme -- same arcade-neon identity, adapted for a light backdrop: accents
      darkened for real contrast on white rather than a naive color-invert, --ink-rgb
@@ -315,6 +319,23 @@
   .pick-btn.no.selected { background: rgba(240,109,109,0.16); }
   .pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .pick-record { font-size: 0.68rem; color: var(--faint); font-weight: 700; text-transform: uppercase; }
+  /* BTC-16: reset the owner's record. Deliberately quiet until hovered. */
+  .pick-reset {
+    margin-left: 0.45rem; width: 22px; height: 22px; border-radius: 6px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--faint);
+    font-size: 0.8rem; line-height: 1; vertical-align: middle; padding: 0;
+  }
+  .pick-reset:hover { color: var(--red); border-color: rgba(255,61,110,0.5); }
+  /* BTC-22: change-your-call buttons in the round detail modal. */
+  .tip-edit-btns { display: flex; gap: 0.4rem; }
+  .tip-edit-btn {
+    font-size: 0.62rem; font-weight: 900; letter-spacing: 0.04em; cursor: pointer;
+    padding: 0.32rem 0.6rem; border-radius: 7px; border: 1px solid var(--border);
+    background: transparent; color: var(--soft); text-transform: uppercase;
+  }
+  .tip-edit-btn.yes:hover { color: var(--green); border-color: var(--green); }
+  .tip-edit-btn.no:hover { color: var(--red); border-color: var(--red); }
+  .tip-edit-btn.clear:hover { color: var(--amber); border-color: var(--amber); }
   .pick-record b { color: var(--soft); font-weight: 900; }
 
   .gauges-card { padding: clamp(1.1rem, 3vw, 1.5rem); }
@@ -432,13 +453,25 @@
   .bead-glyph { font-weight: 900; font-size: 1.05rem; line-height: 1; }
   .bead-time { font-weight: 700; font-size: 0.58rem; opacity: 0.82; margin-top: 1px; letter-spacing: -0.02em; }
   .bead-delta { font-weight: 900; font-size: 0.56rem; opacity: 0.92; }
-  .bead-pick-badge {
-    position: absolute; bottom: -5px; right: -5px; width: 15px; height: 15px; border-radius: 50%;
+  /* BTC-21: every caller gets a corner of the chip -- you bottom-right, ALGO
+     top-left, History Call bottom-left. Fixed colors per caller (skin-agnostic):
+     hit = solid color + check, miss = dark badge with the caller's color and an X. */
+  .bead-call {
+    position: absolute; width: 15px; height: 15px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-deep);
   }
-  .bead-pick-badge svg { width: 9px; height: 9px; }
-  .bead-pick-badge.hit { background: var(--amber); color: var(--bg-deep); }
-  .bead-pick-badge.miss { background: var(--surface-700); color: var(--faint); }
+  .bead-call svg { width: 9px; height: 9px; }
+  .bead-call.you { bottom: -5px; right: -5px; }
+  .bead-call.algo { top: -5px; left: -5px; }
+  .bead-call.hist { bottom: -5px; left: -5px; }
+  .bead-call.hit { color: #0b0b0f; }
+  .bead-call.you.hit { background: var(--call-you); }
+  .bead-call.algo.hit { background: var(--call-algo); }
+  .bead-call.hist.hit { background: var(--call-hist); }
+  .bead-call.miss { background: #14161d; }
+  .bead-call.you.miss { color: var(--call-you); border-color: var(--call-you); }
+  .bead-call.algo.miss { color: var(--call-algo); border-color: var(--call-algo); }
+  .bead-call.hist.miss { color: var(--call-hist); border-color: var(--call-hist); }
 
   .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(var(--ink-rgb), 0.05); }
   .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
@@ -632,6 +665,7 @@
   @keyframes connPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
   .freshness { font-size: 0.56rem; color: var(--faint); font-weight: 600; text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+  .freshness.stale { color: var(--red); font-weight: 800; }
 
   .odds-track { height: 8px; border-radius: 999px; overflow: hidden; display: flex; background: var(--surface-800); }
   .odds-fill { height: 100%; transition: width 0.6s ease-out; }
@@ -731,10 +765,11 @@
   .pick-status.show.no { color: var(--red); }
   .pick-btn.selected { box-shadow: inset 0 0 0 2px currentColor; }
 
-  .bead-pick-badge { width: 22px; height: 22px; bottom: -7px; right: -7px; border-width: 2.5px; }
-  .bead-pick-badge svg { width: 13px; height: 13px; stroke-width: 4; }
-  .bead-pick-badge.hit { background: var(--amber); color: #0b0b0f; }
-  .bead-pick-badge.miss { background: #14161d; color: #ffffff; }
+  .bead-call { width: 20px; height: 20px; border-width: 2px; }
+  .bead-call.you { bottom: -6px; right: -6px; }
+  .bead-call.algo { top: -6px; left: -6px; }
+  .bead-call.hist { bottom: -6px; left: -6px; }
+  .bead-call svg { width: 12px; height: 12px; stroke-width: 4; }
 
   /* ===================================================================
      HISTORY CALL
@@ -895,7 +930,7 @@
             <button class="pick-btn no" id="pickNo">NO</button>
             <span class="pick-status" id="pickStatus"></span>
           </div>
-          <span class="pick-record">Your calls: <b id="pickRecord">0-0</b></span>
+          <span class="pick-record">Your calls: <b id="pickRecord">0-0</b><button class="pick-reset" id="pickResetBtn" title="Reset your call record to 0-0">&#10227;</button></span>
         </div>
         </div>
       </div>
@@ -1226,6 +1261,8 @@
   var lastSettledTicker = null;
   var historyDirty = true;
   var currentHours = 24;
+  var priceAgeBaseS = null;   // BTC-18: server-reported price age at last poll
+  var lastBurstPollMs = 0;    // BTC-20: 1s poll burst across the round boundary
   var polling = true;
   var COLUMN_CAP = 6;
   var lastPriceUpdateMs = null;
@@ -1444,7 +1481,29 @@
     if (c.algo) rows += tipRow('ALGO called', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
     if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
     if (c.you) rows += tipRow('Your call', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
+    // BTC-22: the owner can correct their own call on a finished round (they sometimes
+    // sell before close, and the final result then misrepresents the call they traded).
+    rows += '<div class="tip-modal-row"><span class="k">' + (c.you ? 'Change your call' : 'Log your call') + '</span>'
+      + '<span class="v tip-edit-btns">'
+      + '<button class="tip-edit-btn yes" data-edit-call="yes" data-edit-ticker="' + r.kalshi_ticker + '">Yes</button>'
+      + '<button class="tip-edit-btn no" data-edit-call="no" data-edit-ticker="' + r.kalshi_ticker + '">No</button>'
+      + (c.you ? '<button class="tip-edit-btn clear" data-edit-call="clear" data-edit-ticker="' + r.kalshi_ticker + '">Clear</button>' : '')
+      + '</span></div>';
     return rows;
+  }
+  function editCall(ticker, choice) {
+    fetch('/api/calls/edit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: ticker, choice: choice === 'clear' ? null : choice })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (d.records) SREC = d.records;
+      closeTipModal();
+      renderPick();
+      loadHistory();  // re-renders the road so the corner mark follows the edit
+    }).catch(function () {});
   }
   function openTipModal(title, rowsHtml) {
     document.getElementById('tipModalTitle').textContent = title;
@@ -1455,6 +1514,8 @@
   document.addEventListener('click', function (e) {
     if (e.target.id === 'tipModalClose' || e.target.closest('#tipModalClose')) { closeTipModal(); return; }
     if (e.target.id === 'tipModalBackdrop') { closeTipModal(); return; }
+    var editBtn = e.target.closest('[data-edit-call]');
+    if (editBtn) { editCall(editBtn.dataset.editTicker, editBtn.dataset.editCall); return; }
     var idEl = e.target.closest('[data-tip-id]');
     if (idEl) {
       var info = tipDataStore[idEl.dataset.tipId];
@@ -1839,6 +1900,14 @@
     var t = now() / 1000;
     var cur = state.current_round;
 
+    // BTC-20: the moment the clock crosses the round boundary, poll at ~1s until the
+    // server hands over the next round (its close_time jumps into the future) --
+    // instead of sitting on the finished round for the leftover poll intervals.
+    if (polling && (!cur || t >= cur.close_time) && Date.now() - lastBurstPollMs > 1000) {
+      lastBurstPollMs = Date.now();
+      poll();
+    }
+
     var timerValueEl = document.getElementById('roundTimerValue');
     var timerLabelEl = document.getElementById('roundTimerLabel');
 
@@ -1897,9 +1966,15 @@
       document.getElementById('livePrice').textContent = fmtUSD(state.live_price);
     }
     var freshEl = document.getElementById('priceFreshness');
-    if (lastPriceUpdateMs !== null) {
-      var ageS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
-      freshEl.textContent = ageS <= 1 ? 'live' : ageS + 's ago';
+    if (priceAgeBaseS !== null && lastPriceUpdateMs !== null) {
+      // BTC-18: this is the PRICE's age, not "when did I last poll" -- the old chip
+      // said "live" even when the server's price was minutes old.
+      var ageS = Math.max(0, Math.round(priceAgeBaseS + (Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = ageS <= 2 ? 'live' : ageS + 's ago';
+      freshEl.classList.toggle('stale', ageS > 15);
+    } else if (lastPriceUpdateMs !== null) {
+      var pollAgeS = Math.max(0, Math.round((Date.now() - lastPriceUpdateMs) / 1000));
+      freshEl.textContent = pollAgeS <= 1 ? 'live' : pollAgeS + 's ago';
     }
 
     var oddsYes = document.getElementById('oddsYesFill'), oddsNo = document.getElementById('oddsNoFill');
@@ -1988,6 +2063,25 @@
     document.getElementById('lrPrice').textContent = fmtUSD(s.settlement_value);
     document.getElementById('lrTarget').textContent = fmtUSD(s.floor_strike);
     resolvePersonalFeedback();
+  }
+
+  // BTC-21: shared corner-mark builder. Labels double as hover text so the colors
+  // are self-explaining without a legend.
+  var CALL_MARKS = [['you', 'you', 'You'], ['algo', 'algo', 'ALGO'], ['histcall', 'hist', 'History Call']];
+  var MARK_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>';
+  var MARK_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  function appendCallMarks(bead, r) {
+    var c = callsOf(r);
+    CALL_MARKS.forEach(function (m) {
+      var choice = c[m[0]];
+      if (!choice) return;
+      var hit = choice === r.result;
+      var badge = document.createElement('span');
+      badge.className = 'bead-call ' + m[1] + ' ' + (hit ? 'hit' : 'miss');
+      badge.title = m[2] + ' called ' + choice.toUpperCase() + ' — ' + (hit ? 'hit' : 'miss');
+      badge.innerHTML = hit ? MARK_CHECK : MARK_X;
+      bead.appendChild(badge);
+    });
   }
 
   function buildColumns(rounds) {
@@ -2147,20 +2241,12 @@
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
           '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
-        // Mark a round you personally called, right on its own cell -- a small corner
-        // badge (not a ring) so it never visually collides with the Dragon Tail ring
-        // that highlights the whole column above. Calls ride each /api/history row
-        // from the server now (r.calls = {you, algo, histcall} -> choice strings).
-        var mine = callsOf(r).you;
-        if (mine) {
-          var hit = mine === r.result;
-          var badge = document.createElement('span');
-          badge.className = 'bead-pick-badge ' + (hit ? 'hit' : 'miss');
-          badge.innerHTML = hit
-            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-          bead.appendChild(badge);
-        }
+        // BTC-21: all three callers on the chip, one corner each -- you bottom-right,
+        // ALGO top-left, History Call bottom-left -- with a hit/miss mark per caller.
+        // Corner badges (not rings) so they never collide with the Dragon Tail ring.
+        // Calls ride each /api/history row from the server (r.calls -> choice strings),
+        // so they survive any timeframe change by construction.
+        appendCallMarks(bead, r);
         // Hover = date/time only (owner's explicit ask); click = the full detail
         // popup, structured rows via tipDataStore rather than an HTML attribute.
         bead.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
@@ -2294,6 +2380,20 @@
   migrateLocalCalls();
   fetchPrefs();
 
+  // BTC-16: wipe the personal record server-side. The server also stamps a reset
+  // epoch so an old browser's one-time migration can't re-import the wiped picks.
+  document.getElementById('pickResetBtn').addEventListener('click', function () {
+    if (!confirm('Reset YOUR call record to 0-0?\n\nOnly your calls are wiped — the ALGO and History Call records are untouched. This cannot be undone.')) return;
+    fetch('/api/calls/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function (d) {
+        if (d.records) SREC = d.records;
+        SCALLS = d.current || {};
+        renderPick();
+        loadHistory();  // corner marks for 'you' disappear from the road
+      }).catch(function () {});
+  });
+
   document.getElementById('refreshBtn').addEventListener('click', function () {
     // poll()/loadHistory() don't return their fetch promises (they self-manage the
     // shared top progress bar via progressStart/progressDone), so this spin is just a
@@ -2327,6 +2427,10 @@
       setConnIssue(false);
       clockOffsetMs = (d.now * 1000) - Date.now();
       lastPriceUpdateMs = Date.now();
+      // BTC-18: true price age -- how old the price itself was when the server sent
+      // it (server clocks are consistent), extended locally between polls.
+      priceAgeBaseS = (typeof d.live_price_ts === 'number' && d.live_price_ts > 0)
+        ? Math.max(0, d.now - d.live_price_ts) : null;
       state = d;
       if (d.version) document.getElementById('footVersion').textContent = 'v' + d.version;
       if (d.records) SREC = d.records;
