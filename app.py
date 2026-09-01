@@ -27,7 +27,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "4.14.0"
+VERSION = "4.15.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -51,12 +51,22 @@ ACTIVE_PRICE_POLL_S = 2
 IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap, no network call)
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
-SETTLE_RETRY_S = 3
 STARTUP_BACKFILL_TRIES = 12  # qnet needs ~30s after container start before egress works
 ROUND_RETENTION_S = None  # None = never prune; the board charts every round we have ever seen
 BACKFILL_LOOKBACK_S = 400 * 24 * 3600  # ask far past Kalshi's real depth (~68d) so it self-limits, not us
 LEAN_FULL_TILT_USD = 300.0
 TICK_RETENTION_S = 3 * 3600
+CALLER_CHECK_S = 5           # caller_loop cadence: round freshness, settlement, auto calls
+CALL_WINDOW_S = 120          # algo + histcall calls fire when lock_ts-120 <= now < lock_ts
+PRICE_STALE_S = 15           # the price poller sleeps when idle; refetch for the lean if older
+SETTLE_SCAN_WINDOW_S = 6 * 3600  # only chase pending rounds this recent (backfill owns older holes)
+ALGO_COINFLIP_EPS = 0.04     # odds closer than this are a coin flip; fall back to the live lean
+CALL_SOURCES = ("you", "algo", "histcall")
+PICKS_MAX_BYTES = 10_000
+KV_MAX_BYTES = 200_000
+KV_KEYS = ("board", "classic_modules", "algo_modules")
+IMPORT_MAX_BYTES = 2_000_000
+IMPORT_MAX_ENTRIES = 20_000  # per source; ~70 days of rounds is ~7k
 MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
 
@@ -169,11 +179,24 @@ class DB:
                 kalshi_yes_price REAL, kalshi_no_price REAL, created_at REAL NOT NULL)""")
             self.conn.execute("CREATE INDEX IF NOT EXISTS idx_rounds_close ON rounds(close_time)")
             self.conn.execute("DROP TABLE IF EXISTS votes")
-            # Studio save slots (1..5). Server-side on purpose so a saved board follows the
-            # owner across browsers and devices; picks stay browser-local, this does not.
+            # Studio save slots (1..5), server-side so a saved board follows the owner
+            # across browsers and devices.
             self.conn.execute("""CREATE TABLE IF NOT EXISTS layouts (
                 slot INTEGER PRIMARY KEY, name TEXT NOT NULL, payload TEXT NOT NULL,
                 saved_at REAL NOT NULL)""")
+            # v4.15.0 "full memory": every call, every round, on the server. Sources:
+            # 'you' (the owner's pick), 'algo' (the server's own AI, made 24/7 whether or
+            # not a browser is open) and 'histcall' (the order-3 History Call). Records
+            # are ALWAYS derived by joining against rounds.result -- never stored
+            # counters, so they cannot drift.
+            self.conn.execute("""CREATE TABLE IF NOT EXISTS calls (
+                kalshi_ticker TEXT NOT NULL, source TEXT NOT NULL,
+                choice TEXT NOT NULL, reason TEXT, ts REAL NOT NULL,
+                PRIMARY KEY (kalshi_ticker, source))""")
+            # Small key-value store: the Studio's CURRENT board (key 'board'), and the
+            # Classic/ALGO module preferences -- the state that must follow the owner.
+            self.conn.execute("""CREATE TABLE IF NOT EXISTS kv (
+                key TEXT PRIMARY KEY, payload TEXT NOT NULL, saved_at REAL NOT NULL)""")
 
     def execute(self, sql, params=()):
         with self.lock, self.conn:
@@ -214,6 +237,59 @@ class DB:
         with self.lock, self.conn:
             self.conn.execute("DELETE FROM layouts WHERE slot=?", (slot,))
 
+    def upsert_call(self, ticker, source, choice, reason, ts):
+        # 'you' may overwrite before lock; the endpoint enforces the lock.
+        with self.lock, self.conn:
+            self.conn.execute("""
+                INSERT INTO calls (kalshi_ticker, source, choice, reason, ts) VALUES (?,?,?,?,?)
+                ON CONFLICT(kalshi_ticker, source) DO UPDATE SET
+                    choice=excluded.choice, reason=excluded.reason, ts=excluded.ts
+            """, (ticker, source, choice, reason, ts))
+
+    def insert_call_ignore(self, ticker, source, choice, reason, ts):
+        # algo/histcall/import are write-once: the first call for a round stands.
+        # Returns whether a row was actually inserted (False = it already existed).
+        with self.lock, self.conn:
+            cur = self.conn.execute("INSERT OR IGNORE INTO calls (kalshi_ticker, source, choice, reason, ts) "
+                                    "VALUES (?,?,?,?,?)", (ticker, source, choice, reason, ts))
+            return cur.rowcount > 0
+
+    def calls_for_round(self, ticker):
+        if not ticker:
+            return {}
+        rows = self.query("SELECT source, choice, reason, ts FROM calls WHERE kalshi_ticker=?", (ticker,))
+        return {r["source"]: {"choice": r["choice"], "reason": r["reason"], "ts": r["ts"]} for r in rows}
+
+    def calls_records(self):
+        return self.query("""
+            SELECT c.source,
+                   SUM(c.choice = r.result) AS wins,
+                   SUM(c.choice != r.result) AS losses
+            FROM calls c JOIN rounds r ON r.kalshi_ticker = c.kalshi_ticker
+            WHERE r.result IS NOT NULL GROUP BY c.source""")
+
+    def recent_scored_calls(self, limit=50):
+        return self.query("""
+            SELECT c.kalshi_ticker, c.source, c.choice, c.reason, c.ts, r.result, r.close_time
+            FROM calls c JOIN rounds r ON r.kalshi_ticker = c.kalshi_ticker
+            WHERE r.result IS NOT NULL
+            ORDER BY r.close_time DESC, c.source LIMIT ?""", (limit,))
+
+    def kv_get(self, key):
+        return self.query_one("SELECT payload, saved_at FROM kv WHERE key=?", (key,))
+
+    def kv_set(self, key, payload_text):
+        # Monotonic saved_at: open tabs compare against it to notice newer boards, so two
+        # saves inside the same clock tick must still order.
+        with self.lock, self.conn:
+            row = self.conn.execute("SELECT saved_at FROM kv WHERE key=?", (key,)).fetchone()
+            saved_at = max(time.time(), (row["saved_at"] + 0.001) if row else 0.0)
+            self.conn.execute("""
+                INSERT INTO kv (key, payload, saved_at) VALUES (?,?,?)
+                ON CONFLICT(key) DO UPDATE SET payload=excluded.payload, saved_at=excluded.saved_at
+            """, (key, payload_text, saved_at))
+            return saved_at
+
 
 db = DB(DB_PATH)
 
@@ -223,6 +299,7 @@ STATE = {
     "last_client_seen": 0.0,
     "live_price": None,
     "live_price_source": None,
+    "live_price_ts": 0.0,
     "recent_ticks": [],  # in-memory ring for the sparkline; DB is the durable copy
 }
 STATE_LOCK = threading.Lock()
@@ -372,31 +449,7 @@ def round_engine():
                 except Exception as e:  # noqa
                     print("[round_engine] prune failed: %s" % e, file=sys.stderr)
 
-            if active:
-                # Scan for anything past close_time still unsettled, rather than trusting
-                # "current" to still be the round that just closed -- Kalshi opens the next
-                # round immediately, so a slow wakeup can find the open-round query already
-                # pointing at the NEW round, silently skipping the one that just ended.
-                pending = db.query("SELECT kalshi_ticker FROM rounds WHERE result IS NULL AND close_time <= ?",
-                                    (time.time(),))
-                for p in pending:
-                    settle_round(p["kalshi_ticker"])
-
         time.sleep(IDLE_CHECK_S)
-
-
-def settle_round(ticker):
-    for _ in range(20):
-        try:
-            data = kalshi_markets("settled", limit=25)
-            for m in data.get("markets") or []:
-                if m["ticker"] == ticker and (m.get("result") or ""):
-                    db.upsert_round(to_round_row(m))
-                    return True
-        except Exception as e:  # noqa
-            print("[settle_round] %s" % e, file=sys.stderr)
-        time.sleep(SETTLE_RETRY_S)
-    return False
 
 
 def fetch_cosmetic_price():
@@ -420,6 +473,7 @@ def price_poller():
                 with STATE_LOCK:
                     STATE["live_price"] = price
                     STATE["live_price_source"] = source
+                    STATE["live_price_ts"] = now
                     STATE["recent_ticks"].append((now, price))
                     STATE["recent_ticks"] = STATE["recent_ticks"][-300:]
                 db.execute("INSERT INTO ticks (ts, price, source) VALUES (?,?,?)", (now, price, source))
@@ -484,6 +538,176 @@ def compute_lean(price, strike):
     delta = price - strike
     strength = max(0.0, min(1.0, abs(delta) / LEAN_FULL_TILT_USD))
     return {"direction": "yes" if delta >= 0 else "no", "strength": round(strength, 3), "delta": round(delta, 2)}
+
+
+def _pct(x):
+    # JS Math.round semantics (half toward +inf); Python's round() is banker's.
+    return int(x * 100 + 0.5)
+
+
+def compute_algo_pick(cur, lean):
+    """The ALGO Desk's brain, moved server-side (exact port of the page's heuristic):
+    Kalshi's own live odds are the signal; odds within ALGO_COINFLIP_EPS of even fall
+    back to the live price position. Note to_round_row's `or None` maps a genuine 0.0
+    price to None (inherited quirk, kept for parity with what the page always saw)."""
+    if not cur:
+        return None
+    yes, no = cur["kalshi_yes_price"], cur["kalshi_no_price"]
+    if yes is not None:
+        eff_no = no if no is not None else 1.0 - yes
+        if abs(yes - eff_no) < ALGO_COINFLIP_EPS and lean:
+            return {"choice": lean["direction"],
+                    "reason": "Kalshi\u2019s odds are almost a coin flip (%d%% YES / %d%% NO) \u2014 "
+                              "leaning on the live price position instead, currently %s."
+                              % (_pct(yes), _pct(eff_no), lean["direction"].upper())}
+        choice = "yes" if yes >= eff_no else "no"
+        return {"choice": choice,
+                "reason": "Kalshi\u2019s own market prices %s higher \u2014 %d%% YES / %d%% NO on real "
+                          "order-book pricing." % (choice.upper(), _pct(yes), _pct(eff_no))}
+    if lean:
+        return {"choice": lean["direction"],
+                "reason": "No live odds yet \u2014 going with the current price position, %s target."
+                          % ("above" if lean["direction"] == "yes" else "below")}
+    return None
+
+
+# The History Call's static order-3 table -- measured once over 6,682 settled rounds
+# (see the study framing in index.html; 105 pre-registered hypotheses, ZERO survived
+# FDR correction). The module reports the lean and says when a coin flip is not ruled
+# out, which it essentially always is. These numbers must match the page's HC_TABLE.
+HC_TABLE = {
+    "NNN": {"p": 0.5359, "n": 767, "lo": 0.5005, "hi": 0.5709},
+    "NNY": {"p": 0.5069, "n": 870, "lo": 0.4737, "hi": 0.5400},
+    "NYN": {"p": 0.5068, "n": 876, "lo": 0.4738, "hi": 0.5399},
+    "NYY": {"p": 0.4731, "n": 835, "lo": 0.4394, "hi": 0.5070},
+    "YNN": {"p": 0.5276, "n": 870, "lo": 0.4944, "hi": 0.5606},
+    "YNY": {"p": 0.4685, "n": 841, "lo": 0.4350, "hi": 0.5023},
+    "YYN": {"p": 0.4761, "n": 836, "lo": 0.4424, "hi": 0.5100},
+    "YYY": {"p": 0.4962, "n": 784, "lo": 0.4613, "hi": 0.5311},
+}
+
+
+def compute_hist_call(prior_results):
+    """prior_results: the last 3 SETTLED results before the current round, CHRONOLOGICAL
+    (e.g. ['no','no','yes'] -> context NNY). Returns {'choice','reason'} or None."""
+    if not prior_results or len(prior_results) < 3:
+        return None
+    ctx = "".join("Y" if r == "yes" else "N" for r in prior_results[-3:])
+    row = HC_TABLE.get(ctx)
+    if not row:
+        return None
+    yes = row["p"] >= 0.5
+    pct = row["p"] if yes else 1.0 - row["p"]
+    solid = row["lo"] > 0.5 or row["hi"] < 0.5  # same CI test the page uses
+    choice = "yes" if yes else "no"
+    reason = "After %s \u2014 history leans %s %.1f%% over %d past rounds (%s)." % (
+        " ".join(ctx), choice.upper(), pct * 100, row["n"],
+        "outside coin-flip range" if solid else "coin flip not ruled out")
+    return {"choice": choice, "reason": reason}
+
+
+# Derived records, cached briefly: /api/state is polled every 2s per client but records
+# only actually change when a round settles, so a 5s TTL makes the GROUP BY free.
+_records_cache = (0.0, None)
+
+
+def get_records():
+    global _records_cache
+    now = time.time()
+    if _records_cache[1] is not None and now < _records_cache[0]:
+        return _records_cache[1]
+    out = {src: {"wins": 0, "losses": 0, "scored": 0, "pct": None} for src in CALL_SOURCES}
+    for r in db.calls_records():
+        src = r["source"]
+        if src not in out:
+            continue
+        wins, losses = int(r["wins"] or 0), int(r["losses"] or 0)
+        scored = wins + losses
+        out[src] = {"wins": wins, "losses": losses, "scored": scored,
+                    "pct": round(100.0 * wins / scored, 1) if scored else None}
+    _records_cache = (now + 5.0, out)
+    return out
+
+
+def settle_pending_once(now):
+    """At most ONE Kalshi call per cycle; settles every pending round it can match.
+    No in-loop retries -- the 5s cadence IS the retry. Replaces the old blocking
+    settle_round, and runs whether or not anyone is watching (the records and the
+    History Call's context need results around the clock)."""
+    pending = db.query("SELECT kalshi_ticker FROM rounds WHERE result IS NULL AND close_time <= ? "
+                       "AND close_time > ?", (now, now - SETTLE_SCAN_WINDOW_S))
+    if not pending:
+        return
+    try:
+        data = kalshi_markets("settled", limit=25)  # 25 rounds is ~6h, matches the scan window
+    except Exception as e:  # noqa
+        print("[caller] settle scan failed: %s" % e, file=sys.stderr)
+        return
+    by_ticker = {m["ticker"]: m for m in data.get("markets") or [] if (m.get("result") or "")}
+    for p in pending:
+        m = by_ticker.get(p["kalshi_ticker"])
+        if m:
+            db.upsert_round(to_round_row(m))
+
+
+def make_auto_calls(cur, now):
+    ticker = cur["kalshi_ticker"]
+    with STATE_LOCK:
+        price, price_ts = STATE["live_price"], STATE["live_price_ts"]
+    if price is None or now - price_ts > PRICE_STALE_S:
+        # The price poller sleeps when the app is idle; the AI still needs a live read.
+        try:
+            price, source = fetch_cosmetic_price()
+            with STATE_LOCK:
+                STATE["live_price"], STATE["live_price_source"], STATE["live_price_ts"] = price, source, now
+        except Exception:  # noqa
+            pass  # stale or absent price -> lean may be None; the odds branch still works
+    lean = compute_lean(price, cur["floor_strike"])
+    algo = compute_algo_pick(cur, lean)
+    if algo:
+        db.insert_call_ignore(ticker, "algo", algo["choice"], algo["reason"], now)
+    priors = db.query("SELECT result FROM rounds WHERE result IS NOT NULL AND close_time <= ? "
+                      "ORDER BY close_time DESC LIMIT 3", (cur["open_time"],))
+    hc = compute_hist_call([r["result"] for r in reversed(priors)])
+    if hc:
+        db.insert_call_ignore(ticker, "histcall", hc["choice"], hc["reason"], now)
+
+
+def caller_tick():
+    now = time.time()
+    cur = current_round_row()
+    if cur is None or cur["close_time"] <= now:
+        # Idle freshness: round_engine only re-syncs every 12h when nobody is watching,
+        # but the AI calls every round regardless -- so keep the round pointer alive
+        # ourselves (~1-2 Kalshi calls per 15-min round when idle).
+        refresh_open_round()
+        cur = current_round_row()
+    settle_pending_once(now)
+    if not cur or cur["close_time"] <= now:
+        return
+    if cur["lock_ts"] - CALL_WINDOW_S <= now < cur["lock_ts"]:
+        existing = db.calls_for_round(cur["kalshi_ticker"])
+        if "algo" in existing and "histcall" in existing:
+            return  # already fired for this round
+        if not is_active():
+            # When active, round_engine refreshed the odds within the last 10s; when
+            # idle the row is ~13 minutes old, so snapshot near-lock odds once.
+            refresh_open_round()
+            cur = current_round_row() or cur  # refresh failure -> use round-open odds
+        make_auto_calls(cur, now)
+
+
+def caller_loop():
+    # The third daemon thread (v4.15.0): the AI and the History Call make their calls
+    # every round, 24/7, and settlement lives here now -- single owner, never blocks.
+    while STATE["catching_up"]:
+        time.sleep(1)
+    while True:
+        try:
+            caller_tick()
+        except Exception as e:  # noqa
+            print("[caller] %s" % e, file=sys.stderr)
+        time.sleep(CALLER_CHECK_S)
 
 
 BUCKET_SIZES = {"round": 900, "hour": 3600, "4h": 4 * 3600, "day": 86400, "week": 7 * 86400}
@@ -616,6 +840,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self._api_ticks(urllib.parse.parse_qs(parsed.query))
             if path == "/api/layouts":
                 return self._send(200, self._layouts_body())
+            if path == "/api/calls":
+                # Deliberately no touch_client(): watching the records must not flip
+                # the app "active" (that would defeat the idle economy).
+                return self._send(200, self._calls_body())
+            if path == "/api/board":
+                return self._send(200, self._kv_body("board"))
+            if path == "/api/prefs":
+                return self._send(200, json.dumps({
+                    "classic_modules": self._kv_obj("classic_modules"),
+                    "algo_modules": self._kv_obj("algo_modules")}).encode())
             self._send(404, b'{"error":"not found"}')
         except Exception as e:  # noqa
             print("[http] GET %s failed: %s" % (self.path, e), file=sys.stderr)
@@ -638,41 +872,172 @@ class Handler(BaseHTTPRequestHandler):
                           "payload": payload})
         return json.dumps({"slots": slots, "max": self.LAYOUT_SLOTS}).encode()
 
+    def _kv_obj(self, key):
+        row = db.kv_get(key)
+        if not row:
+            return None
+        try:
+            return {"payload": json.loads(row["payload"]), "saved_at": row["saved_at"]}
+        except ValueError:
+            return None
+
+    def _kv_body(self, key):
+        obj = self._kv_obj(key)
+        if not obj:
+            return json.dumps({"payload": None, "saved_at": None}).encode()
+        return json.dumps(obj).encode()
+
+    def _calls_body(self, extra=None):
+        with STATE_LOCK:
+            ticker = STATE["current_ticker"]
+        recent = []
+        for r in db.recent_scored_calls(50):
+            recent.append({"ticker": r["kalshi_ticker"], "source": r["source"], "choice": r["choice"],
+                           "reason": r["reason"], "ts": r["ts"], "result": r["result"],
+                           "win": r["choice"] == r["result"], "close_time": r["close_time"]})
+        body = {"records": get_records(),
+                "current": dict(db.calls_for_round(ticker), ticker=ticker),
+                "recent": recent}
+        if extra:
+            body.update(extra)
+        return json.dumps(body).encode()
+
+    def _read_json_body(self, cap):
+        """Shared POST body reader. Returns (dict, None) or (None, error-response-sent)."""
+        n = int(self.headers.get("Content-Length") or 0)
+        if n > cap:
+            self._send(413, b'{"error":"body too large"}')
+            return None, True
+        try:
+            body = json.loads(self.rfile.read(n) or b"{}")
+        except ValueError:
+            self._send(400, b'{"error":"body must be JSON"}')
+            return None, True
+        if not isinstance(body, dict):
+            self._send(400, b'{"error":"body must be a JSON object"}')
+            return None, True
+        return body, None
+
     def do_POST(self):
-        # The only write endpoint. No auth by design: this is a single-owner LAN app, and
+        # The write endpoints. No auth by design: this is a single-owner LAN app, and
         # the DB lock serialises concurrent writers.
         try:
             path = urllib.parse.urlparse(self.path).path
-            if path != "/api/layouts":
+            routes = {"/api/layouts": (self._post_layouts, self.LAYOUT_MAX_BYTES + 50_000),
+                      "/api/picks": (self._post_picks, PICKS_MAX_BYTES),
+                      "/api/board": (self._post_board, KV_MAX_BYTES + 50_000),
+                      "/api/prefs": (self._post_prefs, KV_MAX_BYTES + 50_000),
+                      "/api/calls/import": (self._post_import, IMPORT_MAX_BYTES)}
+            route = routes.get(path)
+            if not route:
                 return self._send(404, b'{"error":"not found"}')
-            n = int(self.headers.get("Content-Length") or 0)
-            if n > self.LAYOUT_MAX_BYTES + 50_000:
-                return self._send(413, b'{"error":"body too large"}')
-            try:
-                body = json.loads(self.rfile.read(n) or b"{}")
-            except ValueError:
-                return self._send(400, b'{"error":"body must be JSON"}')
-            slot = body.get("slot") if isinstance(body, dict) else None
-            if not isinstance(slot, int) or isinstance(slot, bool) or not (1 <= slot <= self.LAYOUT_SLOTS):
-                return self._send(400, b'{"error":"slot must be 1-%d"}' % self.LAYOUT_SLOTS)
-            if body.get("delete"):
-                db.delete_layout(slot)
-            else:
-                name = (str(body.get("name") or "").strip() or "Slot %d" % slot)[:60]
-                payload = body.get("payload")
-                if not isinstance(payload, dict):
-                    return self._send(400, b'{"error":"payload must be a JSON object"}')
-                raw = json.dumps(payload, separators=(",", ":"))
-                if len(raw) > self.LAYOUT_MAX_BYTES:
-                    return self._send(413, b'{"error":"payload too large"}')
-                db.upsert_layout(slot, name, raw)
-            return self._send(200, self._layouts_body())
+            handler, cap = route
+            body, err = self._read_json_body(cap)
+            if err:
+                return
+            return handler(body)
         except Exception as e:  # noqa
             print("[http] POST %s failed: %s" % (self.path, e), file=sys.stderr)
             try:
                 self._send(500, json.dumps({"error": "internal error"}).encode())
             except Exception:
                 pass
+
+    def _post_layouts(self, body):
+        slot = body.get("slot")
+        if not isinstance(slot, int) or isinstance(slot, bool) or not (1 <= slot <= self.LAYOUT_SLOTS):
+            return self._send(400, b'{"error":"slot must be 1-%d"}' % self.LAYOUT_SLOTS)
+        if body.get("delete"):
+            db.delete_layout(slot)
+        else:
+            name = (str(body.get("name") or "").strip() or "Slot %d" % slot)[:60]
+            payload = body.get("payload")
+            if not isinstance(payload, dict):
+                return self._send(400, b'{"error":"payload must be a JSON object"}')
+            raw = json.dumps(payload, separators=(",", ":"))
+            if len(raw) > self.LAYOUT_MAX_BYTES:
+                return self._send(413, b'{"error":"payload too large"}')
+            db.upsert_layout(slot, name, raw)
+        return self._send(200, self._layouts_body())
+
+    def _post_picks(self, body):
+        touch_client()  # a pick is a real visit
+        choice = body.get("choice")
+        ticker = body.get("ticker")
+        if choice not in ("yes", "no") or not isinstance(choice, str):
+            return self._send(400, b'{"error":"choice must be yes or no"}')
+        if not isinstance(ticker, str) or not ticker:
+            return self._send(400, b'{"error":"ticker required"}')
+        cur = current_round_row()
+        if not cur:
+            return self._send(409, b'{"error":"no current round"}')
+        if ticker != cur["kalshi_ticker"]:
+            return self._send(409, b'{"error":"round is not current"}')
+        if time.time() >= cur["lock_ts"]:
+            return self._send(409, b'{"error":"locked"}')
+        db.upsert_call(ticker, "you", choice, None, time.time())
+        return self._send(200, self._calls_body())
+
+    def _post_board(self, body):
+        payload = body.get("payload")
+        if not isinstance(payload, dict):
+            return self._send(400, b'{"error":"payload must be a JSON object"}')
+        raw = json.dumps(payload, separators=(",", ":"))
+        if len(raw) > KV_MAX_BYTES:
+            return self._send(413, b'{"error":"payload too large"}')
+        saved_at = db.kv_set("board", raw)
+        return self._send(200, json.dumps({"saved_at": saved_at}).encode())
+
+    def _post_prefs(self, body):
+        key = body.get("key")
+        if key not in KV_KEYS or key == "board":
+            return self._send(400, b'{"error":"unknown key"}')
+        payload = body.get("payload")
+        if not isinstance(payload, dict):
+            return self._send(400, b'{"error":"payload must be a JSON object"}')
+        raw = json.dumps(payload, separators=(",", ":"))
+        if len(raw) > KV_MAX_BYTES:
+            return self._send(413, b'{"error":"payload too large"}')
+        saved_at = db.kv_set(key, raw)
+        return self._send(200, json.dumps({"saved_at": saved_at}).encode())
+
+    def _post_import(self, body):
+        # One-time migration of browser-local records. Only rounds we actually hold, and
+        # never overwriting an existing call ('you' imports too: history is history).
+        imported = {"you": 0, "algo": 0}
+        skipped = 0
+        for source in ("you", "algo"):
+            entries = body.get(source)
+            if entries is None:
+                continue
+            if not isinstance(entries, dict):
+                return self._send(400, b'{"error":"you/algo must be objects"}')
+            if len(entries) > IMPORT_MAX_ENTRIES:
+                return self._send(413, b'{"error":"too many entries"}')
+            for ticker, e in entries.items():
+                if not isinstance(ticker, str) or len(ticker) > 80 or not isinstance(e, dict):
+                    skipped += 1
+                    continue
+                choice = e.get("choice")
+                if choice not in ("yes", "no"):
+                    skipped += 1
+                    continue
+                ts = e.get("ts")
+                ts = (ts / 1000.0) if isinstance(ts, (int, float)) and not isinstance(ts, bool) and ts > 1e12 else \
+                     (float(ts) if isinstance(ts, (int, float)) and not isinstance(ts, bool) else time.time())
+                reason = e.get("reason")
+                reason = reason[:500] if isinstance(reason, str) else None
+                known = db.query_one("SELECT 1 AS x FROM rounds WHERE kalshi_ticker=?", (ticker,))
+                if not known:
+                    skipped += 1
+                    continue
+                if db.insert_call_ignore(ticker, source, choice, reason, ts):
+                    imported[source] += 1
+                else:
+                    skipped += 1  # already on the server; write-once stands
+        global _records_cache
+        _records_cache = (0.0, None)  # imports can change history; recompute promptly
+        return self._send(200, self._calls_body({"imported": imported, "skipped": skipped}))
 
     def _serve_page(self, filename):
         try:
@@ -706,10 +1071,14 @@ class Handler(BaseHTTPRequestHandler):
     def _api_state(self):
         touch_client()
         cur = current_round_row()
+        board_row = db.kv_get("board")
         payload = {"now": time.time(), "version": VERSION, "catching_up": STATE["catching_up"], "current_round": None,
                    "last_settled": None, "live_price": STATE["live_price"],
                    "live_price_source": STATE["live_price_source"], "lean": None,
-                   "ticks": STATE["recent_ticks"][-120:]}
+                   "ticks": STATE["recent_ticks"][-120:],
+                   "records": get_records(),
+                   "calls": db.calls_for_round(cur["kalshi_ticker"] if cur else None),
+                   "board_saved_at": board_row["saved_at"] if board_row else None}
         if cur:
             payload["current_round"] = {
                 "ticker": cur["kalshi_ticker"], "floor_strike": cur["floor_strike"],
@@ -750,8 +1119,14 @@ class Handler(BaseHTTPRequestHandler):
         # delta must stay None too instead of crashing the whole request (this previously
         # took down any timeframe whose window reached back far enough to include one,
         # e.g. "1Y", with the connection just dropping and the button looking dead).
+        call_map = {}
+        for c in db.query("""SELECT c.kalshi_ticker, c.source, c.choice
+                              FROM calls c JOIN rounds r ON r.kalshi_ticker = c.kalshi_ticker
+                              WHERE r.close_time >= ?""", (cutoff,)):
+            call_map.setdefault(c["kalshi_ticker"], {})[c["source"]] = c["choice"]
         for r in rows:
             r["delta"] = round(r["settlement_value"] - r["floor_strike"], 2) if r["settlement_value"] is not None else None
+            r["calls"] = call_map.get(r["kalshi_ticker"], {})
         tallies = {"yes": sum(1 for r in rows if r["result"] == "yes"),
                    "no": sum(1 for r in rows if r["result"] == "no")}
         tallies.update(compute_road_stats(rows))
@@ -794,6 +1169,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     threading.Thread(target=round_engine, daemon=True).start()
     threading.Thread(target=price_poller, daemon=True).start()
+    threading.Thread(target=caller_loop, daemon=True).start()
     print("\n  BTC Prediction")
     print("  --------------")
     print("  Bind:  %s:%d" % (BIND, PORT))

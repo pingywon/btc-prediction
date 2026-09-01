@@ -1327,7 +1327,25 @@
     return { hidden: saved.hidden || {}, collapsed: saved.collapsed || {}, orderPrice: op, orderBottom: ob };
   }
   var moduleState = loadModuleState();
-  function saveModuleState() { saveJSON(MODULE_STATE_KEY, moduleState); }
+  var prefsTimer = null;
+  function saveModuleState() {
+    saveJSON(MODULE_STATE_KEY, moduleState);
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(function () {
+      fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: 'classic_modules', payload: moduleState }) })
+        .catch(function () { /* offline; the local copy still applies */ });
+    }, 800);
+  }
+  function fetchPrefs() {
+    fetch('/api/prefs').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var row = d && d.classic_modules;
+      if (!row || !row.payload) return;
+      moduleState = Object.assign(defaultModuleState(), row.payload);
+      saveJSON(MODULE_STATE_KEY, moduleState);
+      applyModuleLayout();
+    }).catch(function () { /* offline */ });
+  }
 
   function applyModuleLayout() {
     var priceCol = document.querySelector('.price-col');
@@ -1412,7 +1430,8 @@
   function tipRow(k, v, cls) {
     return '<div class="tip-modal-row"><span class="k">' + k + '</span><span class="v' + (cls ? ' ' + cls : '') + '">' + v + '</span></div>';
   }
-  function buildRoundDetailRows(r, mine) {
+  function buildRoundDetailRows(r) {
+    var c = callsOf(r);
     var hasDelta = r.delta !== null && r.delta !== undefined;
     var sign = hasDelta && r.delta >= 0 ? '+' : '-';
     var rows = '';
@@ -1422,7 +1441,9 @@
     rows += tipRow('Delta', hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable');
     rows += tipRow('Target', fmtUSD(r.floor_strike));
     rows += tipRow('Settled', fmtUSD(r.settlement_value));
-    if (mine) rows += tipRow('Your call', mine.choice.toUpperCase(), mine.choice === r.result ? 'hit' : 'miss');
+    if (c.algo) rows += tipRow('ALGO called', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
+    if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
+    if (c.you) rows += tipRow('Your call', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
     return rows;
   }
   function openTipModal(title, rowsHtml) {
@@ -1699,37 +1720,37 @@
       fmtHHMM(cur.open_time) + '–' + fmtHHMM(cur.close_time) + ' · target ' + fmtUSD(strike);
   }
 
-  // Personal pick: local to this browser only, never sent to the server -- the
-  // multiplayer crowd-vote version of this was deliberately removed earlier.
-  var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved', MAX_PICKS = 500;
+  // v4.15.0: your calls live on the SERVER now (POST /api/picks; the record is derived
+  // from settled rounds). One record, every browser, every device.
+  var SREC = null;    // {you, algo, histcall} records, from /api/state
+  var SCALLS = {};    // the current round's calls, keyed by source
+  var pickPending = false;
 
-  var picks = loadJSON(PICK_KEY, {});
-  var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
-  var resolved = loadJSON(RESOLVED_KEY, []);
+  function callsOf(r) { return (r && r.calls) || {}; }
 
-  (function prunePicks() {
-    var keys = Object.keys(picks);
-    if (keys.length <= MAX_PICKS) return;
-    keys.sort(function (a, b) { return picks[a].ts - picks[b].ts; });
-    keys.slice(0, keys.length - 400).forEach(function (k) { delete picks[k]; });
-    saveJSON(PICK_KEY, picks);
-    if (resolved.length > MAX_PICKS) { resolved = resolved.slice(resolved.length - 400); saveJSON(RESOLVED_KEY, resolved); }
-  })();
-
-  function makePick(ticker, choice) {
-    // Changeable until the round locks -- a mis-tap has to be correctable.
-    // Only lock_ts closes a pick, never the fact that one already exists.
-    var existing = picks[ticker];
-    if (existing && existing.choice === choice) return;
-    picks[ticker] = { choice: choice, ts: Date.now() };
-    saveJSON(PICK_KEY, picks);
-    renderPick();
+  function postPick(ticker, choice) {
+    if (pickPending) return;
+    var mine = SCALLS.you;
+    if (mine && mine.choice === choice) return;
+    pickPending = true;
+    fetch('/api/picks', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ticker: ticker, choice: choice }) })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        pickPending = false;
+        if (!d) return;
+        SREC = d.records;
+        SCALLS = d.current || {};
+        renderPick();
+      })
+      .catch(function () { pickPending = false; });
   }
 
   function renderPick() {
     var yesBtn = document.getElementById('pickYes'), noBtn = document.getElementById('pickNo');
     var status = document.getElementById('pickStatus');
-    document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+    var rec = SREC && SREC.you;
+    document.getElementById('pickRecord').textContent = rec ? rec.wins + '-' + rec.losses : '\u2026';
     var cur = state && state.current_round;
     if (!cur) {
       yesBtn.disabled = true; noBtn.disabled = true;
@@ -1738,7 +1759,7 @@
       return;
     }
     var locked = (now() / 1000) >= cur.lock_ts;
-    var mine = picks[cur.ticker];
+    var mine = SCALLS.you;
     yesBtn.classList.toggle('selected', !!mine && mine.choice === 'yes');
     noBtn.classList.toggle('selected', !!mine && mine.choice === 'no');
     yesBtn.disabled = locked;
@@ -1759,77 +1780,58 @@
 
   document.getElementById('pickYes').addEventListener('click', function () {
     var cur = state && state.current_round;
-    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'yes');
+    if (cur && (now() / 1000) < cur.lock_ts) {
+      postPick(cur.ticker, 'yes');
+      SCALLS.you = { choice: 'yes', ts: Date.now() / 1000 };  // optimistic; server response corrects
+      renderPick();
+    }
   });
   document.getElementById('pickNo').addEventListener('click', function () {
     var cur = state && state.current_round;
-    if (cur && (now() / 1000) < cur.lock_ts) makePick(cur.ticker, 'no');
+    if (cur && (now() / 1000) < cur.lock_ts) {
+      postPick(cur.ticker, 'no');
+      SCALLS.you = { choice: 'no', ts: Date.now() / 1000 };
+      renderPick();
+    }
   });
-
-  /* Score every settled round that carries a pick, not just the newest one.
-     resolvePersonalFeedback() only ever saw state.last_settled, so any pick
-     whose round settled while the tab was closed was never counted. */
-  function reconcilePicks(rounds) {
-    if (!rounds || !rounds.length) return 0;
-    var seen = {};
-    for (var i = 0; i < resolved.length; i++) seen[resolved[i]] = 1;
-    var added = 0;
-    for (var j = 0; j < rounds.length; j++) {
-      var r = rounds[j];
-      if (!r || !r.result) continue;
-      var t = r.kalshi_ticker;
-      var mine = picks[t];
-      if (!mine || seen[t]) continue;
-      if (mine.choice === r.result) record.wins++; else record.losses++;
-      resolved.push(t);
-      seen[t] = 1;
-      added++;
-    }
-    if (added) {
-      saveJSON(RECORD_KEY, record);
-      saveJSON(RESOLVED_KEY, resolved);
-      var el = document.getElementById('pickRecord');
-      if (el) el.textContent = record.wins + '-' + record.losses;
-    }
-    return added;
-  }
-
-  /* Ask for exactly as much history as the oldest unscored pick needs. The
-     visible Big Road window is often only a few hours, which is far too short
-     to catch up a record after a day away. */
-  function catchUpPicks() {
-    var seen = {}, oldest = null;
-    for (var i = 0; i < resolved.length; i++) seen[resolved[i]] = 1;
-    for (var t in picks) {
-      if (!picks.hasOwnProperty(t) || seen[t]) continue;
-      var ts = picks[t].ts || Date.now();
-      if (oldest === null || ts < oldest) oldest = ts;
-    }
-    if (oldest === null) return;
-    var hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
-    hours = Math.min(Math.max(hours, 24), 24 * 90);
-    fetch('/api/history?hours=' + hours + '&limit=5000')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { if (d) reconcilePicks(d.rounds || []); })
-      .catch(function () { /* offline; it will catch up next load */ });
-  }
 
   function resolvePersonalFeedback() {
     var s = state.last_settled;
     var fb = document.getElementById('personalFeedback');
     if (!s) { fb.classList.remove('show'); return; }
-    var mine = picks[s.ticker];
-    if (!mine) { fb.classList.remove('show'); return; }
-    if (resolved.indexOf(s.ticker) === -1) {
-      if (mine.choice === s.result) record.wins++; else record.losses++;
-      resolved.push(s.ticker);
-      saveJSON(RECORD_KEY, record);
-      saveJSON(RESOLVED_KEY, resolved);
-      document.getElementById('pickRecord').textContent = record.wins + '-' + record.losses;
+    var mine = null;
+    for (var i = historyRounds.length - 1; i >= 0; i--) {
+      var hr = historyRounds[i];
+      if (hr.kalshi_ticker === s.ticker) { mine = callsOf(hr).you || null; break; }
+      if (hr.close_time < s.close_time) break;
     }
-    var correct = mine.choice === s.result;
-    fb.textContent = 'Personal call: ' + mine.choice.toUpperCase() + ' — ' + (correct ? 'Correct' : 'Incorrect');
+    if (!mine) { fb.classList.remove('show'); return; }
+    var correct = mine === s.result;
+    fb.textContent = 'Personal call: ' + mine.toUpperCase() + ' \u2014 ' + (correct ? 'Correct' : 'Incorrect');
     fb.className = 'personal-feedback show ' + (correct ? 'correct' : 'incorrect');
+  }
+
+  /* One-time: push this browser's old local picks into the server's memory. The server
+     inserts write-once and skips unknown rounds, so a re-run is harmless. */
+  function migrateLocalCalls() {
+    try {
+      if (localStorage.getItem('btc15_migrated_v415')) return;
+      var you = loadJSON('btc15_picks', {});
+      var ai = loadJSON('btc15_ai_picks', {});
+      if (!Object.keys(you).length && !Object.keys(ai).length) {
+        localStorage.setItem('btc15_migrated_v415', '1');
+        return;
+      }
+      fetch('/api/calls/import', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ you: you, algo: ai }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          try { localStorage.setItem('btc15_migrated_v415', '1'); } catch (e) { /* ignore */ }
+          SREC = d.records;
+        })
+        .catch(function () { /* offline; it retries on the next visit */ });
+    } catch (e) { /* ignore */ }
   }
 
   function render() {
@@ -2147,12 +2149,11 @@
           '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
         // Mark a round you personally called, right on its own cell -- a small corner
         // badge (not a ring) so it never visually collides with the Dragon Tail ring
-        // that highlights the whole column above. picks is keyed by /api/state's
-        // `ticker` field; /api/history rows carry the identical string as
-        // `kalshi_ticker` -- same value, different field name across the two endpoints.
-        var mine = picks[r.kalshi_ticker];
+        // that highlights the whole column above. Calls ride each /api/history row
+        // from the server now (r.calls = {you, algo, histcall} -> choice strings).
+        var mine = callsOf(r).you;
         if (mine) {
-          var hit = mine.choice === r.result;
+          var hit = mine === r.result;
           var badge = document.createElement('span');
           badge.className = 'bead-pick-badge ' + (hit ? 'hit' : 'miss');
           badge.innerHTML = hit
@@ -2164,7 +2165,7 @@
         // popup, structured rows via tipDataStore rather than an HTML attribute.
         bead.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
         var tipId = 'bead-' + r.kalshi_ticker;
-        tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, mine) };
+        tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r) };
         bead.setAttribute('data-tip-id', tipId);
         colEl.appendChild(bead);
       });
@@ -2219,6 +2220,13 @@
   // every round (no new backend recording needed) -- as far back as the timeframe
   // filter reaches, capped by the app's 30-day retention window.
   /* No scrollbar inside the module: keep the newest rows that fit its box, drop the rest. */
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () {
+      // rows measured before the webfont landed are a hair short; re-fit once
+      if (historyRounds.length) renderSpreadHistory(historyRounds);
+    });
+  }
+
   function fitSpreadList(list) {
     var guard = 0;
     while (guard++ < 400 && list.children.length > 1 && list.scrollHeight > list.clientHeight + 1) {
@@ -2245,7 +2253,7 @@
       row.className = 'spread-row-item';
       row.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
       var tipId = 'spread-' + r.kalshi_ticker;
-      tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, picks[r.kalshi_ticker]) };
+      tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r) };
       row.setAttribute('data-tip-id', tipId);
       row.innerHTML =
         '<span class="spread-time">' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time) + '</span>' +
@@ -2275,7 +2283,6 @@
       progressDone();
       if (reqId !== historyReqId) return;
       historyRounds = d.rounds;
-      reconcilePicks(d.rounds);
       renderHistCall();
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
@@ -2284,7 +2291,8 @@
     }).catch(function () { progressDone(); });
   }
 
-  catchUpPicks();
+  migrateLocalCalls();
+  fetchPrefs();
 
   document.getElementById('refreshBtn').addEventListener('click', function () {
     // poll()/loadHistory() don't return their fetch promises (they self-manage the
@@ -2321,6 +2329,8 @@
       lastPriceUpdateMs = Date.now();
       state = d;
       if (d.version) document.getElementById('footVersion').textContent = 'v' + d.version;
+      if (d.records) SREC = d.records;
+      SCALLS = d.calls || {};
       render();
       if (chartViewMode === 'live') loadPriceChart(d.current_round);
       if (historyDirty) loadHistory();

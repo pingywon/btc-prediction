@@ -316,6 +316,18 @@
   }
   .note { font-size: 0.8rem; color: var(--soft); line-height: 1.5; height: 100%; overflow: hidden; }
 
+  /* accuracy: the three callers' records at a glance */
+  .acc { display: flex; flex-direction: column; gap: 0.45rem; height: 100%; justify-content: center; overflow: hidden; }
+  .acc-row { display: flex; align-items: center; gap: 0.55rem; }
+  .acc-name { flex: 0 0 86px; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+  .acc-rec { flex: 0 0 52px; font-family: var(--mono); font-size: 0.78rem; font-weight: 700; color: var(--cream); text-align: right; }
+  .acc-barwrap { position: relative; flex: 1 1 auto; height: 9px; background: var(--surface-800); border-radius: 999px; overflow: hidden; }
+  .acc-bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+  .acc-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .acc-pct { flex: 0 0 56px; font-family: var(--mono); font-size: 0.74rem; font-weight: 800; text-align: right; color: var(--cream); }
+  .acc-n { flex: 0 0 66px; font-size: 0.6rem; color: var(--dim); text-align: right; }
+  .acc-foot { font-size: 0.58rem; color: var(--faint); line-height: 1.4; margin-top: 0.2rem; }
+
   /* ---------------- Classic modules ----------------
      The seven modules of / rebuilt as panels. Same labels, same numbers, same
      colour rules -- only the container is different. */
@@ -1229,8 +1241,14 @@
     <button class="btn icon" data-close><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="sheet-body">
+    <p class="hint">Everything you do here is remembered automatically — on every device. The slots below are for keeping more than one board.</p>
     <div class="d-section">
-      <div class="d-title">Skin</div>
+      <div class="d-title">1 · Pick a design</div>
+      <p class="hint">Ready-made boards. Picking one replaces the current layout — your skin stays as it is, except the Solari desk which brings its own.</p>
+      <div id="arrangeList"></div>
+    </div>
+    <div class="d-section">
+      <div class="d-title">2 · Pick a skin</div>
       <p class="hint">The same board in any look. Changes apply as you pick.</p>
       <div class="d-row">
         <select class="skin-select" id="skinSelect" title="Render this board in any skin">
@@ -1249,13 +1267,8 @@
       </div>
     </div>
     <div class="d-section">
-      <div class="d-title">Arrangement</div>
-      <p class="hint">Ready-made boards. Picking one replaces the current layout — your skin stays as it is, except the Solari desk which brings its own.</p>
-      <div id="arrangeList"></div>
-    </div>
-    <div class="d-section">
-      <div class="d-title">Saves</div>
-      <p class="hint">Five slots for boards of your own — layout, sizes, panel colours and skin. They are kept on the server, so they follow you to any browser or device.</p>
+      <div class="d-title">3 · Save it to a slot</div>
+      <p class="hint">Five slots for boards of your own — layout, sizes, panel colours and skin. Kept on the server, so they follow you to any browser or device.</p>
       <div class="hint" id="slotStatus"></div>
       <div id="slotList"></div>
     </div>
@@ -1490,12 +1503,14 @@ const VIZ = {};
 
 function defViz(id, def) { VIZ[id] = def; }
 
-/* ---- personal pick -------------------------------------------------------
-   Deliberately the SAME localStorage keys the fixed pages use, so a call made on
-   /board or /pit is the same call here. Browser-local only, never sent to the
-   server -- the multiplayer version of this was removed on purpose long ago. */
-const PICK_KEY = "btc15_picks", RECORD_KEY = "btc15_record", RESOLVED_KEY = "btc15_resolved";
-const MAX_PICKS = 500;
+/* v4.15.0: calls live on the SERVER -- one record, every browser, every device.
+   /api/state (already polled every 10s) carries records + the current round's calls;
+   /api/history rows carry per-round calls for badges. */
+let SREC = null;    // {you, algo, histcall} records
+let SCALLS = {};    // the current round's calls, keyed by source
+let pickPending = false;
+
+function callsOf(r) { return (r && r.calls) || {}; }
 
 function loadJSON(k, dflt) {
   try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : dflt; }
@@ -1505,82 +1520,57 @@ function saveJSON(k, v) {
   try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ }
 }
 
-let picks = loadJSON(PICK_KEY, {});
-let record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
-let resolvedPicks = loadJSON(RESOLVED_KEY, []);
-
-(function prunePicks() {
-  const keys = Object.keys(picks);
-  if (keys.length <= MAX_PICKS) return;
-  keys.sort((a, b) => picks[a].ts - picks[b].ts);
-  keys.slice(0, keys.length - 400).forEach(k => delete picks[k]);
-  saveJSON(PICK_KEY, picks);
-  if (resolvedPicks.length > MAX_PICKS) {
-    resolvedPicks = resolvedPicks.slice(resolvedPicks.length - 400);
-    saveJSON(RESOLVED_KEY, resolvedPicks);
+function youCallFor(ticker) {
+  for (let i = DATA.rounds.length - 1; i >= 0; i--) {
+    if (DATA.rounds[i].kalshi_ticker === ticker) {
+      const c = callsOf(DATA.rounds[i]).you;
+      return c ? { choice: c } : null;
+    }
   }
-})();
-
-function makePick(ticker, choice) {
-  // Changeable until the round locks -- a mis-tap has to be correctable.
-  const existing = picks[ticker];
-  if (existing && existing.choice === choice) return;
-  picks[ticker] = { choice: choice, ts: Date.now() };
-  saveJSON(PICK_KEY, picks);
+  return null;
 }
 
-/* Score every settled round that carries a pick, not just the newest one.
-   resolveSettledPick() only ever saw state.last_settled, so a pick whose round
-   settled while the tab was closed could never be counted. */
-function reconcilePicks(rounds) {
-  if (!rounds || !rounds.length) return 0;
-  const seen = Object.create(null);
-  for (const t of resolvedPicks) seen[t] = 1;
-  let added = 0;
-  for (const r of rounds) {
-    if (!r || !r.result) continue;
-    const t = r.kalshi_ticker;
-    const mine = picks[t];
-    if (!mine || seen[t]) continue;
-    if (mine.choice === r.result) record.wins++; else record.losses++;
-    resolvedPicks.push(t);
-    seen[t] = 1;
-    added++;
-  }
-  if (added) { saveJSON(RECORD_KEY, record); saveJSON(RESOLVED_KEY, resolvedPicks); }
-  return added;
+function postPick(ticker, choice) {
+  if (pickPending) return;
+  const mine = SCALLS.you;
+  if (mine && mine.choice === choice) return;
+  pickPending = true;
+  fetch("/api/picks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ticker: ticker, choice: choice }) })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => {
+      pickPending = false;
+      if (!d) return;
+      SREC = d.records;
+      SCALLS = d.current || {};
+      for (const q of DASH.panels) {
+        if (q.type === "pick" || q.type === "livepick" || q.type === "accuracy") renderPanelBody(q);
+      }
+    })
+    .catch(() => { pickPending = false; });
 }
 
-/* Fetch exactly as much history as the oldest unscored pick needs -- the board's
-   own window is often only a few hours, far too short to catch a record up. */
-function catchUpPicks() {
-  const seen = Object.create(null);
-  for (const t of resolvedPicks) seen[t] = 1;
-  let oldest = null;
-  for (const t of Object.keys(picks)) {
-    if (seen[t]) continue;
-    const ts = picks[t].ts || Date.now();
-    if (oldest === null || ts < oldest) oldest = ts;
-  }
-  if (oldest === null) return;
-  let hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
-  hours = Math.min(Math.max(hours, 24), 24 * 90);
-  getJSON("/api/history?hours=" + hours + "&limit=5000")
-    .then(d => { if (reconcilePicks(d.rounds || [])) renderBodies(); })
-    .catch(() => { /* offline; it will catch up next load */ });
-}
-
-/* Score a settled round exactly once, matching the fixed pages' bookkeeping. */
-function resolveSettledPick(D) {
-  const s = D.state && D.state.last_settled;
-  if (!s || !s.result) return;
-  const mine = picks[s.ticker];
-  if (!mine) return;
-  if (resolvedPicks.indexOf(s.ticker) !== -1) return;
-  if (mine.choice === s.result) record.wins++; else record.losses++;
-  resolvedPicks.push(s.ticker);
-  saveJSON(RECORD_KEY, record);
-  saveJSON(RESOLVED_KEY, resolvedPicks);
+/* One-time: push this browser's old local picks into the server's memory. Write-once
+   on the server and unknown rounds are skipped, so a re-run is harmless. */
+function migrateLocalCalls() {
+  try {
+    if (localStorage.getItem("btc15_migrated_v415")) return;
+    const you = loadJSON("btc15_picks", {});
+    const ai = loadJSON("btc15_ai_picks", {});
+    if (!Object.keys(you).length && !Object.keys(ai).length) {
+      localStorage.setItem("btc15_migrated_v415", "1");
+      return;
+    }
+    fetch("/api/calls/import", { method: "POST", headers: { "Content-Type": "application/json" },
+                                 body: JSON.stringify({ you: you, algo: ai }) })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d) return;
+        try { localStorage.setItem("btc15_migrated_v415", "1"); } catch (e) { /* ignore */ }
+        SREC = d.records;
+      })
+      .catch(() => { /* offline; it retries on the next visit */ });
+  } catch (e) { /* ignore */ }
 }
 
 /* ============================ Classic engine ============================
@@ -2476,10 +2466,9 @@ defViz("pick", {
   render(p, D, w, h) {
     const s = D.state;
     if (!s) return empty("Loading…");
-    resolveSettledPick(D);
     const cr = s.current_round;
     const locked = cr ? s.now >= cr.lock_ts : false;
-    const mine = cr ? picks[cr.ticker] : null;
+    const mine = cr ? SCALLS.you : null;
     const btn = Math.max(30, Math.min(56, h * 0.30));
     const fs = Math.max(12, Math.min(22, btn * 0.42));
 
@@ -2505,7 +2494,7 @@ defViz("pick", {
 
     if (p.options.showLast !== false) {
       const ls = s.last_settled;
-      const lm = ls ? picks[ls.ticker] : null;
+      const lm = ls ? youCallFor(ls.ticker) : null;
       if (ls && lm && ls.result) {
         const right = lm.choice === ls.result;
         html += '<div style="font-family:var(--mono);font-size:0.66rem;color:var(--' + (right ? "green" : "red") + ')">'
@@ -2513,12 +2502,13 @@ defViz("pick", {
       }
     }
     if (p.options.showRecord !== false) {
-      const tot = record.wins + record.losses;
-      const pct = tot ? Math.round((record.wins / tot) * 100) : null;
+      const rec = (SREC && SREC.you) || { wins: 0, losses: 0 };
+      const tot = rec.wins + rec.losses;
+      const pct = tot ? Math.round((rec.wins / tot) * 100) : null;
       html += '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">'
         + '<span style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">YOUR CALLS</span>'
         + '<span style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(14, Math.min(26, h * 0.16)).toFixed(0) + 'px;color:var(--cream)">'
-        + record.wins + "-" + record.losses + "</span>"
+        + rec.wins + "-" + rec.losses + "</span>"
         + (pct === null ? "" : '<span style="font-family:var(--mono);font-size:0.66rem;color:var(--dim)">' + pct + "% right</span>")
         + "</div>";
     }
@@ -2634,16 +2624,16 @@ defViz("livepick", {
     else chart = trackSvgStretch(ticks, round, num(p.options.lineWidth, 2.5));
     html += '<div class="cl-chart">' + chart + "</div>";
 
-    resolveSettledPick(D);
-    const mine = cr ? picks[cr.ticker] : null;
+    const mine = cr ? SCALLS.you : null;
     const pb = (c, col) => '<button class="cl-pickbtn' + (mine && mine.choice === c ? " on" : "") + '" data-pick="' + c + '"'
       + ((locked || !cr) ? " disabled" : "") + ' style="--pc:var(--' + col + ')">' + c.toUpperCase() + "</button>";
     let status = "No pick yet", set = false;
     if (mine) { status = locked ? "Locked in: " + mine.choice.toUpperCase() : "Your pick: " + mine.choice.toUpperCase() + " — tap the other to change"; set = true; }
     else if (locked) status = "Locked — no call this round";
+    const rec = (SREC && SREC.you) || { wins: 0, losses: 0 };
     html += '<div class="cl-pickrow"><span class="cl-label">Personal Pick</span>' + pb("yes", "green") + pb("no", "red")
       + '<span class="cl-pickstatus' + (set ? " set" : "") + '">' + esc(status) + "</span>"
-      + '<span class="cl-calls">Your calls:<b>' + record.wins + "-" + record.losses + "</b></span></div>";
+      + '<span class="cl-calls">Your calls:<b>' + rec.wins + "-" + rec.losses + "</b></span></div>";
     return html + "</div>";
   }
 });
@@ -2769,10 +2759,11 @@ defViz("scorecard", {
     // graded calls inside this window, oldest first, so runs read correctly
     const graded = [];
     for (const r of rounds) {
-      const mine = picks[r.kalshi_ticker];
-      if (mine && r.result) graded.push(mine.choice === r.result);
+      const mine = callsOf(r).you;
+      if (mine && r.result) graded.push(mine === r.result);
     }
-    const wins = record.wins || 0, losses = record.losses || 0, total = wins + losses;
+    const rec = (SREC && SREC.you) || {};
+    const wins = rec.wins || 0, losses = rec.losses || 0, total = wins + losses;
 
     if (!total && !graded.length) {
       return empty("No graded calls yet — make a pick and it will score itself when the round settles");
@@ -2808,6 +2799,31 @@ defViz("scorecard", {
         + '<div class="cl-sc-row"><span>Called in last ' + hrs + "h</span><b>" + graded.length
           + " of " + rounds.length + "</b></div>"
       + "</div></div>";
+  }
+});
+
+/* --- Accuracy: every caller's record, at a glance ----------------------- */
+defViz("accuracy", {
+  label: "Accuracy", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<path d="M8 36V22M18 36V12M28 36V18M38 36V8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
+  defaults: {},
+  render(p, D, w, h) {
+    if (!SREC) return empty("Waiting for the server\u2026");
+    const rows = [["you", "You", "amber"], ["algo", "ALGO", "blue"], ["histcall", "History Call", "violet"]];
+    let html = '<div class="acc">';
+    for (const [key, label, col] of rows) {
+      const r = SREC[key] || { wins: 0, losses: 0, scored: 0, pct: null };
+      const pct = r.pct;
+      html += '<div class="acc-row">'
+        + '<span class="acc-name">' + label + "</span>"
+        + '<span class="acc-rec">' + r.wins + "-" + r.losses + "</span>"
+        + '<div class="acc-barwrap"><div class="acc-bar" style="width:' + (pct === null ? 0 : Math.max(2, Math.min(100, pct))) + '%;background:var(--' + col + ')"></div><div class="acc-mid"></div></div>'
+        + '<span class="acc-pct">' + (pct === null ? "\u2014" : pct.toFixed(1) + "%") + "</span>"
+        + '<span class="acc-n">' + r.scored + " scored</span>"
+        + "</div>";
+    }
+    html += '<div class="acc-foot">Every call is logged on the server, every round, and scored when it settles. 50% is a coin flip \u2014 the history study found no real edge; this is the live test.</div>';
+    return html + "</div>";
   }
 });
 
@@ -3047,7 +3063,6 @@ defViz("results", {
     const hist = histFor(p);
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading results…"); }
     const t = hist.tallies || {};
-    resolveSettledPick(D);
     const nowSec = s ? s.now : Date.now() / 1000;
     const yes = t.yes || 0, no = t.no || 0;
     let html = '<div class="cl-results">';
@@ -3072,7 +3087,7 @@ defViz("results", {
         + '<div class="cl-last-row"><span class="cl-lr-word ' + ls.result + '">' + ls.result.toUpperCase() + '</span><div class="cl-lr-div"></div>'
         + '<span class="cl-lr-price">' + esc(fmtUSD(ls.settlement_value)) + "</span></div>"
         + '<span class="cl-lr-target">Strike target was <b>' + esc(fmtUSD(ls.floor_strike)) + "</b></span>";
-      const mine = picks[ls.ticker];
+      const mine = youCallFor(ls.ticker);
       if (mine) {
         const ok = mine.choice === ls.result;
         html += '<div class="cl-feedback ' + (ok ? "correct" : "incorrect") + '">Personal call: ' + mine.choice.toUpperCase() + " — " + (ok ? "Correct" : "Incorrect") + "</div>";
@@ -3108,10 +3123,10 @@ defViz("roadhistory", {
         for (const r of col) {
           const hasD = r.delta !== null && r.delta !== undefined;
           const sign = hasD && r.delta >= 0 ? "+" : "-";
-          const mine = picks[r.kalshi_ticker];
-          const hit = mine && mine.choice === r.result;
+          const mine = callsOf(r).you;
+          const hit = mine && mine === r.result;
           grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
-              + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.choice.toUpperCase() : "")) + '">'
+              + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.toUpperCase() : "")) + '">'
             + '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
             + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
             + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
@@ -3246,6 +3261,7 @@ function defaultDashboard() {
     panels: [
       mkPanel("livepick", "ticks", { x: 0, y: 0, w: 14, h: 17 }, "Live Price & Pick"),
       mkPanel("results", "yes_rate", { x: 14, y: 0, w: 10, h: 14 }, "Results Sidebar"),
+      mkPanel("accuracy", "yes_rate", { x: 14, y: 14, w: 10, h: 6 }, "Accuracy"),
       mkPanel("confidence", "yes_odds", { x: 0, y: 17, w: 14, h: 8 }, "Round Confidence"),
       mkPanel("spreadnow", "distance", { x: 0, y: 25, w: 14, h: 3 }, "Current Spread"),
       mkPanel("gauges", "live_price", { x: 0, y: 28, w: 14, h: 5 }, "Market Gauges"),
@@ -3292,8 +3308,64 @@ const ghostEl = document.getElementById("ghost");
 
 /* ============================ persistence ============================ */
 
+let boardSavedAt = 0, boardSaveTimer = null, boardPushPending = false, boardSyncing = false;
+
 function save() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(DASH)); } catch (e) { /* private mode */ }
+  scheduleBoardPush();
+}
+
+/* v4.15.0: the working board follows the owner. Every change is debounced up to the
+   server (kv key 'board', skin included); open tabs elsewhere notice via
+   /api/state.board_saved_at and pull the newer board when they are not mid-edit. */
+function boardPayload() {
+  return { v: 1, dash: DASH, skin: document.documentElement.getAttribute("data-skin") || "classic" };
+}
+
+function scheduleBoardPush() {
+  boardPushPending = true;
+  clearTimeout(boardSaveTimer);
+  boardSaveTimer = setTimeout(pushBoard, 800);
+}
+
+function pushBoard() {
+  if (drag) { scheduleBoardPush(); return; }  // the drop's own save() sends the final state
+  fetch("/api/board", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ payload: boardPayload() }) })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => { if (d && d.saved_at) boardSavedAt = d.saved_at; boardPushPending = false; })
+    .catch(() => { boardPushPending = false; /* offline: the local cache holds it */ });
+}
+
+function maybeApplyServerBoard(st) {
+  if (!st || !st.board_saved_at || st.board_saved_at <= boardSavedAt) return;
+  if (editing || drag || boardPushPending || boardSyncing) return;
+  if (document.querySelector(".sheet.show")) return;
+  boardSyncing = true;
+  fetch("/api/board", { cache: "no-store" })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => {
+      boardSyncing = false;
+      if (!d || !d.payload || !d.payload.dash || !Array.isArray(d.payload.dash.panels)) return;
+      if ((d.saved_at || 0) <= boardSavedAt) return;
+      boardSavedAt = d.saved_at;
+      if (d.payload.skin) {
+        for (const o of skinSel.options) {
+          if (o.value === d.payload.skin) {
+            applySkin(d.payload.skin);
+            try { localStorage.setItem(LS_SKIN, d.payload.skin); } catch (e) { /* ignore */ }
+            break;
+          }
+        }
+      }
+      DASH = migrate(d.payload.dash);
+      try { localStorage.setItem(LS_KEY, JSON.stringify(DASH)); } catch (e) { /* ignore */ }
+      syncSegs();
+      Array.prototype.slice.call(gridEl.querySelectorAll(".panel")).forEach(el => el.remove());
+      renderAll();
+      toast("Board updated from another device");
+    })
+    .catch(() => { boardSyncing = false; });
 }
 function load() {
   try {
@@ -3470,25 +3542,26 @@ function onPointerMove(e) {
     el.style.height = Math.max(60, o.h * ROW_H - GAP + (e.clientY - drag.startY)) + "px";
   }
   positionGhost(g);
-  resolveCollisions(drag.p);
+  // Calm drag (v4.15.0): nothing else moves until the drop. The old live push-down
+  // rewrote every panel's position on each pointermove -- "tiles knocking into each
+  // other". Collisions, the swap and compaction all settle exactly once, in onPointerUp.
   const cand = drag.mode === "move" ? swapCandidate(g, drag.snapshot) : null;
-  for (const q of DASH.panels) {
-    if (q === drag.p) continue;
-    placeOnly(q);
-    const qel = document.getElementById(q.id);
-    if (qel) qel.classList.toggle("swap-target", !!(cand && cand.p === q));
+  if (cand !== drag.lastCand) {
+    if (drag.lastCand) {
+      const prev = document.getElementById(drag.lastCand.p.id);
+      if (prev) prev.classList.remove("swap-target");
+    }
+    if (cand) {
+      const next = document.getElementById(cand.p.id);
+      if (next) next.classList.add("swap-target");
+    }
+    drag.lastCand = cand;
   }
-  gridEl.style.height = (Math.max.apply(null, DASH.panels.map(q => q.gridPos.y + q.gridPos.h)) * ROW_H + 4) + "px";
-}
-
-function placeOnly(p) {
-  const el = document.getElementById(p.id);
-  if (!el) return;
-  const cw = colW(), g = p.gridPos;
-  el.style.left = (g.x * cw).toFixed(2) + "px";
-  el.style.top = (g.y * ROW_H) + "px";
-  el.style.width = (g.w * cw - GAP).toFixed(2) + "px";
-  el.style.height = (g.h * ROW_H - GAP) + "px";
+  if (drag.mode === "move") {
+    // Only ever GROW the grid mid-drag, so dragging past the bottom still has room.
+    const ghostBottom = (g.y + g.h) * ROW_H + 4;
+    if (ghostBottom > gridEl.clientHeight) gridEl.style.height = ghostBottom + "px";
+  }
 }
 
 function onPointerUp() {
@@ -3620,7 +3693,8 @@ gridEl.addEventListener("click", e => {
   if (pb && !pb.disabled) {
     const cr = DATA.state && DATA.state.current_round;
     if (cr && DATA.state.now < cr.lock_ts) {
-      makePick(cr.ticker, pb.getAttribute("data-pick"));
+      postPick(cr.ticker, pb.getAttribute("data-pick"));
+      SCALLS.you = { choice: pb.getAttribute("data-pick"), ts: Date.now() / 1000 };  // optimistic
       for (const q of DASH.panels) if (q.type === "pick" || q.type === "livepick") renderPanelBody(q);
     }
     return;
@@ -3680,7 +3754,7 @@ function addPanel(type, metric) {
     statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
     heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
     pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
-    pick: { w: 7, h: 6 },
+    pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
     livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
     gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 }
   };
@@ -4090,6 +4164,7 @@ const skinSel = document.getElementById("skinSelect");
 skinSel.addEventListener("change", () => {
   applySkin(skinSel.value);
   try { localStorage.setItem(LS_SKIN, skinSel.value); } catch (e) { /* ignore */ }
+  scheduleBoardPush();
 });
 function applySkin(name) {
   document.documentElement.setAttribute("data-skin", name || "classic");
@@ -4206,10 +4281,13 @@ async function fetchData(full) {
 
     const [st, se, hi, tk] = await Promise.all(jobs);
     DATA.state = st;
+    if (st && st.records) SREC = st.records;
+    SCALLS = (st && st.calls) || {};
+    maybeApplyServerBoard(st);
     DATA.buckets = se.buckets || [];
     DATA.sum = se.summary || null;
     DATA.bucket = se.bucket;
-    if (hi) { DATA.rounds = hi.rounds || []; reconcilePicks(DATA.rounds); }
+    if (hi) DATA.rounds = hi.rounds || [];
     if (tk) DATA.ticks = tk.ticks || [];
     await Promise.all(Array.from(histWindowsNeeded()).map(hh => getJSON("/api/history?hours=" + hh)
       .then(d => { DATA.hist[hh] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() }; })
@@ -4273,8 +4351,9 @@ document.addEventListener("click", e => {
   if (!r) { toast("That round is outside the loaded window"); return; }
 
   const hasD = r.delta !== null && r.delta !== undefined;
-  const mine = picks[r.kalshi_ticker];
-  const hit = mine && mine.choice === r.result;
+  const c = callsOf(r);
+  const mine = c.you;
+  const hit = mine && mine === r.result;
   const money = v => "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   document.getElementById("roundTitle").textContent =
@@ -4289,9 +4368,12 @@ document.addEventListener("click", e => {
   if (hasD)
     html += '<div class="rd-row"><span>Distance from target</span><b>'
       + (r.delta >= 0 ? "+" : "-") + money(Math.abs(r.delta)) + "</b></div>";
+  if (c.algo) html += '<div class="rd-row"><span>ALGO called</span><b class="' + (c.algo === r.result ? "hit" : "miss") + '">' + c.algo.toUpperCase() + "</b></div>";
+  if (c.histcall) html += '<div class="rd-row"><span>History Call</span><b class="' + (c.histcall === r.result ? "hit" : "miss") + '">' + c.histcall.toUpperCase() + "</b></div>";
   html += '<div class="rd-row"><span>Your call</span><b class="' + (mine ? (hit ? "hit" : "miss") : "") + '">'
-    + (mine ? mine.choice.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";
-  html += '<div class="rd-row"><span>Your record</span><b>' + record.wins + "W \u2013 " + record.losses + "L</b></div>";
+    + (mine ? mine.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";
+  const recNow = (SREC && SREC.you) || { wins: 0, losses: 0 };
+  html += '<div class="rd-row"><span>Your record</span><b>' + recNow.wins + "W \u2013 " + recNow.losses + "L</b></div>";
 
   document.getElementById("roundBody").innerHTML = html;
   openSheet("roundSheet");
@@ -4476,7 +4558,7 @@ function deleteSlot(i, x) {
 
 /* ============================ boot ============================ */
 
-function boot() {
+async function boot() {
   try {
     const th = localStorage.getItem(LS_THEME);
     if (th) document.documentElement.setAttribute("data-theme", th);
@@ -4499,18 +4581,44 @@ function boot() {
   skinSel.value = skin;
   syncTopbar();
 
-  const had = load();
-  DASH = had ? migrate(had) : defaultDashboard();
-  // Write the default out on a first visit so there is always exactly one stored
-  // board -- otherwise nothing is persisted until the first edit.
-  if (!had) save();
+  // v4.15.0: the server's board is the truth; localStorage is a cache / offline
+  // fallback. Board edits made anywhere follow the owner everywhere.
+  let srv = null;
+  try {
+    const ac = new AbortController();
+    const tt = setTimeout(() => ac.abort(), 2500);
+    const r = await fetch("/api/board", { cache: "no-store", signal: ac.signal });
+    clearTimeout(tt);
+    if (r.ok) srv = await r.json();
+  } catch (e) { /* offline -> the local cache below */ }
+  if (srv && srv.payload && srv.payload.dash && Array.isArray(srv.payload.dash.panels)) {
+    DASH = migrate(srv.payload.dash);
+    boardSavedAt = srv.saved_at || 0;
+    if (srv.payload.skin && !qsSkin) {
+      for (const o of skinSel.options) {
+        if (o.value === srv.payload.skin) {
+          skin = srv.payload.skin;
+          document.documentElement.setAttribute("data-skin", skin);
+          skinSel.value = skin;
+          try { localStorage.setItem(LS_SKIN, skin); } catch (e) { /* ignore */ }
+          break;
+        }
+      }
+    }
+    try { localStorage.setItem(LS_KEY, JSON.stringify(DASH)); } catch (e) { /* cache */ }
+  } else {
+    const had = load();
+    DASH = had ? migrate(had) : defaultDashboard();
+    // First boot (or server unreachable): keep it locally and seed the server.
+    save();
+  }
 
   buildSegs();
   syncSegs();
   renderAll();
   fetchData(true);
 
-  catchUpPicks();
+  migrateLocalCalls();
 
   timer = setInterval(fetchData, 10000);
   setInterval(localTick, 1000);

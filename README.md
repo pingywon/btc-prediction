@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v4.14.0** (the running version is shown at the bottom of every page
+Current release: **v4.15.0** (the running version is shown at the bottom of every page
 and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
 of truth — the git tag, Dockerfile LABEL and this line must match it).
 
@@ -17,9 +17,9 @@ skin:
 - `GET /` — **Classic**, the original 2-column dashboard. **Not movable, on purpose** —
   this is the fixed reference layout. Modules can still be collapsed or hidden, but
   nothing reorders.
-- `GET /algo` — **ALGO Desk**, an AI making its own YES/NO call every round, tracked
-  against your own picks. Kept as its own page because it is a distinct feature, not a
-  skin.
+- `GET /algo` — **ALGO Desk**, an AI making its own YES/NO call every round — **on the
+  server, 24/7, whether or not any browser is open** (v4.15.0) — tracked against your
+  own picks. Kept as its own page because it is a distinct feature, not a skin.
 - `GET /studio` — **The Studio**, the modular view and the home of every skin.
   A build-your-own board. A 24-column drag-and-drop grid
   in the style of Grafana: add a panel, pick one of 25 visualizations (the seven Classic
@@ -33,8 +33,8 @@ skin:
   call**, the YES/NO pick and running record), pick the metric it reads, then drag the header to move it and
   the corner to resize it. Per-panel unit, min/max, decimals, colour mode and threshold
   steps. There is only one data source, so — as in Netdata — there is no query language:
-  metrics are a dropdown. Layout persists to `localStorage` and the whole board can be
-  exported and re-imported as JSON.
+  metrics are a dropdown. The working board lives **on the server** (localStorage is
+  only an offline cache), and the whole board can be exported and re-imported as JSON.
 
   **The default board is Classic, module for module.** Live Price & Pick, Round
   Confidence, Current Spread and Market Gauges stacked in the 14/24-wide left column,
@@ -54,10 +54,10 @@ skin:
   phosphor and monospace, Blueprint gets its drawing grid). The fixed pages are untouched
   — `/` is still exactly the Classic dashboard it always was.
 
-  **Your call is shared across every page.** The Studio reads and writes the same
-  `btc15_picks` / `btc15_record` / `btc15_resolved` keys the fixed pages use, so a YES/NO
-  made on The Board shows up here and counts toward the same record. Light/dark is shared
-  through `btc15_theme` too. Still browser-local, still never sent to the server.
+  **Your call is shared across every page — and every device.** Since v4.15.0 a pick is
+  a `POST /api/picks`; the record is derived on the server from settled rounds, so the
+  same numbers appear in any browser that opens the site. Light/dark stays a per-device
+  preference (`btc15_theme`).
 
 Every module on every page can be reordered, collapsed, and hidden from its own
 header controls, and the price chart can browse the last 12 settled rounds via the
@@ -83,8 +83,10 @@ button opens a drawer on the right (the board stays visible, so skins preview li
 - **Panels** — **Reset to Classic** (every module back exactly where the fixed page has
   it) and the JSON export/import dialog. *Add panel* lives in the toolbar while editing.
 
-The current skin and board are still remembered on their own (`btc_studio_skin`,
-`btc_studio_dashboard_v2`, browser-local) — a save slot is for keeping more than one.
+The current skin and board auto-save to the server as you work (debounced; other open
+tabs pull the newer board within ~10s when they are not mid-edit) — a save slot is for
+keeping more than one. The drawer reads in the order you use it: **1 · Pick a design,
+2 · Pick a skin, 3 · Save it to a slot**, with Panels last.
 
 ### The toolbar gets out of the way
 
@@ -93,12 +95,34 @@ history depth, running version), **Edit**, and a chevron that brings the full ba
 (Mode, Range, Bucket, Design). Pressing Edit always expands it; Done returns it to
 whatever you last chose, and that choice is remembered (`btc_studio_topbar_open`).
 
-Dropping a panel mostly on top of another **swaps** them (a dashed outline marks the
-target while you drag); a glancing overlap still pushes the other panel down.
+**Calm drag** (v4.15.0): while you drag, nothing else moves — the tile floats, a ghost
+shows where it will land, and a dashed outline marks a swap target. Collisions, the swap
+and compaction settle exactly once, on the drop: mostly-on-top **swaps**, a glancing
+overlap pushes the other panel down.
 
 **No module ever scrolls.** A panel shows the newest rows or columns that fit its box
 and drops the rest — resize the panel (or widen its window) to see more. The same goes
 for the spread list on Classic and the ALGO Desk.
+
+## Full memory (v4.15.0)
+
+Everything that used to live in the browser now lives in the server's SQLite, so it
+follows the owner to any browser or device:
+
+- **Three callers, logged every round** in the `calls` table: **you** (`POST
+  /api/picks`), **ALGO** (a third daemon thread ports the page's exact heuristic and
+  fires in the two minutes before lock — Kalshi's own odds, with the live-lean fallback
+  inside the ±4-point coin-flip band), and **History Call** (the static order-3 table).
+  The same thread also settles rounds around the clock, so records score with no tab
+  open. Records are **derived** by joining calls against settled results — never stored
+  counters, so they cannot drift.
+- **The Accuracy module** (Studio → Add panel → Accuracy; it also sits on the default
+  board) shows all three records with win percentages at a glance. Expect everything to
+  hover near 50% — the 105-hypothesis history study found no real edge, and this module
+  is the live test of that.
+- **The working Studio board + skin** (`kv` key `board`), the five save slots, and the
+  Classic/ALGO module preferences (`classic_modules` / `algo_modules`) are all
+  server-side. A one-time migration imports a browser's old local picks on first visit.
 
 ## Round Confidence
 
@@ -161,6 +185,12 @@ container starts with an empty Big Road / spread ledger every time.
 - `GET /api/ticks?since=<ts>[&until=<ts>]` — raw price ticks for a round's chart; `until` bounds a historical round's fetch to its own 15-minute window
 - `GET /api/layouts` — the Studio's five save slots (`{slots:[{slot,name,saved_at,payload}], max:5}`). Kept on the server so a saved board follows you across browsers and devices.
 - `POST /api/layouts` — `{"slot":1..5,"name":"…","payload":{…}}` saves or overwrites a slot (payload is a JSON object, ≤200KB; blank names default to "Slot N"); `{"slot":N,"delete":true}` clears one. Responds with the full slot list. No auth — single-owner LAN app.
+- `GET /api/calls` — the three call records (you / ALGO / History Call): win-loss derived live from settled rounds, this round's calls, and the last ~50 scored calls.
+- `POST /api/picks` — `{"ticker":"…","choice":"yes"|"no"}` records YOUR call for the current round; 409 once the round locks, overwrite allowed before that. Responds with the full `/api/calls` body.
+- `GET`/`POST /api/board` — the Studio's working board (`{v,dash,skin}`); POST replies `{"saved_at":…}` and `/api/state` carries `board_saved_at` so open tabs notice newer boards.
+- `GET`/`POST /api/prefs` — Classic/ALGO module preferences (`{"key":"classic_modules"|"algo_modules","payload":{…}}`).
+- `POST /api/calls/import` — one-time migration of old browser-local picks; only rounds the server holds, never overwriting an existing call.
+- `/api/state` also carries `records`, `calls` (this round's) and `board_saved_at`; `/api/history` rows carry a `calls` object (`{you,algo,histcall}` → choice) for the road badges.
 - `GET /health`
 
 ## Data sources

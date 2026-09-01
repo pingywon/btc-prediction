@@ -1142,7 +1142,25 @@
     return { order: order, hidden: saved.hidden || {}, collapsed: saved.collapsed || {} };
   }
   var moduleState = loadModuleState();
-  function saveModuleState() { saveJSON(MODULE_STATE_KEY, moduleState); }
+  var prefsTimer = null;
+  function saveModuleState() {
+    saveJSON(MODULE_STATE_KEY, moduleState);
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(function () {
+      fetch('/api/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: 'algo_modules', payload: moduleState }) })
+        .catch(function () { /* offline; the local copy still applies */ });
+    }, 800);
+  }
+  function fetchPrefs() {
+    fetch('/api/prefs').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var row = d && d.algo_modules;
+      if (!row || !row.payload) return;
+      moduleState = Object.assign(defaultModuleState(), row.payload);
+      saveJSON(MODULE_STATE_KEY, moduleState);
+      applyModuleLayout();
+    }).catch(function () { /* offline */ });
+  }
 
   function applyModuleLayout() {
     var stack = document.getElementById('moduleStack');
@@ -1200,7 +1218,8 @@
   function tipRow(k, v, cls) {
     return '<div class="tip-modal-row"><span class="k">' + k + '</span><span class="v' + (cls ? ' ' + cls : '') + '">' + v + '</span></div>';
   }
-  function buildRoundDetailRows(r, mine, ai) {
+  function buildRoundDetailRows(r) {
+    var c = callsOf(r);
     var hasDelta = r.delta !== null && r.delta !== undefined;
     var sign = hasDelta && r.delta >= 0 ? '+' : '-';
     var rows = '';
@@ -1210,8 +1229,9 @@
     rows += tipRow('Delta', hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable');
     rows += tipRow('Target', fmtUSD(r.floor_strike));
     rows += tipRow('Settled', fmtUSD(r.settlement_value));
-    if (ai) rows += tipRow('ALGO called', ai.choice.toUpperCase(), ai.choice === r.result ? 'hit' : 'miss');
-    if (mine) rows += tipRow('You called', mine.choice.toUpperCase(), mine.choice === r.result ? 'hit' : 'miss');
+    if (c.algo) rows += tipRow('ALGO called', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
+    if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
+    if (c.you) rows += tipRow('You called', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
     return rows;
   }
   function openTipModal(title, rowsHtml) {
@@ -1261,137 +1281,49 @@
   }
   var WINDOW_LABELS = { 0.5: '30 Minutes', 1: 'Hour', 2: '2 Hours', 3: '3 Hours', 6: '6 Hours', 8: '8 Hours', 12: '12 Hours', 24: '24 Hours', 168: '7 Days' };
 
-  // ALGO's own record, kept entirely separate from the shared personal-pick keys.
-  var AI_PICK_KEY = 'btc15_ai_picks', AI_RECORD_KEY = 'btc15_ai_record', AI_RESOLVED_KEY = 'btc15_ai_resolved';
-  var aiPicks = loadJSON(AI_PICK_KEY, {});
-  var aiRecord = loadJSON(AI_RECORD_KEY, { wins: 0, losses: 0 });
-  var aiResolved = loadJSON(AI_RESOLVED_KEY, []);
-  (function pruneAiPicks() {
-    var keys = Object.keys(aiPicks);
-    if (keys.length <= 500) return;
-    keys.sort(function (a, b) { return (aiPicks[a].ts || 0) - (aiPicks[b].ts || 0); });
-    keys.slice(0, keys.length - 400).forEach(function (k) { delete aiPicks[k]; });
-    saveJSON(AI_PICK_KEY, aiPicks);
-    if (aiResolved.length > 500) { aiResolved = aiResolved.slice(aiResolved.length - 400); saveJSON(AI_RESOLVED_KEY, aiResolved); }
-  })();
+  // v4.15.0: ALGO's brain moved into the SERVER -- it makes one call every round,
+  // 24/7, whether or not this page is open, and every record lives there too
+  // (derived from settled rounds, never a stored counter).
+  var SREC = null;    // {you, algo, histcall} records, from /api/state
+  var SCALLS = {};    // the current round's calls, keyed by source
 
-  // The user's own picks -- same keys the main dashboard writes to (same origin), read
-  // here only to display and resolve for comparison. Never written to from this page:
-  // there's no pick UI here, this is a read-only mirror.
-  var PICK_KEY = 'btc15_picks', RECORD_KEY = 'btc15_record', RESOLVED_KEY = 'btc15_resolved';
-  var picks = loadJSON(PICK_KEY, {});
-  var record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
-  var resolved = loadJSON(RESOLVED_KEY, []);
+  function callsOf(r) { return (r && r.calls) || {}; }
+  function escHtml(t) {
+    return String(t).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
 
-  // ALGO's heuristic: Kalshi's own live market odds ARE a real, crowd-priced
-  // probability -- simplest defensible "statistics and probability" signal available.
-  // Falls back to the live lean (instant price vs. target) when odds are missing or
-  // essentially a coin flip. Computed once per round and locked in immediately, same
-  // immutability pattern as the personal-pick mechanic.
-  function computeAlgoPick(d) {
-    var cur = d.current_round;
-    if (!cur) return null;
-    var yesOdds = cur.kalshi_yes_price, noOdds = cur.kalshi_no_price;
-    if (yesOdds !== null && yesOdds !== undefined) {
-      var effNo = (noOdds !== null && noOdds !== undefined) ? noOdds : (1 - yesOdds);
-      if (Math.abs(yesOdds - effNo) < 0.04 && d.lean) {
-        return { choice: d.lean.direction, reason: 'Kalshi’s odds are almost a coin flip (' + Math.round(yesOdds * 100) + '% YES / ' + Math.round(effNo * 100) + '% NO) — leaning on the live price position instead, currently ' + d.lean.direction.toUpperCase() + '.' };
+  /* One-time: push this browser's old local picks (yours AND the old client-side
+     ALGO's) into the server's memory. Write-once on the server; re-runs are harmless. */
+  function migrateLocalCalls() {
+    try {
+      if (localStorage.getItem('btc15_migrated_v415')) return;
+      var you = loadJSON('btc15_picks', {});
+      var ai = loadJSON('btc15_ai_picks', {});
+      if (!Object.keys(you).length && !Object.keys(ai).length) {
+        localStorage.setItem('btc15_migrated_v415', '1');
+        return;
       }
-      var choice = yesOdds >= effNo ? 'yes' : 'no';
-      return { choice: choice, reason: 'Kalshi’s own market prices ' + choice.toUpperCase() + ' higher — ' + Math.round(yesOdds * 100) + '% YES / ' + Math.round(effNo * 100) + '% NO on real order-book pricing.' };
-    }
-    if (d.lean) {
-      return { choice: d.lean.direction, reason: 'No live odds yet — going with the current price position, ' + (d.lean.direction === 'yes' ? 'above' : 'below') + ' target.' };
-    }
-    return null;
-  }
-
-  function ensureAlgoPick(d) {
-    var cur = d.current_round;
-    if (!cur || aiPicks[cur.ticker]) return;
-    var locked = (now() / 1000) >= cur.lock_ts;
-    if (locked) return;
-    var call = computeAlgoPick(d);
-    if (!call) return;
-    aiPicks[cur.ticker] = { choice: call.choice, reason: call.reason, ts: Date.now() };
-    saveJSON(AI_PICK_KEY, aiPicks);
-  }
-
-  function resolveRecord(s, storePicks, storeResolved, recordObj, recordKey, resolvedKey) {
-    if (!s) return false;
-    var mine = storePicks[s.ticker];
-    if (!mine || storeResolved.indexOf(s.ticker) !== -1) return false;
-    if (mine.choice === s.result) recordObj.wins++; else recordObj.losses++;
-    storeResolved.push(s.ticker);
-    saveJSON(recordKey, recordObj);
-    saveJSON(resolvedKey, storeResolved);
-    return true;
-  }
-
-  /* Score every settled round that carries an ALGO pick, not just the newest one.
-     handleSettlement() only ever saw state.last_settled, so any pick whose round
-     settled while the tab was closed was never counted -- the picks themselves were
-     saved fine while the record sat frozen, which read as "predictions not saved". */
-  function reconcileAiPicks(rounds) {
-    if (!rounds || !rounds.length) return 0;
-    var seen = {};
-    for (var i = 0; i < aiResolved.length; i++) seen[aiResolved[i]] = 1;
-    var added = 0;
-    for (var j = 0; j < rounds.length; j++) {
-      var r = rounds[j];
-      if (!r || !r.result) continue;
-      var t = r.kalshi_ticker;
-      var mine = aiPicks[t];
-      if (!mine || seen[t]) continue;
-      if (mine.choice === r.result) aiRecord.wins++; else aiRecord.losses++;
-      aiResolved.push(t);
-      seen[t] = 1;
-      added++;
-    }
-    if (added) {
-      saveJSON(AI_RECORD_KEY, aiRecord);
-      saveJSON(AI_RESOLVED_KEY, aiResolved);
-      renderScoreboard();
-    }
-    return added;
-  }
-
-  /* Ask for exactly as much history as the oldest unscored ALGO pick needs; the
-     visible window is often only a few hours, far too short after a day away. */
-  function catchUpAiPicks() {
-    var seen = {}, oldest = null;
-    for (var i = 0; i < aiResolved.length; i++) seen[aiResolved[i]] = 1;
-    for (var t in aiPicks) {
-      if (!aiPicks.hasOwnProperty(t) || seen[t]) continue;
-      var ts = aiPicks[t].ts || Date.now();
-      if (oldest === null || ts < oldest) oldest = ts;
-    }
-    if (oldest === null) return;
-    var hours = Math.ceil((Date.now() - oldest) / 3600000) + 2;
-    hours = Math.min(Math.max(hours, 24), 24 * 90);
-    fetch('/api/history?hours=' + hours + '&limit=5000')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) { if (d) reconcileAiPicks(d.rounds || []); })
-      .catch(function () { /* offline; it will catch up next load */ });
-  }
-
-  /* The user's record belongs to the main dashboard. This page only mirrors it, so
-     re-read it before every render instead of keeping a copy that races the other tab. */
-  function reloadUserRecord() {
-    picks = loadJSON(PICK_KEY, {});
-    record = loadJSON(RECORD_KEY, { wins: 0, losses: 0 });
-    resolved = loadJSON(RESOLVED_KEY, []);
+      fetch('/api/calls/import', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({ you: you, algo: ai }) })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          try { localStorage.setItem('btc15_migrated_v415', '1'); } catch (e) { /* ignore */ }
+          SREC = d.records;
+          renderScoreboard();
+        })
+        .catch(function () { /* offline; it retries on the next visit */ });
+    } catch (e) { /* ignore */ }
   }
 
   function renderScoreboard() {
-    reloadUserRecord();
-    document.getElementById('algoRecord').textContent = aiRecord.wins + '-' + aiRecord.losses;
-    var aiTotal = aiRecord.wins + aiRecord.losses;
-    document.getElementById('algoWinPct').textContent = aiTotal ? Math.round(aiRecord.wins / aiTotal * 100) + '% correct' : 'no calls yet';
-
-    document.getElementById('youRecord').textContent = record.wins + '-' + record.losses;
-    var youTotal = record.wins + record.losses;
-    document.getElementById('youWinPct').textContent = youTotal ? Math.round(record.wins / youTotal * 100) + '% correct' : 'no calls yet';
+    var a = SREC && SREC.algo, y = SREC && SREC.you;
+    document.getElementById('algoRecord').textContent = a ? a.wins + '-' + a.losses : '\u2026';
+    document.getElementById('algoWinPct').textContent = (a && a.scored) ? a.pct + '% correct' : 'no calls yet';
+    document.getElementById('youRecord').textContent = y ? y.wins + '-' + y.losses : '\u2026';
+    document.getElementById('youWinPct').textContent = (y && y.scored) ? y.pct + '% correct' : 'no calls yet';
   }
 
   function renderAlgoCall(d) {
@@ -1410,11 +1342,11 @@
     var secLeft = cur.close_time - t;
     var locked = t >= cur.lock_ts;
     sentence.innerHTML = 'Target <b>' + fmtUSD(cur.floor_strike) + '</b> · ' + (locked ? 'locked, ' : '') + fmtClock(secLeft) + (locked ? ' left to settle' : ' to lock');
-    var mine = aiPicks[cur.ticker];
+    var mine = SCALLS.algo;
     if (mine) {
       badge.className = 'algo-pick-badge ' + mine.choice;
       badge.textContent = mine.choice.toUpperCase();
-      reason.innerHTML = '<b>Why:</b> ' + mine.reason;
+      reason.innerHTML = '<b>Why:</b> ' + escHtml(mine.reason || '');
     } else {
       badge.className = 'algo-pick-badge pending';
       badge.textContent = locked ? 'Sat this one out' : 'Watching…';
@@ -1563,7 +1495,6 @@
     var rhLink = document.getElementById('rhLink');
     if (cur && cur.robinhood_url) { rhLink.href = cur.robinhood_url; } else { rhLink.removeAttribute('href'); }
 
-    ensureAlgoPick(state);
     renderAlgoCall(state);
     renderScoreboard();
     renderConfidence();
@@ -1581,11 +1512,12 @@
       spreadNowEl.textContent = '\u2014';
     }
     var algoEl = document.getElementById('summaryAlgoCall');
-    var mine = cur && aiPicks[cur.ticker];
+    var mine = cur && SCALLS.algo;
     algoEl.textContent = mine ? ('ALGO says ' + mine.choice.toUpperCase()) : (cur ? 'ALGO is watching…' : 'Waiting for a round');
 
+    var aRec = SREC && SREC.algo, yRec = SREC && SREC.you;
     document.getElementById('summaryScoreboard').textContent =
-      'ALGO ' + aiRecord.wins + '-' + aiRecord.losses + ' · You ' + record.wins + '-' + record.losses;
+      'ALGO ' + (aRec ? aRec.wins + '-' + aRec.losses : '\u2026') + ' · You ' + (yRec ? yRec.wins + '-' + yRec.losses : '\u2026');
 
     var priceEl = document.getElementById('summaryLivePrice');
     if (cur && d.live_price !== null && d.live_price !== undefined) {
@@ -1604,8 +1536,6 @@
     if (lastSeenSettled === null) { lastSeenSettled = s.ticker; return; }
     if (s.ticker === lastSeenSettled) return;
     lastSeenSettled = s.ticker;
-    resolveRecord(s, aiPicks, aiResolved, aiRecord, AI_RECORD_KEY, AI_RESOLVED_KEY);
-    renderScoreboard();
     loadHistory();
   }
 
@@ -1658,9 +1588,9 @@
           '<span class="bead-glyph">' + (r.result === 'yes' ? 'Y' : 'N') + '</span>' +
           '<span class="bead-time">' + fmtHHMM(r.close_time) + '</span>' +
           '<span class="bead-delta">' + (hasDelta ? sign + Math.round(Math.abs(r.delta)) : '—') + '</span>';
-        var ai = aiPicks[r.kalshi_ticker];
+        var ai = callsOf(r).algo;
         if (ai) {
-          var aiHit = ai.choice === r.result;
+          var aiHit = ai === r.result;
           var aiBadge = document.createElement('span');
           aiBadge.className = 'bead-badge-algo ' + (aiHit ? 'hit' : 'miss');
           aiBadge.innerHTML = aiHit
@@ -1668,9 +1598,9 @@
             : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
           bead.appendChild(aiBadge);
         }
-        var mine = picks[r.kalshi_ticker];
+        var mine = callsOf(r).you;
         if (mine) {
-          var youHit = mine.choice === r.result;
+          var youHit = mine === r.result;
           var youBadge = document.createElement('span');
           youBadge.className = 'bead-badge-you ' + (youHit ? 'hit' : 'miss');
           youBadge.innerHTML = youHit
@@ -1708,6 +1638,13 @@
   }
 
   /* No scrollbar inside the module: keep the newest rows that fit its box, drop the rest. */
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () {
+      // rows measured before the webfont landed are a hair short; re-fit once
+      if (historyRounds.length) renderSpreadHistory(historyRounds);
+    });
+  }
+
   function fitSpreadList(list) {
     var guard = 0;
     while (guard++ < 400 && list.children.length > 1 && list.scrollHeight > list.clientHeight + 1) {
@@ -1734,7 +1671,7 @@
       row.className = 'spread-row-item';
       row.setAttribute('data-tip', fmtDateShort(r.close_time - 900) + ', ' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time));
       var tipId = 'spread-' + r.kalshi_ticker;
-      tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r, picks[r.kalshi_ticker], aiPicks[r.kalshi_ticker]) };
+      tipDataStore[tipId] = { title: fmtDateShort(r.close_time - 900) + ' Round', rows: buildRoundDetailRows(r) };
       row.setAttribute('data-tip-id', tipId);
       row.innerHTML =
         '<span class="spread-time">' + fmtHHMM(r.close_time - 900) + '–' + fmtHHMM(r.close_time) + '</span>' +
@@ -1760,7 +1697,6 @@
       progressDone();
       if (reqId !== historyReqId) return;
       historyRounds = d.rounds;
-      reconcileAiPicks(d.rounds);
       renderBigRoad(d.rounds, d.tallies);
       renderSpreadHistory(d.rounds);
       historyDirty = false;
@@ -1797,6 +1733,8 @@
       lastPriceUpdateMs = Date.now();
       state = d;
       if (d.version) document.getElementById('footVersion').textContent = 'v' + d.version;
+      if (d.records) SREC = d.records;
+      SCALLS = d.calls || {};
       render();
       if (chartViewMode === 'live') loadPriceChart(d.current_round);
       handleSettlement(d.last_settled);
@@ -1811,7 +1749,8 @@
 
   applyModuleLayout();
   updateChartNavUI();
-  catchUpAiPicks();
+  migrateLocalCalls();
+  fetchPrefs();
   setInterval(poll, 2000);
   setInterval(render, 1000);
   loadHistory();
