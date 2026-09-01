@@ -1765,7 +1765,7 @@ const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours"
 const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
 const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1,
                      scorecard: 1, streakladder: 1, volclock: 1, margin: 1 };
-const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1, algocall: 1 };
 
 function panelHours(p) { return num(p.options.hours, 24); }
 function histWindowsNeeded() {
@@ -2590,6 +2590,60 @@ defViz("pick", {
         + '<span style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(14, Math.min(26, h * 0.16)).toFixed(0) + 'px;color:var(--cream)">'
         + rec.wins + "-" + rec.losses + "</span>"
         + (pct === null ? "" : '<span style="font-family:var(--mono);font-size:0.66rem;color:var(--dim)">' + pct + "% right</span>")
+        + "</div>";
+    }
+    return html + "</div>";
+  }
+});
+
+/* --- ALGO call, this round (BTC-24) --------------------------------------
+   The server's ALGO fires inside the 120s pre-lock window (3:00 -> 1:00 before
+   close) and its call rides /api/state.calls as SCALLS.algo. This is the live view
+   of it: PENDING with a countdown to the window, then the call the moment it lands,
+   with the reason, the History Call and your own call underneath. */
+defViz("algocall", {
+  label: "ALGO call", group: "Live", accepts: ["scalar"],
+  icon: '<circle cx="22" cy="22" r="12" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M22 10V5M22 39v-5M10 22H5M39 22h-5" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="22" r="4" fill="currentColor"/>',
+  defaults: { showReason: true, showOthers: true, showRecord: true },
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const cr = s.current_round;
+    const call = cr ? SCALLS.algo : null;
+    const big = Math.max(22, Math.min(64, h * 0.34));
+    const mono = "font-family:var(--mono);font-size:0.66rem;";
+    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:5px;justify-content:center">';
+    html += '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">ALGO CALL — THIS ROUND</div>';
+    if (!cr) {
+      html += '<div class="stat-sub">Waiting for the next round…</div>';
+    } else if (call && call.choice) {
+      const yes = call.choice === "yes";
+      html += '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
+        + '<span style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + big.toFixed(0) + 'px;color:var(--' + (yes ? "green" : "red") + ')">' + (yes ? "YES" : "NO") + "</span>"
+        + '<span style="' + mono + 'color:var(--dim)">called ' + (call.ts ? esc(fmtHHMM(call.ts)) : "") + " · "
+        + (s.now >= cr.close_time ? "round over" : s.now >= cr.lock_ts ? "locked · closes " + esc(fmtClock(cr.close_time - s.now)) : "closes " + esc(fmtClock(cr.close_time - s.now))) + "</span></div>";
+      if (p.options.showReason !== false && call.reason)
+        html += '<div style="font-size:0.7rem;color:var(--soft);line-height:1.35">' + esc(call.reason) + "</div>";
+    } else {
+      const wait = cr.lock_ts - 120 - s.now;
+      html += '<div style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + Math.max(16, big * 0.6).toFixed(0) + 'px;color:var(--amber)">PENDING</div>';
+      html += '<div style="' + mono + 'color:var(--dim)">'
+        + (wait > 0 ? "ALGO calls in " + esc(fmtClock(wait)) + " — 3:00 before close"
+          : s.now >= cr.lock_ts ? "no ALGO call landed this round" : "call window open — landing any second") + "</div>";
+    }
+    if (p.options.showOthers !== false && cr) {
+      const one = (label, c) => '<span><span style="color:var(--faint)">' + label + "</span> <b style=\"color:"
+        + (c && c.choice ? "var(--" + (c.choice === "yes" ? "green" : "red") + ")" : "var(--dim)") + '">' + (c && c.choice ? c.choice.toUpperCase() : "—") + "</b></span>";
+      html += '<div style="' + mono + 'display:flex;gap:14px;flex-wrap:wrap">' + one("You", SCALLS.you) + one("History Call", SCALLS.histcall) + "</div>";
+    }
+    if (p.options.showRecord !== false) {
+      const rec = (SREC && SREC.algo) || { wins: 0, losses: 0 };
+      const tot = rec.wins + rec.losses;
+      const pct = tot ? Math.round((rec.wins / tot) * 100) : null;
+      html += '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">'
+        + '<span style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">ALGO RECORD</span>'
+        + '<span style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(14, Math.min(26, h * 0.16)).toFixed(0) + 'px;color:var(--cream)">' + rec.wins + "-" + rec.losses + "</span>"
+        + (pct === null ? "" : '<span style="' + mono + 'color:var(--dim)">' + pct + "% right</span>")
         + "</div>";
     }
     return html + "</div>";
@@ -4027,6 +4081,12 @@ function openEditor(p) {
     html += chk("o_showLast", "Show how the last call went", p.options.showLast !== false);
     html += '<p class="hint">Calls are stored in this browser only and shared with every other page — a pick made here shows up on Classic, The Board and the rest.</p>';
   }
+  if (p.type === "algocall") {
+    html += chk("o_showReason", "Show the ALGO’s reasoning", p.options.showReason !== false);
+    html += chk("o_showOthers", "Show your call and the History Call too", p.options.showOthers !== false);
+    html += chk("o_showRecord", "Show the ALGO’s win/loss record", p.options.showRecord !== false);
+    html += '<p class="hint">The ALGO calls on the server between 3:00 and 1:00 before the round closes, whether or not a browser is open.</p>';
+  }
   if (p.type === "table") {
     html += '<div class="field"><label>Rows</label><input id="o_limit" type="number" min="5" max="500" value="' + num(p.options.limit, 40) + '"></div>';
   }
@@ -4125,7 +4185,7 @@ function openEditor(p) {
     renderPanelBody(p);
   });
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
-   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast",
+   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast", "o_showReason", "o_showOthers",
    "o_showEye", "o_linkWindows", "o_compact"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
   ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt", "o_hours"].forEach(id =>
