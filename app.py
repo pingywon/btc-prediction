@@ -30,7 +30,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -70,13 +70,17 @@ CALL_WINDOW_S = 120          # algo + histcall calls fire when lock_ts-120 <= no
 PRICE_STALE_S = 15           # the price poller sleeps when idle; refetch for the lean if older
 SETTLE_SCAN_WINDOW_S = 6 * 3600  # only chase pending rounds this recent (backfill owns older holes)
 ALGO_COINFLIP_EPS = 0.04     # odds closer than this are a coin flip; fall back to the live lean
-# BTC-25: a SECOND ALGO call made earlier in the round, so there's a read while betting
-# is still open. Offset picked from a 7,190-round backtest: T-5:00 scored 85.3% (vs 94% at
-# lock) -- see early_call_study.py. Fires within a bounded window so an early call always
-# means "~5 min out", never a late call mislabelled early; a missed window is an honest hole.
-ALGO_EARLY_OFFSET_S = 300    # fire at close_time - 300 (5:00 before close = 10:00 into the round)
-ALGO_EARLY_WINDOW_S = 60     # ...within this window; else that round gets no early call
-CALL_SOURCES = ("you", "algo", "algoearly", "histcall")
+# BTC-27: ALGO calls made EARLY ENOUGH TO ACT ON. The near-lock call (below) is accurate
+# but useless for getting a bid in, so the ALGO also calls at T-12, T-10 and T-5 before
+# close. Each is its own write-once source with its own record -- earlier = more time to
+# trade, less accuracy (7,190-round backtest: T-12 68.4%, T-10 73.8%, T-5 85.3%, lock 94%).
+# Each fires inside a bounded window so a call always means what its name says; a missed
+# window is an honest hole (its odds/price input can't be reconstructed after the fact).
+# NOTE 'algoearly' is the T-5 source, kept under its original name so its live record
+# (48-13 at the time of this change) carries forward -- the UI labels it "T-5".
+ALGO_CALL_OFFSETS = ((720, "algo12", 12), (600, "algo10", 10), (300, "algoearly", 5))
+ALGO_CALL_WINDOW_S = 60      # ...within this window each; else that round gets no call
+CALL_SOURCES = ("you", "algo12", "algo10", "algoearly", "algo", "histcall")
 COVERAGE_WINDOW = 100        # BTC-17: "called n of the last N settled rounds" window
 HC_BACKFILL_EVERY_S = 60     # BTC-17: how often to sweep for History Call holes
 HC_BACKFILL_BATCH = 200      # holes filled per sweep (deterministic, so catching up is safe)
@@ -877,15 +881,16 @@ def make_auto_calls(cur, now):
         db.insert_call_ignore(ticker, "histcall", hc["choice"], hc["reason"], now)
 
 
-def make_early_call(cur, now):
-    """BTC-25: the same ALGO heuristic, run ~5 min before close, logged write-once as its
-    OWN source so the proven near-lock 'algo' record is never touched. No backfill -- its
-    input is the T-5 odds/price, which don't exist after the fact (an honest hole)."""
+def make_offset_call(cur, now, source, mins):
+    """BTC-27: the same ALGO heuristic run at a fixed distance from close, logged
+    write-once under its OWN source so every offset keeps an independent record and the
+    proven near-lock 'algo' record is never touched. No backfill -- the odds/price input
+    at that instant doesn't exist after the fact (an honest hole)."""
     lean = _live_lean(cur, now)
     algo = compute_algo_pick(cur, lean)
     if algo:
-        db.insert_call_ignore(cur["kalshi_ticker"], "algoearly", algo["choice"],
-                              "[Early call, ~5 min before close] " + algo["reason"], now)
+        db.insert_call_ignore(cur["kalshi_ticker"], source, algo["choice"],
+                              "[Call at T-%d, %d min before close] " % (mins, mins) + algo["reason"], now)
 
 
 def backfill_hist_calls():
@@ -935,15 +940,16 @@ def caller_tick():
         print("[caller] settle failed: %s" % e, file=sys.stderr)
     if not cur or cur["close_time"] <= now:
         return
-    # BTC-25: the early ALGO call, at close_time - ALGO_EARLY_OFFSET_S (T-5:00), inside a
-    # bounded window so "early" always means ~5 min out. Separate source, write-once.
-    early_start = cur["close_time"] - ALGO_EARLY_OFFSET_S
-    if early_start <= now < early_start + ALGO_EARLY_WINDOW_S:
-        if "algoearly" not in db.calls_for_round(cur["kalshi_ticker"]):
-            if not is_active():
-                refresh_open_round()  # snapshot ~T-5 odds; row is otherwise ~round-open stale
-                cur = current_round_row() or cur
-            make_early_call(cur, now)
+    # BTC-27: the actionable ALGO calls at T-12 / T-10 / T-5, each inside a bounded
+    # window so a call always means what its name says. Separate sources, write-once.
+    for offset_s, source, mins in ALGO_CALL_OFFSETS:
+        start = cur["close_time"] - offset_s
+        if start <= now < start + ALGO_CALL_WINDOW_S:
+            if source not in db.calls_for_round(cur["kalshi_ticker"]):
+                if not is_active():
+                    refresh_open_round()  # snapshot odds now; the row is otherwise round-open stale
+                    cur = current_round_row() or cur
+                make_offset_call(cur, now, source, mins)
     if cur["lock_ts"] - CALL_WINDOW_S <= now < cur["lock_ts"]:
         existing = db.calls_for_round(cur["kalshi_ticker"])
         if "algo" in existing and "histcall" in existing:

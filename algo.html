@@ -281,6 +281,10 @@
   .tip-edit-btn.yes:hover { color: var(--green); border-color: var(--green); }
   .tip-edit-btn.no:hover { color: var(--red); border-color: var(--red); }
   .tip-edit-btn.clear:hover { color: var(--amber); border-color: var(--amber); }
+  /* BTC-23: header that opens the grouped block of predictions in the round popup */
+  .tip-sep { margin: 0.5rem 0 0.1rem; padding-top: 0.45rem; border-top: 1px solid var(--border);
+             font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase;
+             color: var(--faint); font-weight: 800; }
 
   .derived-section { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid rgba(var(--ink-rgb), 0.05); }
   .derived-head { display: flex; flex-direction: column; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.9rem; }
@@ -1242,6 +1246,9 @@
   function tipRow(k, v, cls) {
     return '<div class="tip-modal-row"><span class="k">' + k + '</span><span class="v' + (cls ? ' ' + cls : '') + '">' + v + '</span></div>';
   }
+  // BTC-27: the ALGO's call points, in round order.
+  var CALL_ROWS = [['algo12', 'ALGO T-12', 720], ['algo10', 'ALGO T-10', 600],
+                   ['algoearly', 'ALGO T-5', 300], ['algo', 'ALGO final', 0]];
   function buildRoundDetailRows(r) {
     var c = callsOf(r);
     var hasDelta = r.delta !== null && r.delta !== undefined;
@@ -1253,10 +1260,14 @@
     rows += tipRow('Delta', hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable');
     rows += tipRow('Target', fmtUSD(r.floor_strike));
     rows += tipRow('Settled', fmtUSD(r.settlement_value));
-    if (c.algoearly) rows += tipRow('ALGO early (T-5)', c.algoearly.toUpperCase(), c.algoearly === r.result ? 'hit' : 'miss');
-    if (c.algo) rows += tipRow('ALGO final', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
-    if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
-    if (c.you) rows += tipRow('You called', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
+    // BTC-23: the predictions as ONE consecutive block, same order every time.
+    rows += '<div class="tip-sep">The calls</div>';
+    rows += tipRow('Your call', c.you ? c.you.toUpperCase() : 'no call', c.you ? (c.you === r.result ? 'hit' : 'miss') : '');
+    CALL_ROWS.forEach(function (m) {
+      var v = c[m[0]];
+      rows += tipRow(m[1], v ? v.toUpperCase() : 'no call', v ? (v === r.result ? 'hit' : 'miss') : '');
+    });
+    rows += tipRow('History Call', c.histcall ? c.histcall.toUpperCase() : 'no call', c.histcall ? (c.histcall === r.result ? 'hit' : 'miss') : '');
     // BTC-22: correct your own call on a finished round (sell-early scenario).
     rows += '<div class="tip-modal-row"><span class="k">' + (c.you ? 'Change your call' : 'Log your call') + '</span>'
       + '<span class="v tip-edit-btns">'
