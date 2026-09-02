@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v4.17.1** (the running version is shown at the bottom of every page
+Current release: **v5.0.0** (the running version is shown at the bottom of every page
 and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
 of truth — the git tag, Dockerfile LABEL and this line must match it).
 
@@ -120,6 +120,13 @@ follows the owner to any browser or device:
   board) shows all three records with win percentages at a glance. Expect everything to
   hover near 50% — the 105-hypothesis history study found no real edge, and this module
   is the live test of that.
+- **The Call Log module** (v4.16.0; Studio → Add panel → Call Log, also on the default
+  board) is the round-by-round view of the same data: the picks standing for the round in
+  play across the top, then one row per settled round — result, and what each caller said
+  with a ✓ or ✗ against it. The footer tallies the window and matches Accuracy exactly.
+  Rounds before v4.15.0 carry no calls, so by default only rounds with a logged call are
+  listed; the panel editor can show every round, drop your own calls from the view, and
+  change the window.
 - **The working Studio board + skin** (`kv` key `board`), the five save slots, and the
   Classic/ALGO module preferences (`classic_modules` / `algo_modules`) are all
   server-side. A one-time migration imports a browser's old local picks on first visit.

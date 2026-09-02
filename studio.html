@@ -334,6 +334,29 @@
   .acc-n { flex: 0 0 66px; font-size: 0.6rem; color: var(--dim); text-align: right; }
   .acc-foot { font-size: 0.58rem; color: var(--faint); line-height: 1.4; margin-top: 0.2rem; }
 
+  /* call log: the per-round companion to Accuracy -- who called what, and whether it landed */
+  .cl-cl { display: flex; flex-direction: column; height: 100%; overflow: hidden; gap: 0.4rem; }
+  .cl-cl-live { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; flex: 0 0 auto;
+    padding: 0.35rem 0.5rem; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .cl-cl-live-lbl { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+  .cl-cl-livecell { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; }
+  .cl-cl-livecell i { font-style: normal; color: var(--dim); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-cl-pending { margin-left: auto; font-size: 0.58rem; color: var(--dim); border: 1px dashed var(--border);
+    border-radius: 999px; padding: 0.05rem 0.45rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .cl-cl-tblwrap { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .cl-cl-tbl th, .cl-cl-tbl td { white-space: nowrap; }
+  .cl-cl-pick { font-weight: 800; font-size: 0.68rem; }
+  .cl-cl-pick.yes { color: var(--green); }
+  .cl-cl-pick.no { color: var(--red); }
+  .cl-cl-none { color: var(--dim); opacity: 0.55; }
+  .cl-cl-ok { color: var(--green); font-weight: 800; margin-left: 0.28rem; }
+  .cl-cl-bad { color: var(--red); font-weight: 800; margin-left: 0.28rem; }
+  .cl-cl-foot { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; flex: 0 0 auto;
+    font-size: 0.62rem; color: var(--soft); border-top: 1px solid var(--border); padding-top: 0.35rem; }
+  .cl-cl-foot i { font-style: normal; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-cl-foot b { font-family: var(--mono); color: var(--cream); font-weight: 800; }
+  .cl-cl-scope { margin-left: auto; color: var(--faint); }
+
   /* ---------------- Classic modules ----------------
      The seven modules of / rebuilt as panels. Same labels, same numbers, same
      colour rules -- only the container is different. */
@@ -1765,8 +1788,8 @@ function computeBigEyeBoy(columns) {
 const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours", 6: "6 Hours", 8: "8 Hours", 12: "12 Hours", 24: "24 Hours", 168: "7 Days" };
 const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
 const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1,
-                     scorecard: 1, streakladder: 1, volclock: 1, margin: 1 };
-const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1, algocall: 1 };
+                     scorecard: 1, streakladder: 1, volclock: 1, margin: 1, calllog: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1, algocall: 1, calllog: 1 };
 
 function panelHours(p) { return num(p.options.hours, 24); }
 function histWindowsNeeded() {
@@ -2980,6 +3003,92 @@ defViz("accuracy", {
   }
 });
 
+/* --- Call Log -----------------------------------------------------------
+   The per-round companion to Accuracy. Accuracy answers "how often are they
+   right"; this answers "what did they actually say, and did it land". Calls are
+   only on the server from v4.15.0 onward, so rounds older than that carry none
+   -- by default the list hides those rather than showing a wall of dashes. */
+defViz("calllog", {
+  label: "Call Log", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="7" width="34" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M11 17.5l3 3 5.5-6.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.5 28l6 6M17.5 28l-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="30" x2="34" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  defaults: { hours: 24, onlyCalled: true, showYou: true },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading call log…"); }
+
+    const srcs = [["algo", "ALGO"], ["histcall", "History"]];
+    if (p.options.showYou !== false) srcs.push(["you", "You"]);
+
+    // newest first; a round is "called" once any shown source logged a pick
+    let rows = (hist.rounds || []).slice().reverse();
+    if (p.options.onlyCalled !== false) rows = rows.filter(r => srcs.some(sc => callsOf(r)[sc[0]]));
+
+    // tally exactly what is in this window, so the footer always matches the list
+    const tally = {};
+    for (const sc of srcs) tally[sc[0]] = { w: 0, l: 0 };
+    for (const r of rows) {
+      const cs = callsOf(r);
+      for (const sc of srcs) {
+        const c = cs[sc[0]];
+        if (!c || !r.result) continue;
+        if (c === r.result) tally[sc[0]].w++; else tally[sc[0]].l++;
+      }
+    }
+
+    const cell = c => c ? '<span class="cl-cl-pick ' + c + '">' + c.toUpperCase() + "</span>"
+                        : '<span class="cl-cl-none">—</span>';
+    const mark = (c, res) => (!c || !res) ? ""
+      : (c === res ? '<span class="cl-cl-ok">✓</span>' : '<span class="cl-cl-bad">✗</span>');
+
+    let html = '<div class="cl-cl">';
+
+    // the round in play: picks are locked in but cannot be scored yet
+    const cr = D.state && D.state.current_round;
+    if (cr) {
+      html += '<div class="cl-cl-live"><span class="cl-cl-live-lbl">This round · closes '
+        + esc(fmtHHMM(cr.close_time)) + "</span>";
+      for (const sc of srcs) {
+        html += '<span class="cl-cl-livecell"><i>' + sc[1] + "</i>"
+          + cell((SCALLS[sc[0]] || {}).choice) + "</span>";
+      }
+      html += '<span class="cl-cl-pending">' + (D.state.now >= cr.lock_ts ? "locked" : "open") + "</span></div>";
+    }
+
+    if (!rows.length) {
+      return html + '<div class="empty">No logged calls in this window yet — the server only started '
+        + "recording every round at v4.15.0.</div></div>";
+    }
+
+    let s2 = '<div class="cl-cl-tblwrap" data-trim="last" data-trim-list="tbody">'
+      + '<table class="tbl cl-cl-tbl"><thead><tr><th>Closed</th><th>Result</th>';
+    for (const sc of srcs) s2 += "<th>" + sc[1] + "</th>";
+    s2 += "</tr></thead><tbody>";
+    for (const r of rows) {
+      const cs = callsOf(r);
+      s2 += "<tr><td>" + esc(fmtDateShort(r.close_time) + " " + fmtHHMM(r.close_time)) + "</td>"
+        + '<td class="' + (r.result === "yes" ? "yes" : "no") + '">' + esc(String(r.result || "").toUpperCase()) + "</td>";
+      for (const sc of srcs) s2 += '<td>' + cell(cs[sc[0]]) + mark(cs[sc[0]], r.result) + "</td>";
+      s2 += "</tr>";
+    }
+    s2 += "</tbody></table></div>";
+
+    let foot = '<div class="cl-cl-foot">';
+    for (const sc of srcs) {
+      const t = tally[sc[0]], n = t.w + t.l;
+      foot += "<span><i>" + sc[1] + "</i> <b>" + t.w + "-" + t.l + "</b>"
+        + (n ? " · " + (t.w / n * 100).toFixed(0) + "%" : " · —") + "</span>";
+    }
+    // Count rounds that actually carry a call, not rows on screen: the table is trimmed to
+    // whatever fits, and with "only called" off most rows have nothing logged at all.
+    const logged = rows.reduce((n, r) => n + (srcs.some(sc => callsOf(r)[sc[0]]) ? 1 : 0), 0);
+    foot += '<span class="cl-cl-scope">' + logged + " logged round" + (logged === 1 ? "" : "s")
+      + " · last " + esc(WINDOW_LABELS[hrs] || hrs + "H") + " · newest shown</span></div>";
+
+    return html + s2 + foot + "</div>";
+  }
+});
+
 /* --- Streak Ladder ------------------------------------------------------ */
 defViz("streakladder", {
   label: "Streak Ladder", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
@@ -3427,7 +3536,8 @@ function defaultDashboard() {
       mkPanel("spreadnow", "distance", { x: 0, y: 25, w: 14, h: 3 }, "Current Spread"),
       mkPanel("gauges", "live_price", { x: 0, y: 28, w: 14, h: 5 }, "Market Gauges"),
       mkPanel("roadhistory", "results", { x: 0, y: 33, w: 24, h: 13 }, "Big Road History"),
-      mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread")
+      mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread"),
+      mkPanel("calllog", "results", { x: 0, y: 56, w: 24, h: 12 }, "Call Log")
     ]
   };
 }
@@ -4124,6 +4234,11 @@ function openEditor(p) {
   if (p.type === "spreadledger") {
     html += chk("o_compact", "Compact list", p.options.compact !== false);
   }
+  if (p.type === "calllog") {
+    html += chk("o_onlyCalled", "Only show rounds that carry a logged call", p.options.onlyCalled !== false);
+    html += chk("o_showYou", "Include your own calls", p.options.showYou !== false);
+    html += '<p class="hint">The server has logged the ALGO and History Call every round since v4.15.0; rounds older than that have nothing to show.</p>';
+  }
   if (p.type === "livepick") {
     html += chk("o_showNav", "Show Prev / Live / Next", p.options.showNav !== false);
     html += '<div class="field"><label>Line width</label><input id="o_lineWidth" type="number" min="1" max="6" step="0.5" value="' + num(p.options.lineWidth, 2.5) + '"></div>';
@@ -4201,7 +4316,7 @@ function openEditor(p) {
   });
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
    "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast", "o_showReason", "o_showOthers",
-   "o_showEye", "o_linkWindows", "o_compact"].forEach(id =>
+   "o_showEye", "o_linkWindows", "o_compact", "o_onlyCalled", "o_showYou"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
   ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt", "o_hours"].forEach(id =>
     bindIn(id, () => { p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save(); }));
