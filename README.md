@@ -120,7 +120,7 @@ follows the owner to any browser or device:
   board) shows all three records with win percentages at a glance. Expect everything to
   hover near 50% — the 105-hypothesis history study found no real edge, and this module
   is the live test of that.
-- **The Call Log module** (v4.16.0; Studio → Add panel → Call Log, also on the default
+- **The Call Log module** (v5.0.0; Studio → Add panel → Call Log, also on the default
   board) is the round-by-round view of the same data: the picks standing for the round in
   play across the top, then one row per settled round — result, and what each caller said
   with a ✓ or ✗ against it. The footer tallies the window and matches Accuracy exactly.
@@ -130,6 +130,29 @@ follows the owner to any browser or device:
 - **The working Studio board + skin** (`kv` key `board`), the five save slots, and the
   Classic/ALGO module preferences (`classic_modules` / `algo_modules`) are all
   server-side. A one-time migration imports a browser's old local picks on first visit.
+
+## Getting around the Studio (v5.0.0)
+
+The Studio grew faster than its chrome did. v5.0.0 is a pass over the parts you touch
+rather than look at:
+
+- **Range and Bucket stay on screen.** They are viewing controls, not editing controls,
+  but the slim strip used to hide them until you entered Edit mode. They now live in the
+  strip permanently, and the bare chevron that held everything else is labelled **More**.
+- **Every ready-made board shows a mini-map** of its own panel rectangles in the Design
+  drawer, so you can see the shape before you commit to it instead of reading a sentence
+  about it. The board you are on is marked **current**, and its button reads *Reset*.
+- **Blank** is a new board: nothing on it. Picking it lands you on an **empty-state**
+  prompt with *Add your first panel* and *Open Design*, because a blank canvas with no
+  visible way forward is a trap — in view mode the Add panel button is not even rendered.
+- **The panel picker filters as you type.** Thirty-odd panels is more than anyone can
+  scan; the search box takes focus when the sheet opens, and group headings disappear
+  when nothing under them matches.
+- **Panels are named after the panel.** Adding a module with no metric — Accuracy, Call
+  Log, History Call — used to title it after a metric it does not use, so picking
+  "Call Log" gave you a panel called "Live BTC price". Fixed.
+- **The Accuracy module trims instead of clipping.** With four callers its footer ran off
+  the bottom of the panel; it now follows the same no-scrollbar rule as everything else.
 
 ## Round Confidence
 

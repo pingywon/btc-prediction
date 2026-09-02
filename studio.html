@@ -586,6 +586,8 @@
     background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-lg);
     color: var(--soft); font-size: 0.72rem; font-weight: 600;
   }
+  /* [hidden] alone loses to the display rule above -- the filter needs this to bite */
+  .viz-card[hidden], .viz-grid[hidden], .group-label[hidden] { display: none !important; }
   .viz-card:hover { border-color: var(--amber); color: var(--amber); background: var(--surface-800); }
   .viz-card.sel { border-color: var(--amber); color: var(--amber); }
   .viz-card svg { width: 100%; height: 44px; }
@@ -1216,6 +1218,37 @@
   .arr-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
   .arr-name { font-weight: 800; color: var(--cream); }
   .arr-desc { font-size: 0.72rem; color: var(--dim); font-weight: 600; }
+  .arr-row.current { background: color-mix(in srgb, var(--amber) 8%, transparent); }
+  .arr-badge { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--amber); border: 1px solid var(--amber); border-radius: 999px; padding: 0.05rem 0.4rem; align-self: flex-start; }
+  /* a mini-map of the board, so you can see the shape before you commit to it */
+  .arr-thumb { position: relative; flex: 0 0 72px; width: 72px; height: 46px; border-radius: 4px;
+    background: var(--surface-800); border: 1px solid var(--border); overflow: hidden; }
+  .arr-thumb i { position: absolute; box-sizing: border-box; border-radius: 1px;
+    background: color-mix(in srgb, var(--amber) 55%, transparent);
+    border: 1px solid var(--surface-900); }
+  .arr-thumb.blank { display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; letter-spacing: 0.08em; color: var(--dim); font-style: normal; }
+
+  /* empty board: never leave a blank canvas with no way forward */
+  /* the grid collapses to zero height with no panels, so give the prompt its own box */
+  .board-empty { position: absolute; inset: 0; min-height: 340px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.5rem; text-align: center; padding: 2rem; }
+  .board-empty h2 { margin: 0; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream); }
+  .board-empty p { margin: 0; max-width: 30rem; font-size: 0.8rem; color: var(--dim); line-height: 1.5; }
+
+  /* panel picker: 30+ panels is too many to scan, so let people type */
+  .picker-search { position: sticky; top: 0; z-index: 2; background: var(--surface-900);
+    padding: 0 0 0.6rem; margin-bottom: 0.2rem; }
+  .picker-search input { width: 100%; }
+  .picker-none { color: var(--dim); font-size: 0.8rem; padding: 0.6rem 0; }
+
+  /* the collapsed strip keeps the viewing controls -- range and bucket are not editing tools */
+  .topbar.collapsed .seg-label { font-size: 0.55rem; }
+  .topbar.collapsed .seg .tbtn { min-height: 24px; height: 24px; padding: 0 0.4rem; font-size: 0.65rem; }
+  .tb-x { display: none; }
+  .topbar.collapsed .tb-x { display: inline; margin-left: 0.3rem; }
+  .topbar.collapsed #tbExpand { width: auto; padding: 0 0.5rem; }
 </style>
 </head>
 <body>
@@ -1235,11 +1268,11 @@
     </div>
   </div>
 
-  <span class="seg-label">Range</span>
-  <div class="seg" id="rangeSeg"></div>
+  <span class="seg-label strip-keep">Range</span>
+  <div class="seg strip-keep" id="rangeSeg"></div>
 
-  <span class="seg-label">Bucket</span>
-  <div class="seg" id="bucketSeg"></div>
+  <span class="seg-label strip-keep">Bucket</span>
+  <div class="seg strip-keep" id="bucketSeg"></div>
 
   <div class="spacer"></div>
 
@@ -1248,7 +1281,7 @@
   <button class="btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add panel</button>
   <button class="btn strip-keep" id="editBtn" title="Toggle edit mode (move + resize)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span id="editLabel">Edit</span></button>
   <button class="btn" id="designBtn" title="Skin, arrangement, saves and panels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.6 1.5-1.4 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.4 1.6-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="17.5" cy="11.5" r="1"/></svg>Design</button>
-  <button class="btn icon strip-keep" id="tbExpand" title="Show / hide the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button class="btn icon strip-keep" id="tbExpand" title="Show / hide the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg><span class="tb-x">More</span></button>
 </div>
 
 <div class="canvas-wrap">
@@ -2982,7 +3015,7 @@ defViz("accuracy", {
   render(p, D, w, h) {
     if (!SREC) return empty("Waiting for the server\u2026");
     const rows = [["you", "You", "amber"], ["algoearly", "ALGO early (T-5)", "callearly"], ["algo", "ALGO final", "blue"], ["histcall", "History Call", "violet"]];
-    let html = '<div class="acc">';
+    let html = '<div class="acc" data-trim="last">';
     for (const [key, label, col] of rows) {
       const r = SREC[key] || { wins: 0, losses: 0, scored: 0, pct: null };
       const pct = r.pct;
@@ -3467,7 +3500,8 @@ function uid() { return "p" + Math.random().toString(36).slice(2, 9); }
 function mkPanel(type, metric, gridPos, title, opts, fc) {
   const v = VIZ[type];
   return {
-    id: uid(), type: type, metric: metric, title: title || (METRICS[metric] ? METRICS[metric].label : v.label),
+    id: uid(), type: type, metric: metric,
+    title: title || ((v.noMetric || !METRICS[metric]) ? v.label : METRICS[metric].label),
     gridPos: gridPos,
     options: Object.assign({}, v.defaults || {}, opts || {}),
     fieldConfig: Object.assign({
@@ -3547,6 +3581,12 @@ function defaultDashboard() {
    Price already draws the chart and the timer; Lean Bar and Current Spread
    because Market Gauges already shows lean and distance; Round Confidence
    because History Call is already a call, read from the other direction. */
+/* A deliberately empty board. renderAll() paints an empty-state prompt when a board
+   has no panels, so this is a starting point rather than a dead end. */
+function boardBlank() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [] };
+}
+
 function solariDesk() {
   return {
     version: 2,
@@ -3880,7 +3920,35 @@ function renderAll() {
     if (t) t.textContent = p.title;
   }
   layout();
+  renderEmptyState();
   for (const p of DASH.panels) renderPanelBody(p);
+}
+
+/* A board with no panels used to be a blank canvas with no way forward -- and in view
+   mode the Add panel button is not even on screen. Give it a door. */
+function renderEmptyState() {
+  let el = document.getElementById("boardEmpty");
+  if (DASH.panels.length) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div");
+  el.id = "boardEmpty";
+  el.className = "board-empty";
+  el.innerHTML = '<h2>Empty board</h2>'
+    + "<p>Nothing on it yet. Add the modules you want one at a time, or open Design and pick "
+    + "a ready-made board to start from.</p>";
+  const add = document.createElement("button");
+  add.className = "btn primary";
+  add.textContent = "Add your first panel";
+  add.addEventListener("click", () => openPicker(null));
+  const dsn = document.createElement("button");
+  dsn.className = "btn";
+  dsn.textContent = "Open Design";
+  dsn.addEventListener("click", () => { const b = document.getElementById("designBtn"); if (b) b.click(); });
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:0.5rem;margin-top:0.3rem";
+  row.appendChild(add); row.appendChild(dsn);
+  el.appendChild(row);
+  gridEl.appendChild(el);
 }
 
 function buildPanel(p) {
@@ -4029,7 +4097,8 @@ function addPanel(type, metric) {
     pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
     pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
     livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
-    gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 }
+    gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 },
+    calllog: { w: 24, h: 12 }
   };
   const sz = sizes[type] || { w: 12, h: 7 };
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
@@ -4103,7 +4172,28 @@ function openPicker(panel) {
     html += "</div>";
   });
   const body = document.getElementById("pickerBody");
-  body.innerHTML = html;
+  // 30+ panels is more than anyone can scan; let people type instead of hunt
+  body.innerHTML = '<div class="picker-search"><input id="pickerFilter" type="search" autocomplete="off" '
+    + 'placeholder="Filter panels\u2026"></div>' + html + '<div class="picker-none" id="pickerNone" hidden>No panel matches that.</div>';
+  const filter = document.getElementById("pickerFilter");
+  filter.addEventListener("input", () => {
+    const q = filter.value.trim().toLowerCase();
+    let shown = 0;
+    body.querySelectorAll(".viz-card").forEach(c => {
+      const hit = !q || (c.textContent || "").toLowerCase().indexOf(q) >= 0;
+      c.hidden = !hit;
+      if (hit) shown++;
+    });
+    // hide a group heading once everything under it is filtered out
+    body.querySelectorAll(".viz-grid").forEach(g => {
+      const any = !!g.querySelector(".viz-card:not([hidden])");
+      g.hidden = !any;
+      const lbl = g.previousElementSibling;
+      if (lbl && lbl.classList.contains("group-label")) lbl.hidden = !any;
+    });
+    document.getElementById("pickerNone").hidden = shown > 0;
+  });
+  setTimeout(() => { try { filter.focus(); } catch (e) { /* ignore */ } }, 60);
   body.querySelectorAll("[data-viz]").forEach(card => {
     card.addEventListener("click", () => {
       const type = card.getAttribute("data-viz");
@@ -4799,31 +4889,56 @@ const ARRANGEMENTS = [
   { id: "wall", name: "Wall", desc: "Big-screen glance: this round, the clock, your record, the road.", make: boardWall },
   { id: "minimal", name: "Minimal", desc: "Just the round and the Big Road, full width.", make: boardMinimal },
   { id: "solari", name: "Solari desk", desc: "Six non-repeating modules, and the split-flap skin to go with them.", make: solariDesk, skin: "solari" },
-  { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset }
+  { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset },
+  { id: "blank", name: "Blank", desc: "Nothing on the board. Start empty and add only the modules you want.", make: boardBlank }
 ];
+
+/* A mini-map of a board's panel rectangles -- seeing the shape beats reading a sentence. */
+function boardThumb(dash) {
+  const ps = (dash && dash.panels) || [];
+  if (!ps.length) return '<div class="arr-thumb blank">EMPTY</div>';
+  const maxY = Math.max.apply(null, ps.map(x => x.gridPos.y + x.gridPos.h).concat([1]));
+  let out = '<div class="arr-thumb">';
+  for (const q of ps) {
+    const g = q.gridPos;
+    out += '<i style="left:' + (g.x / 24 * 100).toFixed(2) + "%;top:" + (g.y / maxY * 100).toFixed(2)
+      + "%;width:" + (g.w / 24 * 100).toFixed(2) + "%;height:" + (g.h / maxY * 100).toFixed(2) + '%"></i>';
+  }
+  return out + "</div>";
+}
 
 function renderArrangements() {
   const wrap = document.getElementById("arrangeList");
   wrap.innerHTML = "";
   for (const a of ARRANGEMENTS) {
+    const current = DASH && DASH.arrangement === a.id;
     const row = document.createElement("div");
-    row.className = "arr-row";
+    row.className = "arr-row" + (current ? " current" : "");
+    const holder = document.createElement("div");
+    holder.innerHTML = boardThumb(a.make());
     const txt = document.createElement("div");
     txt.className = "arr-txt";
     const n = document.createElement("span"); n.className = "arr-name"; n.textContent = a.name;
     const d = document.createElement("span"); d.className = "arr-desc"; d.textContent = a.desc;
     txt.appendChild(n); txt.appendChild(d);
+    if (current) {
+      const b = document.createElement("span"); b.className = "arr-badge"; b.textContent = "current";
+      txt.appendChild(b);
+    }
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.textContent = "Use";
+    btn.textContent = current ? "Reset" : "Use";
     btn.addEventListener("click", () => {
       if (a.skin) {
         applySkin(a.skin);
         try { localStorage.setItem(LS_SKIN, a.skin); } catch (e) { /* ignore */ }
       }
-      loadBoard(a.make(), a.name + " arrangement");
+      const board = a.make();
+      board.arrangement = a.id;        // remembered so this list can show which one you are on
+      loadBoard(board, a.name + " arrangement");
+      renderArrangements();
     });
-    row.appendChild(txt); row.appendChild(btn);
+    row.appendChild(holder.firstChild); row.appendChild(txt); row.appendChild(btn);
     wrap.appendChild(row);
   }
 }
