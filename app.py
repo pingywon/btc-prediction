@@ -70,7 +70,7 @@ CALL_WINDOW_S = 120          # algo + histcall calls fire when lock_ts-120 <= no
 PRICE_STALE_S = 15           # the price poller sleeps when idle; refetch for the lean if older
 SETTLE_SCAN_WINDOW_S = 6 * 3600  # only chase pending rounds this recent (backfill owns older holes)
 ALGO_COINFLIP_EPS = 0.04     # odds closer than this are a coin flip; fall back to the live lean
-# BTC-27: ALGO calls made EARLY ENOUGH TO ACT ON. The near-lock call (below) is accurate
+# BTC-29: ALGO calls made EARLY ENOUGH TO ACT ON. The near-lock call (below) is accurate
 # but useless for getting a bid in, so the ALGO also calls at T-12, T-10 and T-5 before
 # close. Each is its own write-once source with its own record -- earlier = more time to
 # trade, less accuracy (7,190-round backtest: T-12 68.4%, T-10 73.8%, T-5 85.3%, lock 94%).
@@ -882,7 +882,7 @@ def make_auto_calls(cur, now):
 
 
 def make_offset_call(cur, now, source, mins):
-    """BTC-27: the same ALGO heuristic run at a fixed distance from close, logged
+    """BTC-29: the same ALGO heuristic run at a fixed distance from close, logged
     write-once under its OWN source so every offset keeps an independent record and the
     proven near-lock 'algo' record is never touched. No backfill -- the odds/price input
     at that instant doesn't exist after the fact (an honest hole)."""
@@ -940,7 +940,7 @@ def caller_tick():
         print("[caller] settle failed: %s" % e, file=sys.stderr)
     if not cur or cur["close_time"] <= now:
         return
-    # BTC-27: the actionable ALGO calls at T-12 / T-10 / T-5, each inside a bounded
+    # BTC-29: the actionable ALGO calls at T-12 / T-10 / T-5, each inside a bounded
     # window so a call always means what its name says. Separate sources, write-once.
     for offset_s, source, mins in ALGO_CALL_OFFSETS:
         start = cur["close_time"] - offset_s

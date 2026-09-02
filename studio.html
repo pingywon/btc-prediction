@@ -2665,7 +2665,7 @@ defViz("pick", {
    close) and its call rides /api/state.calls as SCALLS.algo. This is the live view
    of it: PENDING with a countdown to the window, then the call the moment it lands,
    with the reason, the History Call and your own call underneath. */
-/* BTC-27: the ALGO's call points, newest last. [source, label, sub, secs-before-close,
+/* BTC-29: the ALGO's call points, newest last. [source, label, sub, secs-before-close,
    colour token]. The near-lock 'algo' fires on lock_ts-120, not a close offset. */
 const ALGO_CALL_ROWS = [
   ["algo12", "T-12", "12 min before close", 720, "call12"],
@@ -2689,7 +2689,7 @@ defViz("algocall", {
       html += '<div class="stat-sub">Waiting for the next round…</div>';
       return html + "</div>";
     }
-    // BTC-27: four calls down the round -- T-12, T-10, T-5 (all early enough to actually
+    // BTC-29: four calls down the round -- T-12, T-10, T-5 (all early enough to actually
     // get a bid in) and the near-lock FINAL. Each fires write-once server-side and keeps
     // its own record. The reason line shows the newest call that has landed.
     const big = Math.max(16, Math.min(34, h * 0.15));

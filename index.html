@@ -1489,7 +1489,7 @@
   function tipRow(k, v, cls) {
     return '<div class="tip-modal-row"><span class="k">' + k + '</span><span class="v' + (cls ? ' ' + cls : '') + '">' + v + '</span></div>';
   }
-  // BTC-27: the ALGO's call points, in round order.
+  // BTC-29: the ALGO's call points, in round order.
   var CALL_ROWS = [['algo12', 'ALGO T-12', 720], ['algo10', 'ALGO T-10', 600],
                    ['algoearly', 'ALGO T-5', 300], ['algo', 'ALGO final', 0]];
   function buildRoundDetailRows(r) {
