@@ -105,7 +105,10 @@
      bring the rest back. Editing always shows the whole bar. */
   .topbar.collapsed { padding: 0.25rem 0.9rem; }
   .topbar.collapsed > *:not(.strip-keep) { display: none !important; }
-  .topbar.collapsed #dataChip { margin-right: auto; }
+  /* BTC-28: the chip used to be the only thing pushing Edit/More right in the collapsed
+     strip. The lone dot takes that job now. */
+  .topbar.collapsed #liveDot { margin-right: auto; }
+  #liveDot { flex: none; }
   .topbar.collapsed .btn { min-height: 28px; height: 28px; padding: 0 0.5rem; font-size: 0.7rem; }
   .topbar.collapsed .btn.icon { width: 28px; }
   #addBtn { display: none; }
@@ -1239,6 +1242,13 @@
 
   /* empty board: never leave a blank canvas with no way forward */
   /* the grid collapses to zero height with no panels, so give the prompt its own box */
+  /* BTC-28: the version footer, ported from Classic rather than restyled a third time. */
+  footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
+  .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; opacity: 0.35; }
+  .foot-version { font-size: 0.62rem; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .foot-version.stale { color: var(--red); }
+
+  #grid.is-empty { min-height: 340px; }
   .board-empty { position: absolute; inset: 0; min-height: 340px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 0.5rem; text-align: center; padding: 2rem; }
   .board-empty h2 { margin: 0; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream); }
@@ -1283,7 +1293,9 @@
 
   <div class="spacer"></div>
 
-  <div class="chip strip-keep" id="dataChip"><span class="dot" id="liveDot"></span><span id="dataText">loading…</span></div>
+  <!-- BTC-28: the status TEXT lives in the footer now; only the live dot stays up here,
+       so a connection problem is still visible without scrolling a tall board. -->
+  <span class="dot strip-keep" id="liveDot" title="Live data"></span>
 
   <button class="btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add panel</button>
   <button class="btn strip-keep" id="editBtn" title="Toggle edit mode (move + resize)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span id="editLabel">Edit</span></button>
@@ -1294,6 +1306,12 @@
 <div class="canvas-wrap">
   <div id="grid"><div class="ghost" id="ghost"></div></div>
 </div>
+
+<!-- BTC-28: the running version at the BOTTOM, like Classic and the ALGO Desk. Sits
+     outside .canvas-wrap so the absolutely-positioned grid (and .board-empty) can't
+     overlap it. #dataText carries price / rounds / depth / version, and the connection
+     warning too — the live dot up top mirrors that state. -->
+<footer class="page-foot"><div class="foot-bar"></div><div class="foot-version" id="dataText">loading…</div></footer>
 
 <div class="scrim" id="scrim"></div>
 
@@ -3948,6 +3966,10 @@ function renderAll() {
    mode the Add panel button is not even on screen. Give it a door. */
 function renderEmptyState() {
   let el = document.getElementById("boardEmpty");
+  // BTC-28: .board-empty is absolutely positioned inside a grid that collapses to zero
+  // height when there are no panels, so without this the empty card overhangs (and hides)
+  // the version footer below it. Reserve the height on the grid itself.
+  gridEl.classList.toggle("is-empty", !DASH.panels.length);
   if (DASH.panels.length) { if (el) el.remove(); return; }
   if (el) return;
   el = document.createElement("div");
@@ -4689,11 +4711,18 @@ async function fetchData(full) {
     lastFetch = Date.now();
     resolveTracks();
     dot.classList.remove("stale");
+    dot.title = "Live data";
+    document.getElementById("dataText").classList.remove("stale");
     updateChip();
     renderBodies();
   } catch (e) {
+    // BTC-28: the warning now lives in the footer, so mirror it on the toolbar dot (and
+    // colour the footer) rather than letting it scroll out of sight on a tall board.
     dot.classList.add("stale");
-    document.getElementById("dataText").textContent = "connection interrupted — retrying";
+    const dt = document.getElementById("dataText");
+    dt.textContent = "connection interrupted — retrying";
+    dt.classList.add("stale");
+    dot.title = "Connection interrupted — retrying";
   } finally {
     fetching = false;
   }
