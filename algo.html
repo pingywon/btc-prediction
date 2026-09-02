@@ -1253,7 +1253,8 @@
     rows += tipRow('Delta', hasDelta ? sign + '$' + Math.abs(r.delta).toFixed(2) : 'unavailable');
     rows += tipRow('Target', fmtUSD(r.floor_strike));
     rows += tipRow('Settled', fmtUSD(r.settlement_value));
-    if (c.algo) rows += tipRow('ALGO called', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
+    if (c.algoearly) rows += tipRow('ALGO early (T-5)', c.algoearly.toUpperCase(), c.algoearly === r.result ? 'hit' : 'miss');
+    if (c.algo) rows += tipRow('ALGO final', c.algo.toUpperCase(), c.algo === r.result ? 'hit' : 'miss');
     if (c.histcall) rows += tipRow('History Call', c.histcall.toUpperCase(), c.histcall === r.result ? 'hit' : 'miss');
     if (c.you) rows += tipRow('You called', c.you.toUpperCase(), c.you === r.result ? 'hit' : 'miss');
     // BTC-22: correct your own call on a finished round (sell-early scenario).

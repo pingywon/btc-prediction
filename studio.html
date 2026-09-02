@@ -58,6 +58,7 @@
     --call-you: #ffd23f;
     --call-algo: #22c3e6;
     --call-hist: #c07ef0;
+    --callearly: #7cf6c0;
   }
   :root[data-theme="light"] {
     --bg-deep: #f3f4f8;
@@ -2609,42 +2610,56 @@ defViz("algocall", {
     const s = D.state;
     if (!s) return empty("Loading…");
     const cr = s.current_round;
-    const call = cr ? SCALLS.algo : null;
-    const big = Math.max(22, Math.min(64, h * 0.34));
     const mono = "font-family:var(--mono);font-size:0.66rem;";
-    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:5px;justify-content:center">';
-    html += '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">ALGO CALL — THIS ROUND</div>';
+    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:6px;justify-content:center">';
+    html += '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">ALGO CALLS — THIS ROUND</div>';
     if (!cr) {
       html += '<div class="stat-sub">Waiting for the next round…</div>';
-    } else if (call && call.choice) {
-      const yes = call.choice === "yes";
-      html += '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
-        + '<span style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + big.toFixed(0) + 'px;color:var(--' + (yes ? "green" : "red") + ')">' + (yes ? "YES" : "NO") + "</span>"
-        + '<span style="' + mono + 'color:var(--dim)">called ' + (call.ts ? esc(fmtHHMM(call.ts)) : "") + " · "
-        + (s.now >= cr.close_time ? "round over" : s.now >= cr.lock_ts ? "locked · closes " + esc(fmtClock(cr.close_time - s.now)) : "closes " + esc(fmtClock(cr.close_time - s.now))) + "</span></div>";
-      if (p.options.showReason !== false && call.reason)
-        html += '<div style="font-size:0.7rem;color:var(--soft);line-height:1.35">' + esc(call.reason) + "</div>";
-    } else {
-      const wait = cr.lock_ts - 120 - s.now;
-      html += '<div style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + Math.max(16, big * 0.6).toFixed(0) + 'px;color:var(--amber)">PENDING</div>';
-      html += '<div style="' + mono + 'color:var(--dim)">'
-        + (wait > 0 ? "ALGO calls in " + esc(fmtClock(wait)) + " — 3:00 before close"
-          : s.now >= cr.lock_ts ? "no ALGO call landed this round" : "call window open — landing any second") + "</div>";
+      return html + "</div>";
     }
-    if (p.options.showOthers !== false && cr) {
+    // Two calls: the EARLY read (~5 min before close, actionable while betting is open)
+    // and the FINAL near-lock read. Each fires write-once server-side and keeps its own
+    // record; the reason line shows whichever call is present (final wins if both are).
+    const big = Math.max(18, Math.min(40, h * 0.20));
+    const callRow = (label, sub, call, fireLeft) => {
+      let line;
+      if (call && call.choice) {
+        const yes = call.choice === "yes";
+        line = '<span style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + big.toFixed(0) + 'px;color:var(--' + (yes ? "green" : "red") + ')">' + (yes ? "YES" : "NO") + "</span>"
+          + '<span style="' + mono + 'color:var(--dim)">' + (call.ts ? "@ " + esc(fmtHHMM(call.ts)) : "") + "</span>";
+      } else if (fireLeft > 0) {
+        line = '<span style="font-family:var(--mono);font-weight:800;font-size:' + Math.max(13, big * 0.55).toFixed(0) + 'px;color:var(--amber)">PENDING</span>'
+          + '<span style="' + mono + 'color:var(--dim)">in ' + esc(fmtClock(fireLeft)) + "</span>";
+      } else {
+        line = '<span style="' + mono + 'color:var(--faint)">no call this round</span>';
+      }
+      return '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'
+        + '<span style="flex:0 0 auto;font-size:0.56rem;letter-spacing:0.06em;color:var(--faint);font-weight:800;width:112px">' + label + '<br><span style="color:var(--dim);font-weight:600;letter-spacing:0">' + sub + "</span></span>"
+        + line + "</div>";
+    };
+    const early = SCALLS.algoearly, final_ = SCALLS.algo;
+    html += callRow("EARLY", "~5 min before close", early, (cr.close_time - 300) - s.now);
+    html += callRow("FINAL", "near lock", final_, (cr.lock_ts - 120) - s.now);
+    if (p.options.showReason !== false) {
+      const shown = (final_ && final_.reason) ? final_ : (early && early.reason ? early : null);
+      if (shown) html += '<div style="font-size:0.68rem;color:var(--soft);line-height:1.35">' + esc(shown.reason) + "</div>";
+    }
+    if (p.options.showOthers !== false) {
       const one = (label, c) => '<span><span style="color:var(--faint)">' + label + "</span> <b style=\"color:"
         + (c && c.choice ? "var(--" + (c.choice === "yes" ? "green" : "red") + ")" : "var(--dim)") + '">' + (c && c.choice ? c.choice.toUpperCase() : "—") + "</b></span>";
       html += '<div style="' + mono + 'display:flex;gap:14px;flex-wrap:wrap">' + one("You", SCALLS.you) + one("History Call", SCALLS.histcall) + "</div>";
     }
     if (p.options.showRecord !== false) {
-      const rec = (SREC && SREC.algo) || { wins: 0, losses: 0 };
-      const tot = rec.wins + rec.losses;
-      const pct = tot ? Math.round((rec.wins / tot) * 100) : null;
-      html += '<div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">'
-        + '<span style="font-size:0.55rem;letter-spacing:0.1em;color:var(--faint);font-weight:700">ALGO RECORD</span>'
-        + '<span style="font-family:var(--mono);font-weight:700;font-size:' + Math.max(14, Math.min(26, h * 0.16)).toFixed(0) + 'px;color:var(--cream)">' + rec.wins + "-" + rec.losses + "</span>"
-        + (pct === null ? "" : '<span style="' + mono + 'color:var(--dim)">' + pct + "% right</span>")
-        + "</div>";
+      const recRow = (label, rec, col) => {
+        rec = rec || { wins: 0, losses: 0 };
+        const tot = rec.wins + rec.losses;
+        const pct = tot ? Math.round((rec.wins / tot) * 100) : null;
+        return '<span><span style="font-size:0.52rem;letter-spacing:0.08em;color:var(--faint);font-weight:700">' + label + '</span> '
+          + '<b style="font-family:var(--mono);color:var(--' + col + ')">' + rec.wins + "-" + rec.losses + "</b>"
+          + (pct === null ? "" : '<span style="' + mono + 'color:var(--dim)"> ' + pct + "%</span>") + "</span>";
+      };
+      html += '<div style="' + mono + 'display:flex;gap:16px;flex-wrap:wrap;margin-top:2px">'
+        + recRow("EARLY", SREC && SREC.algoearly, "callearly") + recRow("FINAL", SREC && SREC.algo, "blue") + "</div>";
     }
     return html + "</div>";
   }
@@ -2943,7 +2958,7 @@ defViz("accuracy", {
   defaults: {},
   render(p, D, w, h) {
     if (!SREC) return empty("Waiting for the server\u2026");
-    const rows = [["you", "You", "amber"], ["algo", "ALGO", "blue"], ["histcall", "History Call", "violet"]];
+    const rows = [["you", "You", "amber"], ["algoearly", "ALGO early (T-5)", "callearly"], ["algo", "ALGO final", "blue"], ["histcall", "History Call", "violet"]];
     let html = '<div class="acc">';
     for (const [key, label, col] of rows) {
       const r = SREC[key] || { wins: 0, losses: 0, scored: 0, pct: null };
@@ -4568,7 +4583,8 @@ document.addEventListener("click", e => {
   if (hasD)
     html += '<div class="rd-row"><span>Distance from target</span><b>'
       + (r.delta >= 0 ? "+" : "-") + money(Math.abs(r.delta)) + "</b></div>";
-  if (c.algo) html += '<div class="rd-row"><span>ALGO called</span><b class="' + (c.algo === r.result ? "hit" : "miss") + '">' + c.algo.toUpperCase() + "</b></div>";
+  if (c.algoearly) html += '<div class="rd-row"><span>ALGO early (T-5)</span><b class="' + (c.algoearly === r.result ? "hit" : "miss") + '">' + c.algoearly.toUpperCase() + "</b></div>";
+  if (c.algo) html += '<div class="rd-row"><span>ALGO final</span><b class="' + (c.algo === r.result ? "hit" : "miss") + '">' + c.algo.toUpperCase() + "</b></div>";
   if (c.histcall) html += '<div class="rd-row"><span>History Call</span><b class="' + (c.histcall === r.result ? "hit" : "miss") + '">' + c.histcall.toUpperCase() + "</b></div>";
   html += '<div class="rd-row"><span>Your call</span><b class="' + (mine ? (hit ? "hit" : "miss") : "") + '">'
     + (mine ? mine.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";

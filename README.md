@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v4.16.1** (the running version is shown at the bottom of every page
+Current release: **v4.17.0** (the running version is shown at the bottom of every page
 and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
 of truth — the git tag, Dockerfile LABEL and this line must match it).
 

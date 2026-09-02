@@ -30,7 +30,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "4.16.1"
+VERSION = "4.17.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -70,7 +70,13 @@ CALL_WINDOW_S = 120          # algo + histcall calls fire when lock_ts-120 <= no
 PRICE_STALE_S = 15           # the price poller sleeps when idle; refetch for the lean if older
 SETTLE_SCAN_WINDOW_S = 6 * 3600  # only chase pending rounds this recent (backfill owns older holes)
 ALGO_COINFLIP_EPS = 0.04     # odds closer than this are a coin flip; fall back to the live lean
-CALL_SOURCES = ("you", "algo", "histcall")
+# BTC-25: a SECOND ALGO call made earlier in the round, so there's a read while betting
+# is still open. Offset picked from a 7,190-round backtest: T-5:00 scored 85.3% (vs 94% at
+# lock) -- see early_call_study.py. Fires within a bounded window so an early call always
+# means "~5 min out", never a late call mislabelled early; a missed window is an honest hole.
+ALGO_EARLY_OFFSET_S = 300    # fire at close_time - 300 (5:00 before close = 10:00 into the round)
+ALGO_EARLY_WINDOW_S = 60     # ...within this window; else that round gets no early call
+CALL_SOURCES = ("you", "algo", "algoearly", "histcall")
 COVERAGE_WINDOW = 100        # BTC-17: "called n of the last N settled rounds" window
 HC_BACKFILL_EVERY_S = 60     # BTC-17: how often to sweep for History Call holes
 HC_BACKFILL_BATCH = 200      # holes filled per sweep (deterministic, so catching up is safe)
@@ -823,8 +829,9 @@ def settle_pending_once(now):
             db.upsert_round(to_round_row(m))
 
 
-def make_auto_calls(cur, now):
-    ticker = cur["kalshi_ticker"]
+def _live_lean(cur, now):
+    """The current price position vs the strike, refetching if the poller is asleep.
+    Shared by the near-lock ALGO call and the early ALGO call."""
     with STATE_LOCK:
         price, price_ts = STATE["live_price"], STATE["live_price_ts"]
     if price is None or now - price_ts > PRICE_STALE_S:
@@ -835,7 +842,12 @@ def make_auto_calls(cur, now):
                 STATE["live_price"], STATE["live_price_source"], STATE["live_price_ts"] = price, source, now
         except Exception:  # noqa
             pass  # stale or absent price -> lean may be None; the odds branch still works
-    lean = compute_lean(price, cur["floor_strike"])
+    return compute_lean(price, cur["floor_strike"])
+
+
+def make_auto_calls(cur, now):
+    ticker = cur["kalshi_ticker"]
+    lean = _live_lean(cur, now)
     algo = compute_algo_pick(cur, lean)
     if algo:
         db.insert_call_ignore(ticker, "algo", algo["choice"], algo["reason"], now)
@@ -844,6 +856,17 @@ def make_auto_calls(cur, now):
     hc = compute_hist_call([r["result"] for r in reversed(priors)])
     if hc:
         db.insert_call_ignore(ticker, "histcall", hc["choice"], hc["reason"], now)
+
+
+def make_early_call(cur, now):
+    """BTC-25: the same ALGO heuristic, run ~5 min before close, logged write-once as its
+    OWN source so the proven near-lock 'algo' record is never touched. No backfill -- its
+    input is the T-5 odds/price, which don't exist after the fact (an honest hole)."""
+    lean = _live_lean(cur, now)
+    algo = compute_algo_pick(cur, lean)
+    if algo:
+        db.insert_call_ignore(cur["kalshi_ticker"], "algoearly", algo["choice"],
+                              "[Early call, ~5 min before close] " + algo["reason"], now)
 
 
 def backfill_hist_calls():
@@ -889,6 +912,15 @@ def caller_tick():
     settle_pending_once(now)
     if not cur or cur["close_time"] <= now:
         return
+    # BTC-25: the early ALGO call, at close_time - ALGO_EARLY_OFFSET_S (T-5:00), inside a
+    # bounded window so "early" always means ~5 min out. Separate source, write-once.
+    early_start = cur["close_time"] - ALGO_EARLY_OFFSET_S
+    if early_start <= now < early_start + ALGO_EARLY_WINDOW_S:
+        if "algoearly" not in db.calls_for_round(cur["kalshi_ticker"]):
+            if not is_active():
+                refresh_open_round()  # snapshot ~T-5 odds; row is otherwise ~round-open stale
+                cur = current_round_row() or cur
+            make_early_call(cur, now)
     if cur["lock_ts"] - CALL_WINDOW_S <= now < cur["lock_ts"]:
         existing = db.calls_for_round(cur["kalshi_ticker"])
         if "algo" in existing and "histcall" in existing:
