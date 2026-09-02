@@ -1,6 +1,6 @@
 FROM python:3-slim
 
-LABEL org.opencontainers.image.version="4.17.0"
+LABEL org.opencontainers.image.version="4.17.1"
 
 WORKDIR /app
 COPY app.py index.html algo.html studio.html README.md ./

@@ -30,7 +30,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "4.17.0"
+VERSION = "4.17.1"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -86,6 +86,18 @@ KV_KEYS = ("board", "classic_modules", "algo_modules")
 IMPORT_MAX_BYTES = 2_000_000
 IMPORT_MAX_ENTRIES = 20_000  # per source; ~70 days of rounds is ~7k
 MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+
+
+def _f(x):
+    """Parse an external numeric that may arrive as a thousands-comma STRING.
+    Kalshi has been observed returning e.g. expiration_value='77,362.10'; plain
+    float() raises on the comma, which (inside settle_pending_once, run every 5s)
+    aborted the whole caller tick and silently stopped ALL calls. None/"" -> None."""
+    if x is None or x == "":
+        return None
+    if isinstance(x, str):
+        x = x.replace(",", "")
+    return float(x)
 
 
 def lan_ip():
@@ -157,11 +169,11 @@ def to_round_row(m):
         "open_time": open_t,
         "close_time": close_t,
         "lock_ts": close_t - LOCK_BUFFER_S,
-        "floor_strike": float(m["floor_strike"]),
+        "floor_strike": _f(m["floor_strike"]),
         "result": result if settled else None,
-        "settlement_value": float(m["expiration_value"]) if settled and m.get("expiration_value") not in (None, "") else None,
-        "kalshi_yes_price": float(m.get("yes_bid_dollars") or m.get("last_price_dollars") or 0) or None,
-        "kalshi_no_price": float(m.get("no_bid_dollars") or 0) or None,
+        "settlement_value": _f(m["expiration_value"]) if settled and m.get("expiration_value") not in (None, "") else None,
+        "kalshi_yes_price": _f(m.get("yes_bid_dollars") or m.get("last_price_dollars") or 0) or None,
+        "kalshi_no_price": _f(m.get("no_bid_dollars") or 0) or None,
     }
 
 
@@ -507,12 +519,12 @@ def round_engine():
 def fetch_cosmetic_price():
     try:
         d = http_get_json(COINBASE_HOST, "/products/BTC-USD/ticker")
-        return float(d["price"]), "coinbase"
+        return _f(d["price"]), "coinbase"
     except Exception:  # noqa
         pass
     d = http_get_json(KRAKEN_HOST, "/0/public/Ticker?pair=XBTUSD")
     pair = next(iter(d["result"].values()))
-    return float(pair["c"][0]), "kraken"
+    return _f(pair["c"][0]), "kraken"
 
 
 _tick_write = {"last_db": 0.0, "last_prune": 0.0}
@@ -642,7 +654,7 @@ def price_stream():
                 except ValueError:
                     continue
                 if msg.get("type") == "ticker" and msg.get("price"):
-                    record_tick(float(msg["price"]), "coinbase-ws")
+                    record_tick(_f(msg["price"]), "coinbase-ws")
                 elif msg.get("type") == "error":
                     raise RuntimeError("ws error: %s" % msg.get("message"))
         except Exception as e:  # noqa
@@ -825,8 +837,15 @@ def settle_pending_once(now):
     by_ticker = {m["ticker"]: m for m in data.get("markets") or [] if (m.get("result") or "")}
     for p in pending:
         m = by_ticker.get(p["kalshi_ticker"])
-        if m:
+        if not m:
+            continue
+        try:
             db.upsert_round(to_round_row(m))
+        except (KeyError, TypeError, ValueError) as e:  # noqa
+            # One malformed market must never stall the caller: skip it, keep settling
+            # the rest. (A comma-formatted expiration_value once did exactly this,
+            # aborting every 5s tick and silently stopping all calls.)
+            print("[caller] skip unsettleable %s: %s" % (p["kalshi_ticker"], e), file=sys.stderr)
 
 
 def _live_lean(cur, now):
@@ -909,7 +928,11 @@ def caller_tick():
         # ourselves (~1-2 Kalshi calls per 15-min round when idle).
         refresh_open_round()
         cur = current_round_row()
-    settle_pending_once(now)
+    try:
+        settle_pending_once(now)
+    except Exception as e:  # noqa
+        # Settlement is best-effort and must never skip the call windows below it.
+        print("[caller] settle failed: %s" % e, file=sys.stderr)
     if not cur or cur["close_time"] <= now:
         return
     # BTC-25: the early ALGO call, at close_time - ALGO_EARLY_OFFSET_S (T-5:00), inside a
