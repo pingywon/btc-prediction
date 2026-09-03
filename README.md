@@ -1,8 +1,8 @@
 # BTC Prediction
 
-Current release: **v5.2.0** (the running version is shown at the bottom of every page
-and in the Studio's status chip; it comes from `VERSION` in `app.py`, the single source
-of truth — the git tag, Dockerfile LABEL and this line must match it).
+Current release: **v5.2.1** (the running version is shown in a footer at the bottom of
+every page; it comes from `VERSION` in `app.py`, the single source of truth — the git
+tag, Dockerfile LABEL and this line must match it).
 
 A 15-minute BTC "above or below $X" game that mirrors Robinhood's real "BTC 15 min" prediction market exactly — because it *is* that market. The strike price and the settlement result both come straight from Kalshi's public API (`KXBTC15M` series, the exchange that actually powers Robinhood's contract), not an independent calculation. No login, no API key, no Robinhood credentials anywhere in this app.
 

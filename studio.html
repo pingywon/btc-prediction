@@ -1794,11 +1794,33 @@ function roadFit(nCols, cap, availW, availH) {
     const g3 = s >= 22 ? 8 : Math.max(2, Math.round(s / 6));        // column gap
     const pad = s >= 22 ? 10 : 5;                                    // col padding+border
     const colH = cap * beadH + (cap - 1) * g1 + pad;
-    const rows = Math.max(1, Math.floor((availH + g2) / (colH + g2)));
+    // BTC-30: a size only counts if a WHOLE column fits the height. The old
+    // Math.max(1, rows) asserted one row fit even when the column overhung the
+    // panel -- the grid was then emitted at that size and fitTrim deleted every
+    // column trying to make it fit, leaving "Enlarge this panel to see more".
+    if (colH > availH) continue;
+    const rows = Math.floor((availH + g2) / (colH + g2));
     const perRow = Math.max(1, Math.floor((availW + g3) / (s + pad + g3)));
     if (rows * perRow >= nCols) return { size: s, g1, g2, g3, full, mid: s >= 22 && !full, fits: true };
   }
   return { size: 6, g1: 2, g2: 3, g3: 2, full: false, mid: false, fits: false };
+}
+
+/* BTC-30: a panel that scales its content has to guess the box before it has one
+   (the road subtracted a hard-coded 78px of header and 96px of Big Eye Boy, and
+   measured 262px against a real 317px -- a whole step down the bead ladder). A viz
+   can declare `fitSel`; renderPanelBody then measures that element's real content
+   box after the first pass and renders once more with the truth. The box comes from
+   flex leftovers, never from the content, so the second measurement matches and the
+   pass settles immediately. */
+const FITBOX = {};
+function measureBox(body, sel) {
+  const el = body.querySelector(sel);
+  if (!el) return null;
+  const cs = getComputedStyle(el);
+  const w = el.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+  const h = el.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+  return w > 4 && h > 4 ? { w, h } : null;
 }
 
 /* BTC-21: the three callers' corner marks for one bead. Full badges down to 22px,
@@ -2374,6 +2396,7 @@ defViz("bigroad", {
   label: "Big Road", group: "Rounds", accepts: ["rounds"],
   icon: '<circle cx="10" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".55"/><circle cx="34" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="34" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>',
   defaults: { maxRows: 6, hours: 0 },
+  fitSel: ".road",
   render(p, D, w, h) {
     let rounds = D.rounds || [];
     // BTC-19: hours 0 (the default now) = follow the board's range, so setting the
@@ -2397,7 +2420,10 @@ defViz("bigroad", {
       cur.items.push(r);
     }
     // Beads scale until every column fits (wrapping into rows) -- nothing is sliced off.
-    const f = roadFit(cols.length, maxRows, Math.max(40, w - 8), Math.max(30, h - 8));
+    const box = FITBOX[p.id];   // BTC-30: the real box once we've had one
+    const f = roadFit(cols.length, maxRows,
+      box ? box.w : Math.max(40, w - 8),
+      box ? box.h : Math.max(30, h - 8));
     let html = '<div class="road" style="flex-wrap:wrap;align-content:flex-start;gap:' + f.g2 + "px " + f.g3 + 'px" data-trim="first">';
     for (const c of cols) {
       html += '<div class="road-col" style="gap:' + f.g1 + 'px">';
@@ -3436,6 +3462,7 @@ defViz("roadhistory", {
   label: "Big Road History", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
   defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
+  fitSel: ".cl-road-grid",
   render(p, D, w, h) {
     const hrs = panelHours(p);
     const hist = histFor(p);
@@ -3453,9 +3480,15 @@ defViz("roadhistory", {
       // BTC-19: beads scale down until the WHOLE loaded window fits -- 7 days shows
       // all 7 days, not the trailing sliver that happened to fit 44px beads.
       const eyeOn = p.options.showEye !== false;
-      const f = roadFit(columns.length, cap, Math.max(60, w - 12), Math.max(40, h - 78 - (eyeOn ? 96 : 0)));
+      const box = FITBOX[p.id];   // BTC-30: the real grid box once we've had one
+      const f = roadFit(columns.length, cap,
+        box ? box.w : Math.max(60, w - 12),
+        box ? box.h : Math.max(40, h - 78 - (eyeOn ? 96 : 0)));
       const beadH = f.full ? f.size + 4 : f.size;
-      let grid = '<div class="cl-road-grid' + (f.full ? "" : " rb") + '" data-trim="first" style="gap:' + f.g2 + "px " + f.g3 + 'px">';
+      // data-fits=0 means no size on the ladder shows the whole window in this box --
+      // the honest "this panel is too small for this range" signal.
+      let grid = '<div class="cl-road-grid' + (f.full ? "" : " rb") + '" data-trim="first" data-fits="'
+        + (f.fits ? 1 : 0) + '" style="gap:' + f.g2 + "px " + f.g3 + 'px">';
       for (const col of columns) {
         grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + (f.full ? "" : " sm") + '" style="gap:' + f.g1 + 'px">';
         for (const r of col) {
@@ -4060,6 +4093,13 @@ function renderPanelBody(p) {
   if (w < 2 || h < 2) return;
   try {
     body.innerHTML = v.render(p, DATA, w, h);
+    if (v.fitSel) {
+      const box = measureBox(body, v.fitSel), prev = FITBOX[p.id];
+      if (box && (!prev || Math.abs(prev.w - box.w) > 1 || Math.abs(prev.h - box.h) > 1)) {
+        FITBOX[p.id] = box;
+        body.innerHTML = v.render(p, DATA, w, h);   // again, now against the real box
+      }
+    }
     fitTrim(body);
   } catch (err) {
     body.innerHTML = empty("Panel error");
