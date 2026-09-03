@@ -1784,26 +1784,51 @@ function buildColumns(rounds, cap) {
    largest bead size whose columns ALL fit the box (wrapping into rows). >=36px keeps
    the full Y/time/delta bead, 22-35px keeps just the letter, below that it's a plain
    colored chip. data-trim stays on the grid as a safety net for estimate error only. */
+const ROAD_LADDER = [44, 38, 32, 27, 23, 19, 16, 13, 11, 9, 8, 7, 6];
+
+/* One column's geometry at bead size s: everything both the fitter (how small must we
+   go to fit this box?) and the auto-sizer (how big must the box be?) need. */
+function roadGeom(s, cap) {
+  const full = s >= 36;
+  const beadH = full ? s + 4 : s;
+  const g1 = s >= 22 ? 4 : Math.max(2, Math.round(s / 6));          // gap inside a column
+  const g2 = s >= 22 ? 12 : Math.max(3, Math.round(s / 4));         // row gap
+  const g3 = s >= 22 ? 8 : Math.max(2, Math.round(s / 6));          // column gap
+  const pad = s >= 22 ? 10 : 5;                                      // col padding+border
+  return { s, full, beadH, g1, g2, g3, pad, colH: cap * beadH + (cap - 1) * g1 + pad };
+}
+function roadPerRow(g, availW) { return Math.max(1, Math.floor((availW + g.g3) / (g.s + g.pad + g.g3))); }
+
 function roadFit(nCols, cap, availW, availH) {
-  const ladder = [44, 38, 32, 27, 23, 19, 16, 13, 11, 9, 8, 7, 6];
-  for (const s of ladder) {
-    const full = s >= 36;
-    const beadH = full ? s + 4 : s;
-    const g1 = s >= 22 ? 4 : Math.max(2, Math.round(s / 6));        // gap inside a column
-    const g2 = s >= 22 ? 12 : Math.max(3, Math.round(s / 4));       // row gap
-    const g3 = s >= 22 ? 8 : Math.max(2, Math.round(s / 6));        // column gap
-    const pad = s >= 22 ? 10 : 5;                                    // col padding+border
-    const colH = cap * beadH + (cap - 1) * g1 + pad;
+  for (const s of ROAD_LADDER) {
+    const geo = roadGeom(s, cap);
+    const full = geo.full, g1 = geo.g1, g2 = geo.g2, g3 = geo.g3, colH = geo.colH;
     // BTC-30: a size only counts if a WHOLE column fits the height. The old
     // Math.max(1, rows) asserted one row fit even when the column overhung the
     // panel -- the grid was then emitted at that size and fitTrim deleted every
     // column trying to make it fit, leaving "Enlarge this panel to see more".
     if (colH > availH) continue;
     const rows = Math.floor((availH + g2) / (colH + g2));
-    const perRow = Math.max(1, Math.floor((availW + g3) / (s + pad + g3)));
+    const perRow = roadPerRow(geo, availW);
     if (rows * perRow >= nCols) return { size: s, g1, g2, g3, full, mid: s >= 22 && !full, fits: true };
   }
   return { size: 6, g1: 2, g2: 3, g3: 2, full: false, mid: false, fits: false };
+}
+
+/* BTC-31, the other direction: how TALL must the box be for this road? Aims at the
+   smallest bead that still shows its Y/N letter, and only steps below that when even
+   that would need more room than the panel is allowed to take. */
+const FIT_MIN_BEAD = 22;
+function roadNeedH(nCols, cap, availW, maxH) {
+  let start = 0;
+  for (let i = 0; i < ROAD_LADDER.length; i++) if (ROAD_LADDER[i] >= FIT_MIN_BEAD) start = i;
+  for (let i = start; i < ROAD_LADDER.length; i++) {
+    const geo = roadGeom(ROAD_LADDER[i], cap);
+    const rows = Math.max(1, Math.ceil(nCols / roadPerRow(geo, availW)));
+    const needH = rows * geo.colH + (rows - 1) * geo.g2;
+    if (needH <= maxH || i === ROAD_LADDER.length - 1) return { size: geo.s, needH: Math.min(needH, maxH) };
+  }
+  return null;
 }
 
 /* BTC-30: a panel that scales its content has to guess the box before it has one
@@ -1879,16 +1904,29 @@ function histWindowsNeeded() {
 }
 function histFor(p) { return DATA.hist[panelHours(p)] || null; }
 const histLoading = {};
+const histWaiting = {};
 function loadHist(hours, then) {
-  if (histLoading[hours]) return;
+  // A load already in flight must not swallow this callback: the periodic refresh asks
+  // for the same windows, so a click that lands mid-flight used to be told nothing ever
+  // happened. Queue instead of dropping.
+  if (histLoading[hours]) {
+    if (then) (histWaiting[hours] = histWaiting[hours] || []).push(then);
+    return;
+  }
   histLoading[hours] = true;
+  const drain = () => {
+    const q = histWaiting[hours] || [];
+    histWaiting[hours] = [];
+    for (const f of q) f();
+  };
   getJSON("/api/history?hours=" + hours)
     .then(d => {
       DATA.hist[hours] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() };
       histLoading[hours] = false;
       if (then) then();
+      drain();
     })
-    .catch(() => { histLoading[hours] = false; });
+    .catch(() => { histLoading[hours] = false; histWaiting[hours] = []; });
 }
 
 /* Classic's chart: fixed 600x130 box stretched to fit, strokes kept crisp. */
@@ -3463,6 +3501,15 @@ defViz("roadhistory", {
   icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
   defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
   fitSel: ".cl-road-grid",
+  // BTC-31: the road never overflows -- it shrinks its beads instead -- so it has to
+  // say outright how much height this window wants rather than be measured.
+  needH(p, D, box, maxH) {
+    const hist = histFor(p);
+    if (!hist || !hist.rounds.length) return 0;
+    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
+    const plan = roadNeedH(buildColumns(hist.rounds, cap).length, cap, box.w, maxH);
+    return plan ? plan.needH : 0;
+  },
   render(p, D, w, h) {
     const hrs = panelHours(p);
     const hist = histFor(p);
@@ -3970,7 +4017,12 @@ function onPointerUp() {
   compact();
   layout();
   save();
-  if (mode === "resize") renderPanelBody(p);
+  if (mode === "resize") {
+    // BTC-31: a size set by hand wins. Stop auto-fitting this panel so a later window
+    // change does not undo the owner -- the panel options switch it back on.
+    if (HIST_TYPES[p.type]) { p.options.fitH = false; p.options.fitBaseH = p.gridPos.h; }
+    renderPanelBody(p);
+  }
 }
 
 /* ============================ rendering ============================ */
@@ -4064,10 +4116,17 @@ function buildPanel(p) {
    (data-trim-list names an inner list to remove from, e.g. a table's tbody). Lists that
    render newest-first trim from the end; the road grid renders oldest-first and trims
    from the front. */
-function fitTrim(body) {
+/* BTC-31: how many pixels of content the last render could NOT show, per panel. This
+   is the honest "this panel is too short for its window" number, measured before the
+   trimming rather than guessed afterwards. */
+const FITNEED = {};
+
+function fitTrim(body, p) {
+  let need = 0;
   body.querySelectorAll("[data-trim]").forEach(el => {
     const list = el.dataset.trimList ? el.querySelector(el.dataset.trimList) : el;
     if (!list) return;
+    need = Math.max(need, el.scrollHeight - el.clientHeight);
     const fromEnd = el.dataset.trim === "last";
     let guard = 0;
     // 2000: a 7-day road is ~330 columns and the guard must never bail mid-trim
@@ -4081,6 +4140,7 @@ function fitTrim(body) {
       el.removeAttribute("data-trim");
     }
   });
+  if (p) FITNEED[p.id] = need;
 }
 
 function renderPanelBody(p) {
@@ -4100,7 +4160,7 @@ function renderPanelBody(p) {
         body.innerHTML = v.render(p, DATA, w, h);   // again, now against the real box
       }
     }
-    fitTrim(body);
+    fitTrim(body, p);
   } catch (err) {
     body.innerHTML = empty("Panel error");
     if (window.console) console.error("panel " + p.id + " (" + p.type + ")", err);
@@ -4108,6 +4168,67 @@ function renderPanelBody(p) {
 }
 
 function renderBodies() { for (const p of DASH.panels) renderPanelBody(p); }
+
+/* ===================== BTC-31: fit the panel to the range =====================
+   Pick 7D and the panel gets taller until the week is actually on screen, instead of
+   the week being shrunk or trimmed into whatever box the panel happened to have. Runs
+   ONLY when the window changes -- never on a plain re-render, or it would fight the
+   owner every second. A panel resized by hand opts out until it is switched back on.  */
+
+// Never grow past roughly one screenful: a 7-day road would otherwise swallow the board.
+function fitMaxRows() {
+  return Math.max(10, Math.min(30, Math.floor((window.innerHeight - 160) / ROW_H)));
+}
+
+function autoFitPanel(p) {
+  if (!HIST_TYPES[p.type] || p.options.fitH === false) return false;
+  if (isNarrow()) return false;                       // the narrow layout stacks; h is ignored
+  const el = document.getElementById(p.id);
+  const body = el && el.querySelector(".panel-body");
+  if (!body) return false;
+
+  // The owner's own size is the floor -- a smaller range hands the room back, but we
+  // never shrink a panel below what they chose.
+  if (p.options.fitBaseH === undefined) p.options.fitBaseH = p.gridPos.h;
+  const base = Math.max(3, Math.round(num(p.options.fitBaseH, p.gridPos.h)));
+  const maxRows = Math.max(base, fitMaxRows());
+  const before = p.gridPos.h;
+  const v = VIZ[p.type];
+
+  p.gridPos.h = base;
+  layout(); renderPanelBody(p);
+
+  for (let i = 0; i < 8 && p.gridPos.h < maxRows; i++) {
+    let deficit;
+    if (v.needH) {
+      const box = measureBox(body, v.fitSel);
+      if (!box) break;
+      // what it could still claim if it grew all the way to the cap
+      const room = box.h + (maxRows - p.gridPos.h) * ROW_H;
+      deficit = v.needH(p, DATA, box, room) - box.h;
+    } else {
+      deficit = FITNEED[p.id] || 0;                   // pixels fitTrim had to cut
+    }
+    if (!(deficit > 1)) break;
+    p.gridPos.h = Math.min(maxRows, p.gridPos.h + Math.max(1, Math.ceil(deficit / ROW_H)));
+    layout(); renderPanelBody(p);
+  }
+  return p.gridPos.h !== before;
+}
+
+/* Fit a set of panels, then settle the board ONCE -- growth has to push neighbours
+   down through the normal path rather than overlapping them, and it saves like any
+   other resize. */
+function autoFitPanels(list) {
+  const moved = [];
+  for (const p of list) if (autoFitPanel(p)) moved.push(p);
+  if (!moved.length) return;
+  for (const p of moved) resolveCollisions(p);
+  compact();
+  layout();
+  for (const p of moved) renderPanelBody(p);
+  save();
+}
 
 /* Prev/Live/Next inside a price-track panel. Delegated, since panel bodies are
    replaced wholesale on every render. */
@@ -4132,9 +4253,11 @@ gridEl.addEventListener("click", e => {
     const targets = p0.options.linkWindows === false ? [p0] : DASH.panels.filter(q => HIST_TYPES[q.type]);
     for (const q of targets) q.options.hours = hrs;
     save();
-    const go = () => { for (const q of targets) renderPanelBody(q); };
-    if (DATA.hist[hrs]) go(); else loadHist(hrs, go);
-    go();
+    const paint = () => { for (const q of targets) renderPanelBody(q); };
+    // BTC-31: only fit once the window's data is actually here -- fitting the
+    // "Loading…" placeholder would size the panel to nothing.
+    const done = () => { paint(); autoFitPanels(targets); };
+    if (DATA.hist[hrs]) done(); else { paint(); loadHist(hrs, done); }
     return;
   }
   if (e.target.closest("[data-refresh]") && p0) {
@@ -4397,6 +4520,8 @@ function openEditor(p) {
     html += '<div class="field"><label>Window</label><select id="o_hours">'
       + TF_CHOICES.map(c => '<option value="' + c[0] + '"' + (panelHours(p) === c[0] ? " selected" : "") + ">Last " + esc(WINDOW_LABELS[c[0]]) + "</option>").join("")
       + "</select></div>";
+    html += chk("o_fitH", "Grow to fit the window", p.options.fitH !== false);
+    html += '<p class="hint">The panel resizes itself when you change the window, so a longer range gets the room it needs instead of shrinking the content. Dragging the corner turns this off for this panel.</p>';
   }
   if (p.type === "roadhistory") {
     html += '<div class="field"><label>Rows before wrapping</label><input id="o_maxRows" type="number" min="3" max="10" value="' + num(p.options.maxRows, 6) + '"></div>';
@@ -4483,8 +4608,13 @@ function openEditor(p) {
   }));
   bind("o_hours", () => {
     p.options.hours = Number($("o_hours").value); save();
-    if (DATA.hist[p.options.hours]) renderPanelBody(p); else loadHist(p.options.hours, () => renderPanelBody(p));
-    renderPanelBody(p);
+    const done = () => { renderPanelBody(p); autoFitPanels([p]); };
+    if (DATA.hist[p.options.hours]) done(); else { renderPanelBody(p); loadHist(p.options.hours, done); }
+  });
+  bind("o_fitH", () => {
+    p.options.fitH = $("o_fitH").checked;
+    if (p.options.fitH) { p.options.fitBaseH = undefined; autoFitPanels([p]); }   // this size becomes the floor
+    save();
   });
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
    "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast", "o_showReason", "o_showOthers",

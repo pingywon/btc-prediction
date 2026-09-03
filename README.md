@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v5.2.1** (the running version is shown in a footer at the bottom of
+Current release: **v5.3.0** (the running version is shown in a footer at the bottom of
 every page; it comes from `VERSION` in `app.py`, the single source of truth — the git
 tag, Dockerfile LABEL and this line must match it).
 
@@ -45,6 +45,15 @@ skin:
   Big Road's timeframe selector drives the Results and Spread windows together, as on
   Classic. So "modular Classic" is literally Classic, just movable and resizable. The
   earlier analytics layout is still there as a preset in the JSON dialog.
+
+  **Windowed panels size themselves to the range you pick.** Click 7D and the panel grows
+  until the week is actually on screen, instead of squashing a week into whatever box the
+  panel happened to have; pick a shorter range and it hands the room back. Growth goes
+  through the normal grid path, so neighbours are pushed down rather than overlapped, and
+  the new size is saved like any resize. It stops at roughly one screenful so a 7-day road
+  cannot swallow the board. Drag a panel's corner and that size wins from then on — the
+  panel opts out of auto-fitting until you switch "Grow to fit the window" back on in its
+  options.
 
   It also carries a **skin picker**: the same board renders in any of the ten looks —
   Classic, Fluid, The Ticket, The Board, The Gauge, Terminal, The Tape, Blueprint, Arcade
