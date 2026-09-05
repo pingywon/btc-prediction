@@ -30,7 +30,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "5.3.0"
+VERSION = "5.4.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -252,7 +252,12 @@ class DB:
                 VALUES (?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(kalshi_ticker) DO UPDATE SET
                     result=excluded.result, settlement_value=excluded.settlement_value,
-                    kalshi_yes_price=excluded.kalshi_yes_price, kalshi_no_price=excluded.kalshi_no_price
+                    -- Never let a NULL overwrite odds we already captured. A settled market has no
+                    -- bid left, so to_round_row yields None for both prices; without COALESCE the
+                    -- settle pass wiped the live odds off every round the moment it settled, which
+                    -- is why 7,475 settled rounds carry no record of what the market thought.
+                    kalshi_yes_price=COALESCE(excluded.kalshi_yes_price, rounds.kalshi_yes_price),
+                    kalshi_no_price=COALESCE(excluded.kalshi_no_price, rounds.kalshi_no_price)
             """, (r["kalshi_ticker"], r["open_time"], r["close_time"], r["lock_ts"], r["floor_strike"],
                   r["result"], r["settlement_value"], r["kalshi_yes_price"], r["kalshi_no_price"], time.time()))
 

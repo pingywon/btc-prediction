@@ -478,6 +478,7 @@
   .cl-road-icon { width: 30px; height: 30px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none; }
   .cl-road-icon svg { width: 16px; height: 16px; }
   .cl-road-title h2 { margin: 0; font-size: 0.82rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cream); }
+  .cl-road-meta { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); }
   .cl-road-title p { margin: 0; font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
   .cl-road-ctl, .cl-ledger-ctl { display: flex; align-items: center; gap: 0.5rem; }
   .cl-tf { display: inline-flex; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; gap: 2px; flex-wrap: wrap; }
@@ -557,6 +558,96 @@
     background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
   }
   .scrim.show { display: block; }
+
+  /* Panel description popover. Mounted on <body>, never inside the panel: .panel-body is
+     overflow:hidden and panels are absolutely positioned, so an in-panel tip gets clipped. */
+  /* Sized to sit INSIDE the title's line box: .pbtn is 26px, which would make every
+     panel header ~6px taller in view mode and shift the render box of every saved
+     board. 14px + line-height:0 keeps .panel-head exactly the height it is today. */
+  .pinfo {
+    display: inline-flex; flex: none; width: 14px; height: 14px; min-width: 14px;
+    padding: 0; margin: 0; line-height: 0; cursor: help;
+    align-items: center; justify-content: center;
+    background: transparent; border: 0; border-radius: 50%;
+    color: var(--faint); opacity: 0.6; font: inherit;
+  }
+  .pinfo:hover, .pinfo:focus-visible, .pinfo[aria-expanded="true"] { color: var(--amber); opacity: 1; }
+  .pinfo:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .pinfo svg { width: 14px; height: 14px; display: block; }
+  .pinfo[hidden] { display: none; }
+  /* A comfortable tap target that costs no layout. */
+  .pinfo::after { content: ""; position: absolute; inset: -11px; }
+  .pinfo { position: relative; }
+
+  #panelTip {
+    position: absolute; z-index: 130; display: none; max-width: 300px;
+    padding: 0.55rem 0.7rem;
+    background: var(--surface-900); border: 1px solid var(--border);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+    font-size: 0.72rem; line-height: 1.45; color: var(--soft);
+    text-transform: none; letter-spacing: 0; font-weight: 500;
+  }
+  #panelTip.show { display: block; }
+  #panelTip b { color: var(--cream); font-weight: 800; }
+
+  /* --- Call Tape --- */
+  .tape { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .tape-list { display: flex; flex-direction: column; gap: 1px; }
+  .tape-row { display: grid; grid-template-columns: auto auto auto 14px 1fr; align-items: baseline;
+    gap: 0.4rem; padding: 0.16rem 0.1rem; border-bottom: 1px solid var(--border); font-size: 0.66rem; }
+  .tape-when { font-family: var(--mono); color: var(--faint); font-size: 0.6rem; }
+  .tape-src { font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.58rem; color: var(--soft); white-space: nowrap; }
+  .tape-src.algo, .tape-src.algo12, .tape-src.algo10, .tape-src.algoearly { color: var(--call-algo, var(--blue, #6cc6ff)); }
+  .tape-src.histcall { color: var(--call-hist, #b48cff); }
+  .tape-src.you { color: var(--call-you, var(--amber)); }
+  .tape-call { font-family: var(--mono); font-weight: 800; font-size: 0.62rem; }
+  .tape-call.yes { color: var(--green); }
+  .tape-call.no { color: var(--red); }
+  .tape-mark { line-height: 0; color: var(--faint); }
+  .tape-mark svg { width: 11px; height: 11px; }
+  .tape-mark.hit { color: var(--green); }
+  .tape-mark.miss { color: var(--red); }
+  .tape-why { color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* --- Caller Race --- */
+  .race { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .race-list { display: flex; flex-direction: column; gap: 0.3rem; }
+  .race-row { display: grid; grid-template-columns: 5.2rem 1fr auto auto auto; align-items: center;
+    gap: 0.45rem; font-size: 0.68rem; }
+  .race-name { font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase;
+    font-size: 0.58rem; color: var(--soft); white-space: nowrap; }
+  .race-bar { height: 8px; background: var(--surface-850); border-radius: 4px; overflow: hidden; }
+  .race-bar i { display: block; height: 100%; border-radius: 4px; background: var(--green); }
+  .race-bar i.dn { background: var(--red); }
+  .race-pct { font-family: var(--mono); font-size: 0.78rem; color: var(--cream); min-width: 2.4rem; text-align: right; }
+  .race-wl { font-family: var(--mono); font-size: 0.62rem; color: var(--faint); min-width: 3.4rem; text-align: right; }
+  .race-cov { font-family: var(--mono); font-size: 0.58rem; color: var(--dim); min-width: 3rem; text-align: right; }
+
+  /* --- Feed Health --- */
+  .feed { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; overflow: hidden; }
+  .feed-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .feed-src { font-family: var(--mono); font-size: 0.72rem; font-weight: 800; color: var(--soft); }
+  .feed-src.ws { color: var(--green); }
+  .feed-src.rest { color: var(--amber); }
+  .feed-age { font-family: var(--mono); font-size: 1.1rem; font-weight: 800; }
+  .feed-age.ok { color: var(--green); }
+  .feed-age.warm { color: var(--amber); }
+  .feed-age.bad { color: var(--red); }
+  .feed-lbl { font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  /* .panel-body svg sets height:100%; this needs two classes to outrank it. */
+  .feed .feed-spark { width: 100%; height: 26px; margin-top: 0.25rem; flex: none; }
+
+  /* --- Edge Now --- */
+  .edge { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; }
+  .edge-pair { display: flex; gap: 0.75rem; }
+  .edge-cell { flex: 1 1 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .edge-cell b { font-family: var(--mono); font-size: 1.35rem; color: var(--cream); line-height: 1; }
+  .edge-lbl { font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 800; }
+  .edge-gap { font-family: var(--mono); font-size: 1.05rem; font-weight: 800; }
+  .edge-gap.yes { color: var(--green); }
+  .edge-gap.no { color: var(--red); }
+  .edge-gap.agree { color: var(--dim); }
+  .edge-lbl2 { font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
 
   .sheet {
     position: fixed; z-index: 110; display: none; flex-direction: column;
@@ -1850,6 +1941,24 @@ function measureBox(body, sel) {
 
 /* BTC-21: the three callers' corner marks for one bead. Full badges down to 22px,
    tiny color dots to 12px, nothing below that (the round modal still tells all). */
+/* One display name per call source, used by the tape and the race. */
+const CALL_LABEL = { you: "You", algo12: "ALGO T-12", algo10: "ALGO T-10", algoearly: "ALGO T-5",
+                     algo: "ALGO final", histcall: "History" };
+/* Server call reasons are written as prose for one-at-a-time reading. In a dense tape the
+   boilerplate is noise: the row already says who called and which way, so keep the numbers
+   and drop the sentence around them. Anything that does not match is left untouched, and
+   the row's title carries the reason verbatim. */
+function stripTag(t) {
+  return String(t)
+    .replace(/^\s*\[[^\]]*\]\s*/, "")                              // "[Call at T-10, ...]"
+    .replace(/Kalshi.s own market prices (YES|NO) higher\s*[—-]\s*/i, "")
+    .replace(/\s*on real order-book pricing\.?/i, "")
+    .replace(/\s*\(coin flip not ruled out\)\.?/i, "")
+    .replace(/history leans (YES|NO) /i, "")
+    .replace(/\s*past rounds\.?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 const CALL_MARKS = [["you", "you", "You"], ["algo", "algo", "ALGO"], ["histcall", "hist", "History Call"]];
 function callMarksHtml(r, size) {
   if (size < 12) return "";
@@ -2026,6 +2135,7 @@ function loadTrackTicks(p, round) {
 
 /* --- gauge ------------------------------------------------------------- */
 defViz("gauge", {
+  desc: "One number against its range, with the threshold band shaded.",
   label: "Gauge", group: "Single value", accepts: ["scalar"],
   icon: '<path d="M6 34a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="3.5" opacity=".3"/><path d="M6 34a16 16 0 0 1 9-14.4" fill="none" stroke="currentColor" stroke-width="3.5"/><circle cx="22" cy="34" r="2.5" fill="currentColor"/>',
   defaults: { showThresholdBand: true, showMinMax: true },
@@ -2066,6 +2176,7 @@ defViz("gauge", {
 
 /* --- bar gauge --------------------------------------------------------- */
 defViz("bargauge", {
+  desc: "Every value in a profile as its own bar \u2014 weekday or hour-of-day at a glance.",
   label: "Bar gauge", group: "Single value", accepts: ["scalar", "profile"],
   icon: '<rect x="5" y="9"  width="30" height="6" rx="2" fill="currentColor"/><rect x="5" y="19" width="20" height="6" rx="2" fill="currentColor" opacity=".65"/><rect x="5" y="29" width="34" height="6" rx="2" fill="currentColor" opacity=".4"/>',
   defaults: { display: "gradient", orientation: "horizontal" },
@@ -2115,6 +2226,7 @@ defViz("bargauge", {
 
 /* --- stat -------------------------------------------------------------- */
 defViz("stat", {
+  desc: "One big number, with an optional sparkline of where it has been.",
   label: "Stat", group: "Single value", accepts: ["scalar"],
   icon: '<text x="22" y="26" text-anchor="middle" fill="currentColor" font-size="16" font-weight="700" font-family="monospace">42</text><path d="M6 36l7-5 6 3 8-7 9 4" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".5"/>',
   defaults: { colorMode: "value", sparkline: true },
@@ -2161,6 +2273,7 @@ defViz("stat", {
 
 /* --- time series ------------------------------------------------------- */
 defViz("timeseries", {
+  desc: "A metric plotted over the board's range.",
   label: "Time series", group: "Over time", accepts: ["series", "ticks"],
   icon: '<path d="M5 32l8-9 7 5 7-14 10 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>',
   defaults: { fill: true, showPoints: false, lineWidth: 2, showThresholdLines: true },
@@ -2220,6 +2333,7 @@ defViz("timeseries", {
 
 /* --- bar chart --------------------------------------------------------- */
 defViz("bars", {
+  desc: "One bar per bucket over the board's range.",
   label: "Bar chart", group: "Over time", accepts: ["series"],
   icon: '<rect x="6"  y="20" width="6" height="18" fill="currentColor"/><rect x="16" y="12" width="6" height="26" fill="currentColor" opacity=".75"/><rect x="26" y="25" width="6" height="13" fill="currentColor" opacity=".55"/><rect x="36" y="8"  width="6" height="30" fill="currentColor" opacity=".4"/>',
   defaults: {},
@@ -2260,6 +2374,7 @@ defViz("bars", {
 
 /* --- candlestick ------------------------------------------------------- */
 defViz("candlestick", {
+  desc: "Open, high, low and close of the settlement price in each bucket.",
   label: "Candlestick", group: "Over time", accepts: ["ohlc"],
   icon: '<line x1="12" y1="6"  x2="12" y2="38" stroke="currentColor" stroke-width="2"/><rect x="8"  y="14" width="8" height="16" fill="currentColor"/><line x1="30" y1="10" x2="30" y2="36" stroke="currentColor" stroke-width="2" opacity=".6"/><rect x="26" y="18" width="8" height="12" fill="currentColor" opacity=".6"/>',
   defaults: {},
@@ -2302,6 +2417,7 @@ defViz("candlestick", {
 
 /* --- heatmap ----------------------------------------------------------- */
 defViz("heatmap", {
+  desc: "A profile as coloured cells \u2014 darker means a higher YES rate.",
   label: "Heatmap", group: "Distribution", accepts: ["profile"],
   icon: '<rect x="5"  y="10" width="10" height="10" fill="currentColor" opacity=".9"/><rect x="17" y="10" width="10" height="10" fill="currentColor" opacity=".45"/><rect x="29" y="10" width="10" height="10" fill="currentColor" opacity=".7"/><rect x="5"  y="22" width="10" height="10" fill="currentColor" opacity=".35"/><rect x="17" y="22" width="10" height="10" fill="currentColor" opacity=".85"/><rect x="29" y="22" width="10" height="10" fill="currentColor" opacity=".55"/>',
   defaults: {},
@@ -2338,6 +2454,7 @@ defViz("heatmap", {
 
 /* --- histogram --------------------------------------------------------- */
 defViz("histogram", {
+  desc: "How often each move size happened. The middle is a round that barely moved.",
   label: "Histogram", group: "Distribution", accepts: ["rounds"],
   icon: '<rect x="4"  y="30" width="6" height="8"  fill="currentColor" opacity=".4"/><rect x="12" y="22" width="6" height="16" fill="currentColor" opacity=".65"/><rect x="20" y="10" width="6" height="28" fill="currentColor"/><rect x="28" y="20" width="6" height="18" fill="currentColor" opacity=".65"/><rect x="36" y="31" width="6" height="7"  fill="currentColor" opacity=".4"/>',
   defaults: { bins: 21, clip: 2 },
@@ -2383,6 +2500,7 @@ defViz("histogram", {
 
 /* --- donut ------------------------------------------------------------- */
 defViz("donut", {
+  desc: "YES against NO across every round in range.",
   label: "Donut", group: "Distribution", accepts: ["rounds", "scalar"],
   icon: '<circle cx="22" cy="22" r="14" fill="none" stroke="currentColor" stroke-width="7" opacity=".3"/><path d="M22 8a14 14 0 0 1 12.1 21" fill="none" stroke="currentColor" stroke-width="7"/>',
   defaults: {},
@@ -2411,6 +2529,7 @@ defViz("donut", {
 
 /* --- state timeline ---------------------------------------------------- */
 defViz("statetimeline", {
+  desc: "Every round in range as one ribbon, newest on the right.",
   label: "State timeline", group: "Rounds", accepts: ["rounds"],
   icon: '<rect x="4"  y="16" width="12" height="12" rx="2" fill="currentColor"/><rect x="18" y="16" width="8"  height="12" rx="2" fill="currentColor" opacity=".4"/><rect x="28" y="16" width="14" height="12" rx="2" fill="currentColor" opacity=".7"/>',
   defaults: { rows: 1 },
@@ -2431,6 +2550,7 @@ defViz("statetimeline", {
 
 /* --- big road ---------------------------------------------------------- */
 defViz("bigroad", {
+  desc: p => "Baccarat's Big Road: each column is a run of the same result, and a new column starts when it flips. " + (num(p.options.hours, 0) === 0 ? "Follows the board's range." : "Pinned to its own " + num(p.options.hours, 0) + "-hour window."),
   label: "Big Road", group: "Rounds", accepts: ["rounds"],
   icon: '<circle cx="10" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".55"/><circle cx="34" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="34" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>',
   defaults: { maxRows: 6, hours: 0 },
@@ -2477,6 +2597,7 @@ defViz("bigroad", {
 
 /* --- table ------------------------------------------------------------- */
 defViz("table", {
+  desc: "The raw rounds: target, settlement, move and result.",
   label: "Table", group: "Rounds", accepts: ["rounds"],
   icon: '<rect x="5" y="9" width="34" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="5" y1="17" x2="39" y2="17" stroke="currentColor" stroke-width="2.5"/><line x1="17" y1="9" x2="17" y2="35" stroke="currentColor" stroke-width="2"/>',
   defaults: { limit: 40 },
@@ -2500,6 +2621,7 @@ defViz("table", {
 
 /* --- countdown --------------------------------------------------------- */
 defViz("countdown", {
+  desc: "Time left in the round, and whether betting is still open.",
   label: "Countdown", group: "Live", accepts: ["scalar"],
   icon: '<circle cx="22" cy="23" r="14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 15v8l6 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
   defaults: { showRange: true },
@@ -2535,6 +2657,7 @@ defViz("countdown", {
    The dashed line is the strike; the track is green while price is above it and
    red while below -- the same rule that decides the round. */
 defViz("pricetrack", {
+  desc: "Price against the target for a single round. Prev steps back through settled rounds \u2014 ticks are kept for 3 hours, so about 12 rounds.",
   label: "Price vs Target", group: "Live", accepts: ["ticks"],
   icon: '<line x1="5" y1="26" x2="39" y2="26" stroke="currentColor" stroke-width="2" stroke-dasharray="4,3" opacity=".8"/><path d="M5 34l7-5 5 3" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 32l6-12 5 6 6-9" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { showFill: false, showNav: true, lineWidth: 2.5 },
@@ -2566,7 +2689,6 @@ defViz("pricetrack", {
         + '<button class="tbtn' + (st.offset === 0 ? " on" : "") + '" data-track="live">Live</button>'
         + '<button class="tbtn" data-track="next"' + (st.offset <= 0 ? " disabled" : "") + '>Next &#9654;</button>'
         + '<span style="flex:1 1 auto"></span>'
-        + '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--faint)">DASHED = TARGET</span>'
         + "</div>";
     }
 
@@ -2642,6 +2764,7 @@ defViz("pricetrack", {
 
 /* --- lean bar ----------------------------------------------------------- */
 defViz("leanbar", {
+  desc: "Which way the live price leans against the target, right now.",
   label: "Lean bar", group: "Live", accepts: ["scalar"],
   icon: '<rect x="4" y="17" width="18" height="10" rx="2" fill="currentColor" opacity=".45"/><rect x="22" y="17" width="14" height="10" rx="2" fill="currentColor"/><line x1="22" y1="10" x2="22" y2="34" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { fullTilt: 300, showScale: true },
@@ -2686,6 +2809,7 @@ defViz("leanbar", {
 
 /* --- personal pick ------------------------------------------------------ */
 defViz("pick", {
+  desc: "Your call on the round in play, and your record. You can change it until the round locks.",
   label: "Your call", group: "Live", accepts: ["scalar"],
   icon: '<path d="M9 22l7 7 14-15" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
   defaults: { showRecord: true, showLast: true },
@@ -2750,13 +2874,14 @@ defViz("pick", {
 /* BTC-29: the ALGO's call points, newest last. [source, label, sub, secs-before-close,
    colour token]. The near-lock 'algo' fires on lock_ts-120, not a close offset. */
 const ALGO_CALL_ROWS = [
-  ["algo12", "T-12", "12 min before close", 720, "call12"],
-  ["algo10", "T-10", "10 min before close", 600, "call10"],
-  ["algoearly", "T-5", "5 min before close", 300, "callearly"],
+  ["algo12", "T-12", "", 720, "call12"],
+  ["algo10", "T-10", "", 600, "call10"],
+  ["algoearly", "T-5", "", 300, "callearly"],
   ["algo", "FINAL", "near lock", 0, "blue"]
 ];
 
 defViz("algocall", {
+  desc: "What the ALGO called at each point before close \u2014 T-12, T-10, T-5 and the near-lock final. Each is written once and never revised.",
   label: "ALGO call", group: "Live", accepts: ["scalar"],
   icon: '<circle cx="22" cy="22" r="12" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M22 10V5M22 39v-5M10 22H5M39 22h-5" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="22" r="4" fill="currentColor"/>',
   defaults: { showReason: true, showOthers: true, showRecord: true },
@@ -2824,6 +2949,7 @@ defViz("algocall", {
 
 /* --- round card --------------------------------------------------------- */
 defViz("roundcard", {
+  desc: "The round in play: live price, target, and time left.",
   label: "Round card", group: "Live", accepts: ["scalar"],
   icon: '<rect x="4" y="8" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="4" y1="20" x2="40" y2="20" stroke="currentColor" stroke-width="2"/><line x1="22" y1="20" x2="22" y2="36" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -2872,6 +2998,7 @@ defViz("roundcard", {
 
 /* --- Live Price & Pick --------------------------------------------------- */
 defViz("livepick", {
+  desc: "Classic's main module \u2014 live price, the target, this round's chart and your call in one.",
   label: "Live Price & Pick", group: "Classic", accepts: ["ticks"], noMetric: true,
   icon: '<text x="6" y="19" fill="currentColor" font-size="13" font-weight="800" font-family="monospace">$79k</text><line x1="6" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2" opacity=".7"/><path d="M6 34l6-6 5 3 6-9 5 5 6-3" fill="none" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { showNav: true, lineWidth: 2.5 },
@@ -2921,7 +3048,7 @@ defViz("livepick", {
     html += '<div class="cl-range"><span>' + (round
       ? esc(fmtHHMM(round.open) + "–" + fmtHHMM(round.close) + " · TARGET " + fmtUSD(round.strike))
         + (round.result ? ' · <b style="color:var(--' + (round.result === "yes" ? "green" : "red") + ')">' + esc(round.result.toUpperCase()) + "</b>" : "")
-      : "") + "</span><span>DASHED LINE = TARGET</span></div>";
+      : "") + "</span></div>";
 
     let chart;
     if (!round) chart = '<div class="empty">' + (st.offset > 0 ? "No settled round that far back" : "Waiting for the next round…") + "</div>";
@@ -2946,6 +3073,7 @@ defViz("livepick", {
 
 /* --- Round Confidence ---------------------------------------------------- */
 defViz("confidence", {
+  desc: "An estimate of how this round resolves, blending Kalshi's order book with how far recent rounds have moved. An estimate only, not advice.",
   label: "Round Confidence", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<text x="5" y="20" fill="currentColor" font-size="13" font-weight="900" font-family="monospace">YES</text><text x="26" y="20" fill="currentColor" font-size="11" font-weight="700" font-family="monospace" opacity=".7">69%</text><rect x="5" y="28" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="30" cy="30" r="3.5" fill="currentColor"/>',
   defaults: { hours: 24 },
@@ -2963,7 +3091,7 @@ defViz("confidence", {
     html += '<div class="cl-track"><div class="cl-track-mid"></div><div class="cl-track-marker" style="left:' + (c.pYes * 100).toFixed(1) + '%"></div></div>';
     html += '<div class="cl-scale"><span>Certain no</span><span>Neutral</span><span>Certain yes</span></div>';
     html += '<div class="cl-reasons">' + c.reasons.map(r => '<div class="cl-reason"><span class="k">' + esc(r.k) + '</span><span class="v">' + esc(r.v) + "</span></div>").join("") + "</div>";
-    html += '<div class="cl-disclaimer">Estimate only, from live market pricing and recent round history. Not advice.</div>';
+    html += '<div class="cl-disclaimer">Estimate only. Not advice.</div>';
     return html + "</div>";
   }
 });
@@ -2993,6 +3121,7 @@ const HC_STUDY = { rounds: 6682, days: 70.7, base: 0.4988,
                    hypotheses: 105, survivors: 0, oos: 0.5112 };
 
 defViz("histcall", {
+  desc: () => "A static lookup over " + HC_STUDY.rounds + " settled rounds: how often YES followed each three-round pattern. Of " + HC_STUDY.hypotheses + " patterns tested, " + HC_STUDY.survivors + " survived correction. This is what history did, not a forecast.",
   label: "History Call", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<path d="M6 30l8-9 7 6 9-13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="21" r="2.5" fill="currentColor"/><circle cx="21" cy="27" r="2.5" fill="currentColor"/><text x="24" y="17" fill="currentColor" font-size="10" font-weight="800" font-family="monospace">?</text>',
   defaults: {},
@@ -3032,9 +3161,7 @@ defViz("histcall", {
         + '<div class="cl-hc-row"><span>Out-of-sample accuracy</span><b>'
           + (HC_STUDY.oos * 100).toFixed(1) + "%</b></div>"
       + "</div>"
-      + '<div class="cl-hc-note">Static lookup over ' + HC_STUDY.rounds + " settled rounds. Of "
-        + HC_STUDY.hypotheses + " patterns tested, " + HC_STUDY.survivors
-        + " survived correction. This is what history did, not a forecast.</div>"
+      + '<div class="cl-hc-note">' + HC_STUDY.rounds + " rounds · " + HC_STUDY.survivors + "/" + HC_STUDY.hypotheses + " survived</div>"
       + "</div>";
   }
 });
@@ -3053,6 +3180,7 @@ function wilson95(k, n) {
 
 /* --- Your Scorecard ----------------------------------------------------- */
 defViz("scorecard", {
+  desc: p => "Your calls, scored: record, streaks, and whether you are ahead of a coin flip." + windowNote(p),
   label: "Your Scorecard", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="7" width="32" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 20l5 5 11-11" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { hours: 24 },
@@ -3101,7 +3229,7 @@ defViz("scorecard", {
           + (total ? pct(lo) + " – " + pct(hi) : "—") + "</b></div>"
         + '<div class="cl-sc-row"><span>Current run</span><b class="' + (runKind ? "ok" : "bad") + '">'
           + (run ? run + (runKind ? " correct" : " wrong") : "—") + "</b></div>"
-        + '<div class="cl-sc-row"><span>Best run (this window)</span><b>' + (best || "—") + "</b></div>"
+        + '<div class="cl-sc-row"><span>Best run</span><b>' + (best || "—") + "</b></div>"
         + '<div class="cl-sc-row"><span>Called in last ' + hrs + "h</span><b>" + graded.length
           + " of " + rounds.length + "</b></div>"
       + "</div></div>";
@@ -3110,6 +3238,7 @@ defViz("scorecard", {
 
 /* --- Accuracy: every caller's record, at a glance ----------------------- */
 defViz("accuracy", {
+  desc: "Every caller's record, logged on the server each round and scored when it settles. \"n/N called\" is how many of the last N settled rounds that caller actually called. 50% is a coin flip \u2014 the history study found no real edge, so this is the live test.",
   label: "Accuracy", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<path d="M8 36V22M18 36V12M28 36V18M38 36V8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
   defaults: {},
@@ -3133,7 +3262,6 @@ defViz("accuracy", {
         + '<span class="acc-n">' + r.scored + " scored" + (cov ? " \u00b7 " + cov : "") + "</span>"
         + "</div>";
     }
-    html += '<div class="acc-foot">Every call is logged on the server, every round, and scored when it settles. "Called n/N" is coverage over the last N settled rounds. 50% is a coin flip \u2014 the history study found no real edge; this is the live test.</div>';
     return html + "</div>";
   }
 });
@@ -3144,6 +3272,7 @@ defViz("accuracy", {
    only on the server from v4.15.0 onward, so rounds older than that carry none
    -- by default the list hides those rather than showing a wall of dashes. */
 defViz("calllog", {
+  desc: p => "Round by round, what each caller said and whether it was right." + windowNote(p),
   label: "Call Log", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="5" y="7" width="34" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M11 17.5l3 3 5.5-6.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.5 28l6 6M17.5 28l-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="30" x2="34" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
   defaults: { hours: 24, onlyCalled: true, showYou: true },
@@ -3226,6 +3355,7 @@ defViz("calllog", {
 
 /* --- Streak Ladder ------------------------------------------------------ */
 defViz("streakladder", {
+  desc: p => "How often runs of each length happen. The bar is what was observed, the tick is what a coin flip would give." + windowNote(p),
   label: "Streak Ladder", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="28" width="6" height="9" fill="currentColor"/><rect x="15" y="22" width="6" height="15" fill="currentColor" opacity=".8"/><rect x="24" y="16" width="6" height="21" fill="currentColor" opacity=".6"/><rect x="33" y="10" width="6" height="27" fill="currentColor" opacity=".4"/>',
   defaults: { hours: 168 },
@@ -3265,13 +3395,14 @@ defViz("streakladder", {
         + '<span class="cl-sl-v">' + obs + "</span></div>";
     }
     return '<div class="cl-sl">' + bars
-      + '<div class="cl-sl-note">' + total + " runs in " + hrs + "h · bar = observed, tick = a coin flip's expectation"
+      + '<div class="cl-sl-note">' + total + " runs in " + hrs + "h"
       + (liveRun ? " · live run " + liveRun : "") + "</div></div>";
   }
 });
 
 /* --- Volatility Clock --------------------------------------------------- */
 defViz("volclock", {
+  desc: p => "Median move size by hour of day. Size clusters even though direction does not." + windowNote(p),
   label: "Volatility Clock", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<circle cx="22" cy="22" r="15" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M22 12v10l7 5" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { hours: 168 },
@@ -3305,13 +3436,14 @@ defViz("volclock", {
     }
     const overall = med(rs.map(r => Math.abs(r.delta)));
     return '<div class="cl-vc"><div class="cl-vc-grid">' + bars + "</div>"
-      + '<div class="cl-vc-note">Median move by hour · overall $' + overall.toFixed(0)
-      + " · " + rs.length + " rounds / " + hrs + "h · size clusters even though direction does not</div></div>";
+      + '<div class="cl-vc-note">median $' + overall.toFixed(0)
+      + " · " + rs.length + " rounds / " + hrs + "h</div></div>";
   }
 });
 
 /* --- Settlement Margin -------------------------------------------------- */
 defViz("margin", {
+  desc: p => "How close rounds finish to the strike. Anything inside $25 was a coin flip in all but name." + windowNote(p),
   label: "Settlement Margin", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="5" y="18" width="34" height="8" rx="4" fill="currentColor" opacity=".25"/><rect x="5" y="18" width="12" height="8" rx="4" fill="currentColor"/><path d="M22 12v20" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { hours: 24 },
@@ -3347,13 +3479,14 @@ defViz("margin", {
         + '<span class="cl-mg-lab">median distance from target</span></div>'
       + '<div class="cl-mg-seg">' + seg + "</div>"
       + '<div class="cl-mg-rows">' + rows + "</div>"
-      + '<div class="cl-mg-note">' + (within25 * 100).toFixed(0) + "% of the last " + rs.length
-      + " rounds finished within $25 of the strike — those were coin flips in all but name</div></div>";
+      + '<div class="cl-mg-note">' + (within25 * 100).toFixed(0) + "% within $25 · " + rs.length
+      + " rounds</div></div>";
   }
 });
 
 /* --- Pattern Table ------------------------------------------------------ */
 defViz("patterntable", {
+  desc: "All eight three-round patterns with their historical YES rate and 95% interval. Every interval spans 50%, so none is distinguishable from a coin flip.",
   label: "Pattern Table", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="9" width="32" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 18h32M17 9v26" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -3383,11 +3516,12 @@ defViz("patterntable", {
         + "<span>95% CI</span><span>n</span><span>Lean</span></div>"
       + rows
       + '<div class="cl-pt-note">' + (live ? "Live pattern " + live.split("").join(" ") + " highlighted. " : "")
-      + "Every interval spans 50%, so none of these eight is distinguishable from a coin flip.</div></div>";
+      + "</div></div>";
   }
 });
 
 defViz("spreadnow", {
+  desc: "Live distance between price and the target, with a link to the market.",
   label: "Current Spread", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="16" width="22" height="12" rx="6" fill="currentColor" opacity=".25"/><text x="9" y="25" fill="currentColor" font-size="9" font-weight="800" font-family="monospace">+$45</text><path d="M32 25l3-3 3 3M35 22v6" fill="none" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -3405,6 +3539,7 @@ defViz("spreadnow", {
 
 /* --- Market Gauges ------------------------------------------------------- */
 defViz("gauges", {
+  desc: "Three live reads: which way price leans, Kalshi's real order-book odds, and how far through the round we are.",
   label: "Market Gauges", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="11" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="26" cy="13" r="3.5" fill="currentColor"/><rect x="5" y="21" width="20" height="4" rx="2" fill="currentColor"/><rect x="25" y="21" width="14" height="4" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="31" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><rect x="5" y="31" width="14" height="4" rx="2" fill="currentColor" opacity=".8"/>',
   defaults: {},
@@ -3419,7 +3554,7 @@ defViz("gauges", {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span>'
         + '<span class="cl-lean-status" style="color:' + col + '"><span class="cl-lean-dot" style="background:' + col + '"></span>' + lean.direction.toUpperCase() + " BIAS</span></div>"
         + '<div class="cl-gtrack"><div class="cl-chip ' + lean.direction + '" style="left:' + pos.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">Instant price delta strength: ' + lean.strength.toFixed(2) + "</span></div>";
+        + '<span class="cl-gsub">strength ' + lean.strength.toFixed(2) + "</span></div>";
     } else {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span><span class="cl-lean-status" style="color:var(--dim)">—</span></div>'
         + '<div class="cl-gtrack"></div><span class="cl-gsub">reading the table…</span></div>';
@@ -3430,9 +3565,9 @@ defViz("gauges", {
       const noPct = Math.max(0, Math.min(100, noPrice * 100));
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">' + Math.round(yesPct) + "% YES / " + Math.round(noPct) + "% NO</span></div>"
         + '<div class="cl-odds"><div class="y" style="width:' + yesPct.toFixed(1) + '%"></div><div class="n" style="width:' + noPct.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+        + "</div>";
     } else {
-      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">—</span></div><div class="cl-odds"></div><span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">—</span></div><div class="cl-odds"></div></div>';
     }
     if (cr) {
       const secLeft = Math.max(0, cr.close_time - s.now);
@@ -3441,7 +3576,7 @@ defViz("gauges", {
       const locked = s.now >= cr.lock_ts;
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">' + esc(fmtMS(secLeft)) + " remaining</span></div>"
         + '<div class="cl-rail' + (locked ? " urgent" : "") + '"><div style="width:' + pct.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">Closes in ' + Math.round(secLeft) + " seconds</span></div>";
+        + "</div>";
     } else {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">—</span></div><div class="cl-rail"><div style="width:0%"></div></div><span class="cl-gsub">&nbsp;</span></div>';
     }
@@ -3451,6 +3586,7 @@ defViz("gauges", {
 
 /* --- Results Sidebar ----------------------------------------------------- */
 defViz("results", {
+  desc: p => "The window's scoreboard \u2014 YES/NO counts, streaks, chop rate and the last result." + windowNote(p),
   label: "Results Sidebar", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="5" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/><rect x="24" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="24" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/>',
   defaults: { hours: 24 },
@@ -3463,7 +3599,7 @@ defViz("results", {
     const nowSec = s ? s.now : Date.now() / 1000;
     const yes = t.yes || 0, no = t.no || 0;
     let html = '<div class="cl-results">';
-    html += '<div class="cl-win-head"><span class="cl-win-label">Results — Last ' + esc(WINDOW_LABELS[hrs] || hrs + "H") + "</span>"
+    html += '<div class="cl-win-head"><span class="cl-win-label">Last ' + esc(WINDOW_LABELS[hrs] || hrs + "H") + "</span>"
       + '<span class="cl-win-range">' + esc(fmtDateTime(nowSec - hrs * 3600) + " to " + fmtDateTime(nowSec)) + "</span></div>";
     const tile = (label, val, cls, lead) => '<div class="cl-tile' + (lead ? " leading " + lead : "") + '">'
       + (lead ? '<span class="cl-leading">LEADING</span>' : "")
@@ -3497,6 +3633,7 @@ defViz("results", {
 
 /* --- Big Road History ---------------------------------------------------- */
 defViz("roadhistory", {
+  desc: p => "Baccarat's Big Road. Each vertical column is a run of consecutive YES or NO results; a ringed column is a dragon tail. " + "Corner marks show what each caller said, and Big Eye Boy underneath marks whether each step repeated the pattern before it or broke it. " + "Beads shrink until the whole window fits \u2014 nothing is dropped." + windowNote(p),
   label: "Big Road History", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
   defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
@@ -3513,14 +3650,14 @@ defViz("roadhistory", {
   render(p, D, w, h) {
     const hrs = panelHours(p);
     const hist = histFor(p);
+    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
+    const rounds = hist ? hist.rounds : [];
+    const columns = hist ? buildColumns(rounds, cap) : [];
     let html = '<div class="cl-road">';
     html += '<div class="cl-road-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_ROAD + "</div>"
-      + "<div><h2>Big Road History</h2><p>Vertical columns represent consecutive YES/NO streaks</p></div></div>"
+      + '<span class="cl-road-meta">' + (hist ? esc(rounds.length + " rounds · " + columns.length + " runs") : "") + "</span></div>"
       + '<div class="cl-road-ctl">' + tfBar(hrs) + '<button class="cl-refresh" data-refresh title="Refresh now">' + ICON_REFRESH + "</button></div></div>";
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
-    const rounds = hist.rounds;
-    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
-    const columns = buildColumns(rounds, cap);
     if (!rounds.length) {
       html += '<div class="empty">No settled rounds in this window yet</div>';
     } else {
@@ -3561,7 +3698,7 @@ defViz("roadhistory", {
     if (p.options.showEye !== false) {
       const marks = computeBigEyeBoy(columns);
       html += '<div class="cl-derived"><div class="cl-derived-head"><h3>Big Eye Boy</h3>'
-        + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break (Chaotic)</span><span><span class="cl-dbead repeat"></span>Repeat (Predictable)</span></div></div>'
+        + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break</span><span><span class="cl-dbead repeat"></span>Repeat</span></div></div>'
         + '<div class="cl-derived-grid" data-trim="first">' + marks.map(m => '<span class="cl-dbead ' + (m ? "repeat" : "break") + '"></span>').join("") + "</div></div>";
     }
     return html + "</div>";
@@ -3570,6 +3707,7 @@ defViz("roadhistory", {
 
 /* --- Round-to-Round Spread ----------------------------------------------- */
 defViz("spreadledger", {
+  desc: p => "How far price moved during each settled round, green up and red down." + windowNote(p),
   label: "Round-to-Round Spread", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<line x1="22" y1="6" x2="22" y2="38" stroke="currentColor" stroke-width="1.5" opacity=".4"/><rect x="22" y="8" width="12" height="5" rx="2" fill="currentColor"/><rect x="14" y="16" width="8" height="5" rx="2" fill="currentColor" opacity=".55"/><rect x="22" y="24" width="15" height="5" rx="2" fill="currentColor"/><rect x="8" y="32" width="14" height="5" rx="2" fill="currentColor" opacity=".55"/>',
   defaults: { hours: 24, compact: true },
@@ -3579,7 +3717,7 @@ defViz("spreadledger", {
     const withDelta = hist ? hist.rounds.filter(r => r.delta !== null && r.delta !== undefined) : [];
     let html = '<div class="cl-ledger">';
     html += '<div class="cl-ledger-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_SPREAD + "</div>"
-      + "<div><h2>Round-to-Round Spread</h2><p>How much price moved during each settled round · green up, red down</p></div></div>"
+      + "</div>"
       + '<div class="cl-ledger-ctl"><button class="cl-tf-btn solo" data-spreadsize>' + (p.options.compact !== false ? "Compact" : "Expanded") + "</button>"
       + '<span class="cl-range-lbl">' + (hist ? esc("Last " + (WINDOW_LABELS[hrs] || hrs + "H") + " · " + withDelta.length + " rounds recorded") : "") + "</span></div></div>";
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
@@ -3598,8 +3736,136 @@ defViz("spreadledger", {
   }
 });
 
+
+/* --- Call Tape ----------------------------------------------------------- */
+/* Every other view shows WHAT a caller said. /api/calls is the only endpoint that keeps
+   WHY, and when -- and nothing in the app fetched it until now. */
+defViz("calltape", {
+  desc: "The last 50 calls in the order they were made, with the reason each caller gave at the time. Nowhere else keeps a past call's reasoning.",
+  label: "Call Tape", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="8" width="34" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="16" x2="26" y2="16" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="22" x2="32" y2="22" stroke="currentColor" stroke-width="2"/><line x1="10" y1="28" x2="22" y2="28" stroke="currentColor" stroke-width="2"/>',
+  defaults: { limit: 24, showReason: true },
+  render(p, D) {
+    const tape = D.tape || [];
+    if (!tape.length) return empty("Waiting for the call tape…");
+    const lim = Math.max(4, Math.round(num(p.options.limit, 24)));
+    const rows = tape.slice(0, lim);
+    let out = '<div class="tape" data-trim="last" data-trim-list=".tape-list"><div class="tape-list">';
+    for (const c of rows) {
+      const label = CALL_LABEL[c.source] || c.source;
+      const hit = c.win === true, miss = c.win === false;
+      out += '<div class="tape-row">'
+        + '<span class="tape-when">' + esc(fmtHHMM(c.ts)) + "</span>"
+        + '<span class="tape-src ' + esc(c.source) + '">' + esc(label) + "</span>"
+        + '<span class="tape-call ' + (c.choice === "yes" ? "yes" : "no") + '">' + esc(String(c.choice).toUpperCase()) + "</span>"
+        + '<span class="tape-mark ' + (hit ? "hit" : miss ? "miss" : "") + '">' + (hit ? ICON_CHECK : miss ? ICON_X : "·") + "</span>"
+        + (p.options.showReason === false ? "" : '<span class="tape-why" title="' + esc(c.reason || "") + '">' + esc(stripTag(c.reason || "")) + "</span>")
+        + "</div>";
+    }
+    return out + "</div></div>";
+  }
+});
+
+/* --- Caller Race --------------------------------------------------------- */
+/* The four ALGO offsets each keep an independent record, and until now nothing put them
+   side by side -- so "does calling 12 minutes early cost accuracy?" had no answer. */
+defViz("callerrace", {
+  desc: p => "Every caller side by side: record, hit rate, and how many of the last hundred rounds each one actually called. The ALGO rows are the same engine at four different distances from the close." + windowNote(p),
+  label: "Caller Race", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<line x1="6" y1="12" x2="34" y2="12" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><line x1="6" y1="22" x2="26" y2="22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" opacity=".7"/><line x1="6" y1="32" x2="18" y2="32" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" opacity=".45"/>',
+  defaults: { hours: 24, showCoverage: true },
+  render(p, D) {
+    const rec = SREC || {};
+    const order = ["algo12", "algo10", "algoearly", "algo", "histcall", "you"];
+    const rows = order.filter(k => rec[k]);
+    if (!rows.length) return empty("Waiting for the server…");
+    let best = 0;
+    for (const k of rows) { const r = rec[k]; if (r.scored) best = Math.max(best, (r.wins / r.scored) * 100); }
+    let out = '<div class="race" data-trim="last" data-trim-list=".race-list"><div class="race-list">';
+    for (const k of rows) {
+      const r = rec[k], scored = r.scored || 0;
+      const pct = scored ? (r.wins / scored) * 100 : 0;
+      const cov = r.coverage || {};
+      out += '<div class="race-row">'
+        + '<span class="race-name">' + esc(CALL_LABEL[k] || k) + "</span>"
+        + '<span class="race-bar"><i style="width:' + (best ? (pct / best) * 100 : 0).toFixed(1) + '%" class="' + (pct >= 50 ? "up" : "dn") + '"></i></span>'
+        + '<b class="race-pct">' + (scored ? pct.toFixed(0) + "%" : "—") + "</b>"
+        + '<span class="race-wl">' + (r.wins || 0) + "-" + (r.losses || 0) + "</span>"
+        + (p.options.showCoverage === false ? "" : '<span class="race-cov">' + (cov.called || 0) + "/" + (cov.window || 0) + "</span>")
+        + "</div>";
+    }
+    return out + "</div></div>";
+  }
+});
+
+/* --- Feed Health --------------------------------------------------------- */
+/* live_price_source was carried in every /api/state payload and read by nothing. */
+defViz("feed", {
+  desc: "Where the live price is coming from and how stale it is. The websocket stream is the fast path; a REST source or a rising age means it fell back.",
+  label: "Feed Health", group: "Live", accepts: ["scalar"], noMetric: true,
+  icon: '<path d="M8 26a14 14 0 0 1 28 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 28a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".6"/><circle cx="22" cy="30" r="3" fill="currentColor"/>',
+  defaults: { showTicks: true },
+  render(p, D) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const src = s.live_price_source || "unknown";
+    const ws = /ws|stream/i.test(src);
+    const age = s.live_price_ts ? Math.max(0, s.now - s.live_price_ts) : null;
+    const bad = age === null || age > 15;
+    const warm = !bad && age > 5;
+    let out = '<div class="feed">'
+      + '<div class="feed-top"><span class="feed-src ' + (ws ? "ws" : "rest") + '">' + esc(src) + "</span>"
+      + '<span class="feed-age ' + (bad ? "bad" : warm ? "warm" : "ok") + '">' + (age === null ? "—" : age.toFixed(1) + "s") + "</span></div>"
+      + '<div class="feed-lbl">' + (ws ? "streaming" : "polling") + " · price age</div>";
+    if (p.options.showTicks !== false) {
+      const t = (s.ticks || []).slice(-40);
+      if (t.length > 1) {
+        const lo = Math.min.apply(null, t.map(x => x[1])), hi = Math.max.apply(null, t.map(x => x[1]));
+        const rng = (hi - lo) || 1;
+        let d = "";
+        t.forEach((x, i) => {
+          d += (i ? "L" : "M") + ((i / (t.length - 1)) * 100).toFixed(2) + "," + (26 - ((x[1] - lo) / rng) * 22).toFixed(2);
+        });
+        out += '<svg class="feed-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><path d="' + d + '" fill="none" stroke="var(--amber)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg>';
+      }
+    }
+    return out + "</div>";
+  }
+});
+
+/* --- Edge Now ------------------------------------------------------------ */
+/* Kalshi's implied probability and our own confidence both existed live and were never
+   put next to each other. The gap is the only honest "do we disagree?" number. */
+defViz("edge", {
+  desc: "Kalshi's implied probability against this app's own confidence for the round in play. The gap is where the model disagrees with the market — it is a read, not a signal.",
+  label: "Edge Now", group: "Live", accepts: ["scalar"], noMetric: true,
+  defaults: {},
+  icon: '<path d="M8 32 L18 20 L26 26 L36 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="12" r="3.5" fill="currentColor"/>',
+  render(p, D) {
+    const s = D.state;
+    const cr = s && s.current_round;
+    if (!cr) return empty("Waiting for the next round…");
+    if (cr.kalshi_yes_price === null || cr.kalshi_yes_price === undefined) return empty("No market odds for this round yet");
+    const mkt = Math.max(0, Math.min(100, cr.kalshi_yes_price * 100));
+    const conf = computeConfidence(s, D.rounds || []);
+    if (!conf) return empty("Not enough history to form a view");
+    const ours = conf.pct;
+    const gap = ours - mkt;
+    const side = Math.abs(gap) < 2 ? "agree" : gap > 0 ? "yes" : "no";
+    return '<div class="edge">'
+      + '<div class="edge-pair">'
+        + '<div class="edge-cell"><span class="edge-lbl">market</span><b>' + mkt.toFixed(0) + "%</b></div>"
+        + '<div class="edge-cell"><span class="edge-lbl">us</span><b>' + ours.toFixed(0) + "%</b></div>"
+      + "</div>"
+      + '<div class="edge-gap ' + side + '">' + (gap >= 0 ? "+" : "") + gap.toFixed(0) + " pts</div>"
+      + '<div class="edge-lbl2">' + (side === "agree" ? "in line with the book" : "leaning " + side.toUpperCase() + " of the book") + "</div>"
+      + "</div>";
+  }
+});
+
 /* --- text -------------------------------------------------------------- */
 defViz("text", {
+  desc: "A free-text note. Double-click the panel header to edit it.",
   label: "Note", group: "Other", accepts: ["scalar", "series", "rounds", "ohlc", "profile", "ticks"],
   icon: '<line x1="8" y1="13" x2="36" y2="13" stroke="currentColor" stroke-width="3"/><line x1="8" y1="22" x2="36" y2="22" stroke="currentColor" stroke-width="3" opacity=".6"/><line x1="8" y1="31" x2="26" y2="31" stroke="currentColor" stroke-width="3" opacity=".35"/>',
   defaults: { body: "Double-click the panel header to edit this note." },
@@ -3614,6 +3880,22 @@ function empty(msg) { return '<div class="empty">' + esc(msg) + "</div>"; }
 /* ============================ default dashboard ============================ */
 
 function uid() { return "p" + Math.random().toString(36).slice(2, 9); }
+
+/* The natural size of each panel type, in grid units. Shared by the picker's Add and by
+   the Everything board so the two can never drift apart. */
+const PANEL_SIZE_DEFAULT = { w: 12, h: 7 };
+const PANEL_SIZE = {
+  stat: { w: 6, h: 4 }, gauge: { w: 5, h: 5 }, bargauge: { w: 8, h: 5 },
+  countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
+  statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
+  heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
+  pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
+  pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
+  livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
+  gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 },
+  spreadledger: { w: 24, h: 10 }, calllog: { w: 24, h: 12 },
+  calltape: { w: 24, h: 10 }, callerrace: { w: 12, h: 7 }, feed: { w: 6, h: 5 }, edge: { w: 6, h: 5 }
+};
 
 function mkPanel(type, metric, gridPos, title, opts, fc) {
   const v = VIZ[type];
@@ -3728,7 +4010,7 @@ function solariDesk() {
 /* ============================ state ============================ */
 
 let DASH = null;
-let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day", hist: {} };
+let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day", hist: {}, tape: [] };
 let editing = false;
 let timer = null, lastFetch = 0;
 
@@ -3920,6 +4202,7 @@ function layout() {
 let drag = null;
 
 function onPointerDown(e, p, mode) {
+  hideTip();
   if (!editing || isNarrow()) return;
   if (e.button !== undefined && e.button !== 0) return;
   e.preventDefault();
@@ -4041,6 +4324,8 @@ function renderAll() {
     if (!el) { el = buildPanel(p); gridEl.appendChild(el); }
     const t = el.querySelector(".panel-title");
     if (t) t.textContent = p.title;
+    const inf = el.querySelector(".pinfo");           // type can change under us via the picker
+    if (inf) inf.hidden = !descOf(p);
   }
   layout();
   renderEmptyState();
@@ -4078,6 +4363,65 @@ function renderEmptyState() {
   gridEl.appendChild(el);
 }
 
+const ICON_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5v.6"/></svg>';
+
+/* A panel says what it is here, not in its body -- the numbers get the space back.
+   `desc` may be a string or (p, D) => string for the few that need live context. */
+/* Panels do not print their window any more, so the tooltip says which one it is reading. */
+function windowNote(p) {
+  const h = panelHours(p);
+  return " Reading the last " + (WINDOW_LABELS[h] || h + " hours").toLowerCase() + ".";
+}
+
+function descOf(p) {
+  const v = VIZ[p.type];
+  if (!v || !v.desc) return "";
+  try { return typeof v.desc === "function" ? v.desc(p, DATA) : v.desc; }
+  catch (e) { return typeof v.desc === "string" ? v.desc : ""; }
+}
+
+let tipEl = null, tipOwner = null, tipPinned = false;
+function tipNode() {
+  if (!tipEl) {
+    tipEl = document.createElement("div");
+    tipEl.id = "panelTip";
+    tipEl.setAttribute("role", "tooltip");
+    document.body.appendChild(tipEl);
+  }
+  return tipEl;
+}
+function showTip(btn, p) {
+  const text = descOf(p);
+  if (!text) return;
+  const t = tipNode();
+  t.innerHTML = "<b>" + esc(p.title || VIZ[p.type].label) + "</b><br>" + esc(text);
+  t.classList.add("show");
+  btn.setAttribute("aria-expanded", "true");
+  tipOwner = btn;
+  // measure first, then place: flip to stay inside the viewport
+  const r = btn.getBoundingClientRect(), box = t.getBoundingClientRect();
+  let left = Math.min(r.right - box.width, window.innerWidth - box.width - 8);
+  let top = r.bottom + 6;
+  if (top + box.height > window.innerHeight - 8) top = Math.max(8, r.top - box.height - 6);
+  // document.body carries no transform, so viewport + scroll is exact
+  t.style.left = (Math.max(8, left) + window.scrollX) + "px";
+  t.style.top = (top + window.scrollY) + "px";
+}
+function hideTip() {
+  if (!tipEl) return;
+  tipEl.classList.remove("show");
+  if (tipOwner) tipOwner.setAttribute("aria-expanded", "false");
+  tipOwner = null; tipPinned = false;
+}
+function toggleTip(btn, p) {
+  if (tipOwner === btn && tipPinned) { hideTip(); return; }
+  showTip(btn, p);
+  tipPinned = true;          // a deliberate open survives the pointer leaving
+}
+window.addEventListener("keydown", e => { if (e.key === "Escape") hideTip(); });
+window.addEventListener("resize", hideTip);
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".pinfo")) hideTip(); });
+
 function buildPanel(p) {
   const el = document.createElement("div");
   el.className = "panel";
@@ -4085,6 +4429,8 @@ function buildPanel(p) {
   el.innerHTML =
     '<div class="panel-head">'
       + '<div class="panel-title"></div>'
+      + '<button class="pbtn pinfo" data-act="info" aria-expanded="false" aria-label="What this panel shows">'
+        + ICON_INFO + "</button>"
       + '<div class="panel-acts">'
         + '<button class="pbtn" data-act="edit" title="Panel options">' + ICON_EDIT + "</button>"
         + '<button class="pbtn" data-act="dup" title="Duplicate">' + ICON_COPY + "</button>"
@@ -4104,6 +4450,16 @@ function buildPanel(p) {
     openEditor(p);
   });
   el.querySelector(".resize-grip").addEventListener("pointerdown", e => onPointerDown(e, p, "resize"));
+  const infoBtn = el.querySelector(".pinfo");
+  infoBtn.addEventListener("pointerdown", e => e.stopPropagation());   // never start a drag
+  infoBtn.addEventListener("dblclick", e => e.stopPropagation());      // never open the editor
+  infoBtn.addEventListener("click", e => { e.stopPropagation(); toggleTip(infoBtn, p); });   // tap / Enter / Space
+  // Decide per event, not from a page-level media query: matchMedia("(hover: none)")
+  // is wrong in headless and on hybrid touch/mouse machines. A real mouse says so.
+  infoBtn.addEventListener("pointerenter", e => { if (e.pointerType !== "touch" && !tipPinned) showTip(infoBtn, p); });
+  infoBtn.addEventListener("pointerleave", e => { if (e.pointerType !== "touch" && !tipPinned) hideTip(); });
+  infoBtn.addEventListener("focus", () => showTip(infoBtn, p));
+  infoBtn.addEventListener("blur", () => hideTip());
   el.querySelector('[data-act="edit"]').addEventListener("click", () => openEditor(p));
   el.querySelector('[data-act="dup"]').addEventListener("click", () => duplicatePanel(p));
   el.querySelector('[data-act="del"]').addEventListener("click", () => removePanel(p));
@@ -4294,18 +4650,7 @@ gridEl.addEventListener("click", e => {
 
 function addPanel(type, metric) {
   const maxY = DASH.panels.length ? Math.max.apply(null, DASH.panels.map(p => p.gridPos.y + p.gridPos.h)) : 0;
-  const sizes = {
-    stat: { w: 6, h: 4 }, gauge: { w: 5, h: 5 }, bargauge: { w: 8, h: 5 },
-    countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
-    statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
-    heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
-    pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
-    pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
-    livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
-    gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 },
-    calllog: { w: 24, h: 12 }
-  };
-  const sz = sizes[type] || { w: 12, h: 7 };
+  const sz = PANEL_SIZE[type] || PANEL_SIZE_DEFAULT;
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
   DASH.panels.push(p);
   resolveCollisions(p); compact();
@@ -4337,6 +4682,7 @@ function removePanel(p) {
 const scrim = document.getElementById("scrim");
 
 function openSheet(id) {
+  hideTip();
   scrim.classList.add("show");
   document.getElementById(id).classList.add("show");
 }
@@ -4838,6 +5184,7 @@ function needsRounds() {
       || p.type === "patterntable";  // both page back through them
   });
 }
+function needsTape() { return DASH.panels.some(p => p.type === "calltape"); }
 function needsTicks() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
@@ -4864,8 +5211,12 @@ async function fetchData(full) {
       ? getJSON("/api/history?hours=" + (days ? days * 24 : 24 * 400) + "&limit=1200")
       : Promise.resolve(null));
     jobs.push(needsTicks() ? getJSON("/api/ticks?since=" + (Date.now() / 1000 - 3 * 3600)) : Promise.resolve(null));
+    // /api/calls is the ONLY place a past call's reason and its timestamp survive --
+    // /api/history carries the choice and nothing else.
+    jobs.push(needsTape() ? getJSON("/api/calls") : Promise.resolve(null));
 
-    const [st, se, hi, tk] = await Promise.all(jobs);
+    const [st, se, hi, tk, cl] = await Promise.all(jobs);
+    if (cl) DATA.tape = cl.recent || [];
     DATA.state = st;
     if (st && st.records) SREC = st.records;
     SCALLS = (st && st.calls) || {};
@@ -5108,6 +5459,93 @@ function boardWall() {
   ] };
 }
 
+/* ===================== the Everything board =====================
+   The opposite of Blank: every panel type the Studio has, once each. Generated from the
+   VIZ registry rather than hand-listed, so a type added later appears here for free --
+   anything not named in EVERYTHING_ORDER is appended rather than silently dropped.
+
+   Two option overrides keep a 38-panel board from fighting itself:
+     linkWindows:false -- roadhistory is the only viz that draws a timeframe bar, and by
+       default one click rewrites `hours` on EVERY windowed panel on the board at once.
+     fitH:false -- the BTC-31 auto-grow would otherwise let nine windowed panels each
+       grow toward fitMaxRows() (up to 30 rows) off a single click and shove the rest of
+       the board down. The road degrades by shrinking beads instead, which is the better
+       failure. Both are per-panel options, so the editor can switch them back on. */
+const EVERYTHING_ORDER = [
+  // now
+  "roundcard", "countdown", "feed", "edge",
+  "leanbar", "spreadnow",
+  // the round in play, and what everyone called
+  "livepick", "pick", "algocall", "gauges",
+  "confidence", "histcall",
+  // roads and rounds
+  "roadhistory", "statetimeline", "bigroad", "results", "table",
+  // the logs and the records
+  "calllog", "calltape", "callerrace", "accuracy", "scorecard",
+  // what the history says
+  "streakladder", "spreadledger", "patterntable", "margin", "volclock",
+  // generic charts
+  "candlestick", "donut", "timeseries", "bars", "heatmap", "histogram",
+  "gauge", "bargauge", "stat", "text"
+];
+
+/* Panels that need something other than the defaults on THIS board. */
+const EVERYTHING_OPTS = {
+  roadhistory:  { hours: 6, linkWindows: false, fitH: false },
+  results:      { hours: 24, fitH: false },
+  spreadledger: { hours: 24, fitH: false },
+  confidence:   { hours: 24, fitH: false },
+  scorecard:    { hours: 24, fitH: false },
+  streakladder: { hours: 168, fitH: false },
+  volclock:     { hours: 168, fitH: false },
+  margin:       { hours: 24, fitH: false },
+  // 12h, not 24: calllog is in LIVE_TYPES, so it rebuilds its whole table every second
+  // and fitTrim then removes rows one at a time with a layout read per row.
+  calllog:      { hours: 12, fitH: false, onlyCalled: true },
+  callerrace:   { hours: 24 },
+  bigroad:      { hours: 0 },          // follows the board range, next to the road's own 6h
+  pricetrack:   { showFill: true },
+  text:         { body: "Everything board — every panel type, once. Hover the ⓘ in any panel header to read what that panel does." }
+};
+
+/* Metric per type. The picker's own choice (metricsFor(type)[0]) is the default, but a
+   panel whose metric is in the Live group re-renders every second, so the generic charts
+   are deliberately pointed at window/series metrics instead. */
+const EVERYTHING_METRIC = {
+  timeseries: "s_yes_rate", bars: "s_volatility", candlestick: "ohlc",
+  heatmap: "by_hour", bargauge: "by_dow", histogram: "deltas",
+  gauge: "yes_rate", stat: "rounds", donut: "results", table: "results",
+  statetimeline: "results", bigroad: "results"
+};
+
+function boardEverything() {
+  const seen = {}, panels = [];
+  const order = EVERYTHING_ORDER.filter(t => VIZ[t]);
+  for (const t of Object.keys(VIZ)) if (order.indexOf(t) < 0) order.push(t);   // never drop a new type
+  let x = 0, y = 0, rowH = 0, rowFrom = 0;
+  // Give whatever columns are left over to the last panel in the row, so the board has a
+  // straight right edge instead of a ragged one.
+  const closeRow = () => {
+    if (panels.length > rowFrom && x < COLS) panels[panels.length - 1].gridPos.w += COLS - x;
+    rowFrom = panels.length;
+  };
+  for (const type of order) {
+    if (seen[type]) continue;
+    seen[type] = 1;
+    const sz = PANEL_SIZE[type] || PANEL_SIZE_DEFAULT;
+    const w = Math.min(COLS, sz.w);
+    if (x + w > COLS) { closeRow(); y += rowH; x = 0; rowH = 0; }
+    const metric = EVERYTHING_METRIC[type] || metricsFor(type)[0];
+    // Title from the VIZ, never the metric: mkPanel's default would name five different
+    // panels "Live BTC price", which is useless on a board that is a tour of the panels.
+    panels.push(mkPanel(type, metric, { x: x, y: y, w: w, h: sz.h }, VIZ[type].label, EVERYTHING_OPTS[type]));
+    x += w;
+    rowH = Math.max(rowH, sz.h);
+  }
+  closeRow();
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: panels };
+}
+
 const ARRANGEMENTS = [
   { id: "classic", name: "Classic", desc: "The fixed page's seven modules, module for module.", make: defaultDashboard },
   { id: "player", name: "Player", desc: "Your own play: the round, your scorecard, the history call, the road.", make: boardPlayer },
@@ -5117,6 +5555,7 @@ const ARRANGEMENTS = [
   { id: "minimal", name: "Minimal", desc: "Just the round and the Big Road, full width.", make: boardMinimal },
   { id: "solari", name: "Solari desk", desc: "Six non-repeating modules, and the split-flap skin to go with them.", make: solariDesk, skin: "solari" },
   { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset },
+  { id: "everything", name: "Everything", desc: "Every panel the Studio has, once each — the opposite of Blank. A tour rather than a desk, and a long one: best on a big screen.", make: boardEverything },
   { id: "blank", name: "Blank", desc: "Nothing on the board. Start empty and add only the modules you want.", make: boardBlank }
 ];
 
@@ -5125,6 +5564,9 @@ function boardThumb(dash) {
   const ps = (dash && dash.panels) || [];
   if (!ps.length) return '<div class="arr-thumb blank">EMPTY</div>';
   const maxY = Math.max.apply(null, ps.map(x => x.gridPos.y + x.gridPos.h).concat([1]));
+  // A 46px-tall thumb over ~180 grid rows draws every panel at well under a pixel, and
+  // 38 bordered rectangles collapse into a grey smear that says less than the number does.
+  if (maxY > 90) return '<div class="arr-thumb blank">' + ps.length + " PANELS</div>";
   let out = '<div class="arr-thumb">';
   for (const q of ps) {
     const g = q.gridPos;

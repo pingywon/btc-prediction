@@ -1,6 +1,6 @@
 # BTC Prediction
 
-Current release: **v5.3.0** (the running version is shown in a footer at the bottom of
+Current release: **v5.4.0** (the running version is shown in a footer at the bottom of
 every page; it comes from `VERSION` in `app.py`, the single source of truth — the git
 tag, Dockerfile LABEL and this line must match it).
 
@@ -22,7 +22,7 @@ skin:
   own picks. Kept as its own page because it is a distinct feature, not a skin.
 - `GET /studio` — **The Studio**, the modular view and the home of every skin.
   A build-your-own board. A 24-column drag-and-drop grid
-  in the style of Grafana: add a panel, pick one of 25 visualizations (the seven Classic
+  in the style of Grafana: add a panel, pick one of 38 visualizations (the seven Classic
   modules, plus gauge, bar gauge,
   stat, time series, bar chart, candlestick, heatmap, histogram, donut, state timeline,
   Big Road, table, countdown, note, plus the live ones — **price vs target**, drawing
@@ -81,9 +81,12 @@ button opens a drawer on the right (the board stays visible, so skins preview li
 - **Skin** — the ten looks (Classic, The Ticket, The Board, The Gauge, Terminal, The
   Tape, Blueprint, Arcade, The Pit, Solari) plus the light/dark toggle. They are looks
   applied to the one modular board, not separate pages any more. **Fluid was removed.**
-- **Arrangement** — eight ready-made boards (Classic, Player, Analyst, Tape Room, Wall,
-  Minimal, Solari desk, Analytics). Picking one replaces the layout and leaves the skin
-  alone, except the Solari desk which brings its own.
+- **Arrangement** — ten ready-made boards (Classic, Player, Analyst, Tape Room, Wall,
+  Minimal, Solari desk, Analytics, **Everything**, Blank). Picking one replaces the layout
+  and leaves the skin alone, except the Solari desk which brings its own. Everything and
+  Blank are the two extremes and sit together at the bottom of the list: Everything carries
+  every panel type the Studio has, once each, and is **generated from the panel registry**,
+  so a visualization added later appears on it automatically rather than being forgotten.
 - **Saves** — **five named slots** for boards of your own: layout, sizes, per-panel
   colours, range/bucket and the skin. They are kept **on the server** (`layouts` table
   in the SQLite DB, `GET`/`POST /api/layouts`), so a board saved in one browser is there
@@ -112,6 +115,16 @@ overlap pushes the other panel down.
 **No module ever scrolls.** A panel shows the newest rows or columns that fit its box
 and drops the rest — resize the panel (or widen its window) to see more. The same goes
 for the spread list on Classic and the ALGO Desk.
+
+**A panel body carries numbers, not explanations.** Every panel has an **ⓘ** in its header:
+hover it (or tap, on touch) for what the panel is, how to read it, and which window it is
+looking at. That copy used to be printed inside the panels themselves, competing with the
+data — three of them even repeated their own title in their body. The rule now is *keep the
+live numbers, cut the prose*: the Big Road's header shows `24 rounds · 14 runs` where it
+used to explain what a column means, and the History Call's three-sentence methodology note
+is a `6682 rounds · 0/105 survived` line with the rest in the tooltip. The one deliberate
+exception is Round Confidence's "Estimate only. Not advice." — a disclaimer sitting inches
+from buttons that post a real call does not belong behind a hover.
 
 ## Full memory (v4.15.0)
 
