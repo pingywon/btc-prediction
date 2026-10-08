@@ -1,0 +1,139 @@
+{
+ "as_of": "Oct 8, 2026",
+ "first_round": "Jun 17, 2026",
+ "app_version": "5.4.0",
+ "rounds": 10672,
+ "yes": 5325,
+ "no": 5347,
+ "yes_pct": 49.9,
+ "days": 113,
+ "flips": 5432,
+ "pairs": 10671,
+ "flip_pct": 50.9,
+ "longest_streak": {
+  "result": "no",
+  "length": 16
+ },
+ "streaks": [
+  {
+   "k": 2,
+   "n": 5238,
+   "same": 2504,
+   "pct": 47.8
+  },
+  {
+   "k": 3,
+   "n": 2504,
+   "same": 1208,
+   "pct": 48.2
+  },
+  {
+   "k": 4,
+   "n": 1208,
+   "same": 575,
+   "pct": 47.6
+  },
+  {
+   "k": 5,
+   "n": 575,
+   "same": 279,
+   "pct": 48.5
+  }
+ ],
+ "histcall": {
+  "wins": 1793,
+  "losses": 1724,
+  "scored": 3517,
+  "pct": 51.0
+ },
+ "you": {
+  "wins": 7,
+  "losses": 6,
+  "scored": 13
+ },
+ "calls_total": 17143,
+ "calls_since": "Aug 25, 2026",
+ "algo": [
+  {
+   "key": "algo12",
+   "label": "ALGO, 12 min left",
+   "wins": 2231,
+   "losses": 1132,
+   "scored": 3363,
+   "pct": 66.3,
+   "price_pct": 64.4,
+   "priced": 3363,
+   "priced_win_pct": 66.3
+  },
+  {
+   "key": "algo10",
+   "label": "ALGO, 10 min left",
+   "wins": 2389,
+   "losses": 974,
+   "scored": 3363,
+   "pct": 71.0,
+   "price_pct": 69.1,
+   "priced": 3363,
+   "priced_win_pct": 71.0
+  },
+  {
+   "key": "algoearly",
+   "label": "ALGO, 5 min left",
+   "wins": 2780,
+   "losses": 645,
+   "scored": 3425,
+   "pct": 81.2,
+   "price_pct": 80.8,
+   "priced": 3425,
+   "priced_win_pct": 81.2
+  },
+  {
+   "key": "algo",
+   "label": "ALGO, final call",
+   "wins": 2948,
+   "losses": 514,
+   "scored": 3462,
+   "pct": 85.2,
+   "price_pct": 86.0,
+   "priced": 3462,
+   "priced_win_pct": 85.2
+  }
+ ],
+ "bands": [
+  {
+   "lo": 50,
+   "hi": 60,
+   "n": 2696,
+   "price_pct": 55.4,
+   "win_pct": 56.9
+  },
+  {
+   "lo": 60,
+   "hi": 70,
+   "n": 2840,
+   "price_pct": 65.1,
+   "win_pct": 65.4
+  },
+  {
+   "lo": 70,
+   "hi": 80,
+   "n": 2407,
+   "price_pct": 75.1,
+   "win_pct": 77.1
+  },
+  {
+   "lo": 80,
+   "hi": 90,
+   "n": 2040,
+   "price_pct": 85.2,
+   "win_pct": 84.8
+  },
+  {
+   "lo": 90,
+   "hi": 100,
+   "n": 3341,
+   "price_pct": 95.8,
+   "win_pct": 96.0
+  }
+ ]
+}

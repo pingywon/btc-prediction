@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC 15: a coin flip every 15 minutes</title>
+<meta name="description" content="BTC 15 is a just-for-fun scoreboard for a real 15-minute Bitcoin yes-or-no market. It runs in a Docker container around the clock, and 10,672 rounds say the choice is a coin flip.">
+<meta property="og:title" content="BTC 15: a coin flip every 15 minutes">
+<meta property="og:description" content="A just-for-fun scoreboard for a real 15-minute Bitcoin market. 10,672 rounds on file. 49.9% closed YES.">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://pingywon.github.io/btc-prediction/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E %3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%2305060a%27/%3E %3Cline x1=%2716%27 y1=%277%27 x2=%2716%27 y2=%2725%27 stroke=%27%23ffd23f%27 stroke-width=%272.2%27/%3E %3Crect x=%2711.5%27 y=%2712.5%27 width=%279%27 height=%277%27 rx=%271.2%27 fill=%27%23ffd23f%27/%3E %3Cpolygon points=%2716,3.5 20,10 12,10%27 fill=%27%2339ff88%27/%3E %3Cpolygon points=%2716,28.5 20,22 12,22%27 fill=%27%23ff3d6e%27/%3E %3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:light;
+  --paper:#eef1f5; --sheet:#ffffff; --ink:#0f1a33; --ink-2:#3f4a66; --ink-3:#66718b;
+  --rule:#c3ccda; --rule-2:#dde3ec; --accent:#4a3aa7; --accent-soft:#e2def6;
+  --mark-mute:#b3bac7; --code-bg:#e3e8f0; --coin:#b97a00; --coin-soft:#fff3cf;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0b1220; --sheet:#131c30; --ink:#edf0f7; --ink-2:#bcc5d8; --ink-3:#8d98b0;
+    --rule:#2f3c5a; --rule-2:#1f2a43; --accent:#9085e9; --accent-soft:#2a2659;
+    --mark-mute:#4f5a75; --code-bg:#1b2641; --coin:#ffd23f; --coin-soft:#2b2410;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0b1220; --sheet:#131c30; --ink:#edf0f7; --ink-2:#bcc5d8; --ink-3:#8d98b0;
+  --rule:#2f3c5a; --rule-2:#1f2a43; --accent:#9085e9; --accent-soft:#2a2659;
+  --mark-mute:#4f5a75; --code-bg:#1b2641; --coin:#ffd23f; --coin-soft:#2b2410;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:400 17px/1.6 Archivo,system-ui,sans-serif;font-stretch:100%}
+a{color:var(--accent);text-underline-offset:.18em}
+a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:2px}
+code,pre{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-ligatures:none}
+img{max-width:100%;height:auto;display:block}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+@media (min-width:720px){.wrap{padding:0 32px}}
+
+.fields{display:grid;grid-template-columns:repeat(2,1fr);margin:24px 0 0;border:1.5px solid var(--ink);background:var(--sheet)}
+.fields div{padding:8px 12px 10px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);min-width:0}
+.fields div:nth-child(2n){border-right:0}
+.fields div:nth-last-child(-n+2){border-bottom:0}
+.fields dt{font-size:12px;color:var(--ink-3);line-height:1.3}
+.fields dd{margin:2px 0 0;font-weight:600;font-size:15px;overflow-wrap:anywhere}
+@media (min-width:760px){.fields{grid-template-columns:repeat(4,1fr)}.fields div{border-bottom:0}.fields div:nth-child(2n){border-right:1px solid var(--rule)}.fields div:last-child{border-right:0}}
+
+.hero{padding:44px 0 0}
+h1{font-weight:800;font-stretch:72%;font-size:clamp(2.6rem,7.6vw,5.6rem);line-height:.96;letter-spacing:-.012em;margin:0 0 22px;max-width:14ch;text-wrap:balance}
+.lede{font-size:1.24rem;line-height:1.5;max-width:54ch;margin:0;color:var(--ink-2)}
+h2{font-weight:800;font-stretch:76%;font-size:clamp(1.9rem,3.8vw,2.6rem);line-height:1.05;margin:0 0 14px;letter-spacing:-.005em}
+h3{font-weight:700;font-stretch:88%;font-size:1.3rem;line-height:1.25;margin:44px 0 8px}
+p{margin:0 0 14px;max-width:62ch}
+.note{font-size:.94rem;color:var(--ink-2)}
+
+.fun{display:flex;gap:12px;align-items:center;margin:26px 0 0;padding:12px 16px;max-width:max-content;
+  background:var(--coin-soft);border:1.5px solid var(--coin);border-radius:8px;font-size:1.05rem}
+.fun svg{width:26px;height:26px;flex:none;color:var(--coin)}
+.fun b{font-stretch:88%}
+
+section{padding:56px 0 0}
+section > h2{padding-top:30px;border-top:1.5px solid var(--ink)}
+
+.shot{margin:28px 0 0}
+.shot a{display:block;border-radius:10px;overflow:hidden;border:1px solid var(--rule);background:#05060a}
+figcaption{font-size:.94rem;color:var(--ink-2);margin-top:10px;max-width:70ch}
+.shot.narrow{max-width:720px}
+.pair{display:grid;gap:0 24px}
+@media (min-width:860px){.pair{grid-template-columns:1fr 1fr;align-items:start}}
+
+.steps{list-style:none;margin:22px 0 18px;padding:0;display:grid;counter-reset:s;border:1px solid var(--rule);background:var(--sheet)}
+.steps li{counter-increment:s;padding:14px 16px 14px 54px;position:relative;border-bottom:1px solid var(--rule-2)}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(s);position:absolute;left:16px;top:10px;font-weight:800;font-stretch:72%;font-size:1.7rem;color:var(--accent);line-height:1.2}
+.steps b{display:block;font-stretch:88%}
+.steps span{color:var(--ink-2);font-size:.95rem}
+@media (min-width:760px){.steps{grid-template-columns:repeat(3,1fr)}.steps li{border-bottom:0;border-right:1px solid var(--rule-2)}.steps li:last-child{border-right:0}}
+
+.who{list-style:none;margin:18px 0 0;padding:0;border-top:1px solid var(--rule)}
+.who li{display:grid;grid-template-columns:8.2em 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.who b{font-stretch:88%}
+.who span{color:var(--ink-2)}
+
+/* the three numbers */
+.tiles{display:grid;gap:0;margin:24px 0 0;border:1.5px solid var(--ink);background:var(--sheet)}
+.tile{padding:20px 20px 22px;border-bottom:1px solid var(--rule);min-width:0}
+.tile:last-child{border-bottom:0}
+@media (min-width:800px){.tiles{grid-template-columns:repeat(3,1fr)}.tile{border-bottom:0;border-right:1px solid var(--rule)}.tile:last-child{border-right:0}}
+.tile .v{font-weight:800;font-stretch:72%;font-size:clamp(3.2rem,6.4vw,4.4rem);line-height:1;letter-spacing:-.01em}
+.tile .v small{font-size:.5em;font-weight:700;margin-left:.04em}
+.tile .l{font-weight:600;font-stretch:92%;margin:8px 0 2px;line-height:1.3}
+.tile .s{font-size:.9rem;color:var(--ink-3)}
+.meter{position:relative;height:10px;margin:16px 0 22px;background:var(--accent-soft);border-radius:0 4px 4px 0}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:0 4px 4px 0}
+.meter u{position:absolute;left:50%;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink);text-decoration:none}
+.meter u::after{content:"50";position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:.74rem;color:var(--ink-3);padding-top:1px;line-height:1.2}
+.after{margin:22px 0 0;font-size:1.08rem}
+
+/* price vs result */
+.fig{margin:22px 0 0;padding:20px 18px 14px;border:1.5px solid var(--ink);background:var(--sheet)}
+@media (min-width:720px){.fig{padding:24px 26px 16px}}
+.fig h4{margin:0 0 2px;font-size:1.05rem;font-weight:700;font-stretch:88%}
+.keys{display:flex;flex-wrap:wrap;gap:6px 22px;margin:8px 0 14px;padding:0;list-style:none;font-size:.9rem;color:var(--ink-2)}
+.keys li{display:flex;align-items:center;gap:8px}
+.k-ring,.db .ring{width:16px;height:16px;border-radius:50%;border:2px solid var(--accent);background:var(--sheet);flex:none}
+.k-dot,.db .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
+.db-row{display:grid;grid-template-columns:minmax(118px,176px) 1fr 4.4em 4.4em;column-gap:14px;align-items:center;border-radius:4px}
+.db-head{font-size:.8rem;color:var(--ink-3);padding-bottom:2px}
+.db-head span:nth-child(n+3),.db-row .n{text-align:right;font-variant-numeric:tabular-nums}
+.db-row .lab{font-size:.95rem;color:var(--ink-2);line-height:1.25;padding:4px 0}
+.db-row .n{font-size:.95rem}
+.db-row .n.won{font-weight:700}
+.db .track{position:relative;height:38px;
+  background:linear-gradient(to right,var(--rule-2) 1px,transparent 1px) 0 0/20% 100%;border-right:1px solid var(--rule-2)}
+.db .link{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--mark-mute)}
+.db .ring,.db .dot{position:absolute;top:50%;transform:translate(-50%,-50%)}
+.db .dot{box-shadow:0 0 0 2px var(--sheet)}
+.db-row[tabindex]:hover,.db-row[tabindex]:focus-visible{background:var(--accent-soft)}
+.db-axis .track{height:20px;background:none;border:0}
+.db-axis .track span{position:absolute;top:2px;transform:translateX(-50%);font-size:.76rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.db-axis .track span:first-child{transform:none}
+.db-axis .track span:last-child{transform:translateX(-100%)}
+@media (max-width:620px){
+  .db-row{grid-template-columns:1fr 3.8em 3.8em;column-gap:10px}
+  .db-row .lab{grid-column:1/-1;padding:8px 0 0}
+  .db-head span:first-child,.db-axis > span:first-child{display:none}
+  .db-head span:nth-child(2){visibility:hidden}
+  .db-axis .track span:nth-child(5){display:none}
+}
+#tip{position:absolute;z-index:5;pointer-events:none;max-width:260px;padding:8px 10px;border-radius:6px;
+  background:var(--ink);color:var(--paper);font-size:.86rem;line-height:1.35;display:none}
+#tip b{display:block;font-size:1rem}
+details{margin-top:12px;font-size:.92rem}
+summary{cursor:pointer;color:var(--accent);width:max-content;max-width:100%}
+.tbl{overflow-x:auto;margin:12px 0 4px;border:1px solid var(--rule);background:var(--sheet);max-width:520px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule-2)}
+th{font-weight:700;font-stretch:88%;color:var(--ink-2);font-size:.86rem;border-bottom:1px solid var(--rule);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.verdict{margin:26px 0 0;font-size:1.3rem;font-weight:700;font-stretch:88%;line-height:1.35;max-width:36ch}
+
+/* always on */
+.flow{display:grid;gap:0;margin:24px 0 0;border:1.5px solid var(--ink);background:var(--sheet)}
+.flow div{padding:14px 16px 16px;position:relative;border-bottom:1px solid var(--rule)}
+.flow div:last-child{border-bottom:0}
+.flow b{display:block;font-stretch:88%}
+.flow span{color:var(--ink-2);font-size:.94rem}
+.flow div.core{background:var(--accent-soft)}
+@media (min-width:800px){
+  .flow{grid-template-columns:1fr 1.25fr 1fr}
+  .flow div{border-bottom:0;border-right:1px solid var(--rule);padding-right:30px}
+  .flow div:last-child{border-right:0}
+  .flow div:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:16px;height:16px;margin-top:-8px;z-index:1;
+    background:var(--sheet);border-top:1.5px solid var(--ink);border-right:1.5px solid var(--ink);transform:rotate(45deg)}
+  .flow div.core::after{background:var(--accent-soft)}
+}
+.facts{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:0;border-top:1px solid var(--rule)}
+.facts li{padding:10px 0;border-bottom:1px solid var(--rule);max-width:none}
+.facts b{font-stretch:88%}
+.facts span{color:var(--ink-2)}
+.count{display:flex;flex-wrap:wrap;gap:8px 34px;margin:22px 0 0}
+.count div{line-height:1.2}
+.count b{display:block;font-weight:800;font-stretch:76%;font-size:1.9rem}
+.count span{font-size:.9rem;color:var(--ink-3)}
+pre{background:var(--sheet);border:1px solid var(--rule);padding:14px 16px;font-size:.86rem;overflow-x:auto;margin:22px 0 8px;line-height:1.6;max-width:720px}
+
+footer{margin:72px 0 0;padding:22px 0 44px;border-top:1.5px solid var(--ink);font-size:.92rem;color:var(--ink-2)}
+footer p{margin:0 0 6px;max-width:none}
+footer .ver{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<dl class="fields">
+  <div><dt>What</dt><dd>A scoreboard game</dd></div>
+  <div><dt>Rounds on file</dt><dd>10,672</dd></div>
+  <div><dt>Since</dt><dd>Jun 17, 2026</dd></div>
+  <div><dt>Runs on</dt><dd>Docker, 24/7</dd></div>
+</dl>
+
+<header class="hero">
+  <h1>A coin flip, every 15 minutes.</h1>
+  <p class="lede">BTC 15 follows a real yes-or-no market: will Bitcoin close above the target price in 15 minutes? It keeps score around the clock.</p>
+  <p class="fun">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M8.4 14.2a4.4 4.4 0 0 0 7.2 0M9 9.6h.01M15 9.6h.01" stroke-linecap="round"/></svg>
+    <span><b>Just for fun.</b> No bets, no money, no advice.</span>
+  </p>
+  <figure class="shot">
+    <a href="img/shot-classic.webp"><img src="img/shot-classic.webp" width="2880" height="2216" alt="The BTC 15 main screen: live Bitcoin price, the target price, a countdown to the round's close, YES and NO buttons, and the last 24 hours of results."></a>
+  </figure>
+</header>
+
+<section id="game">
+  <h2>The game</h2>
+  <ol class="steps">
+    <li><b>A round opens</b><span>Every 15 minutes. The target is the price the last round closed at.</span></li>
+    <li><b>Call it</b><span>YES to close above the target. NO to close below.</span></li>
+    <li><b>The market settles it</b><span>The result comes from the exchange. The app only keeps score.</span></li>
+  </ol>
+  <p class="note">The market is Kalshi's 15-minute Bitcoin contract, the one behind Robinhood's "BTC 15 min". The app reads its public feed. No account, no key.</p>
+
+  <h3>Three callers, every round</h3>
+  <ul class="who">
+    <li><b>You</b><span>Tap YES or NO before the round locks.</span></li>
+    <li><b>ALGO</b><span>Backs the market's favourite. It calls with 12, 10, 5 and about 3 minutes left.</span></li>
+    <li><b>History Call</b><span>Looks up what came after the last three results.</span></li>
+  </ul>
+
+  <figure class="shot">
+    <a href="img/shot-road.webp"><img src="img/shot-road.webp" width="2752" height="2152" loading="lazy" alt="The Big Road scoreboard: green Y and red N tiles for the last 24 hours, stacked into columns wherever the same result repeated."></a>
+    <figcaption>The scoreboard is a baccarat Big Road. Repeats stack into columns. The corner badges show who called it right.</figcaption>
+  </figure>
+</section>
+
+<section id="numbers">
+  <h2>It is 50/50</h2>
+  <p>10,672 rounds, Jun 17, 2026 to Oct 8, 2026.</p>
+  <div class="tiles">
+    <div class="tile">
+      <div class="v">49.9<small>%</small></div>
+      <div class="meter" role="img" aria-label="49.9 percent, against a 50 percent mark"><i style="width:49.9%"></i><u></u></div>
+      <div class="l">closed YES</div>
+      <div class="s">5,325 of 10,672 rounds</div>
+    </div>
+    <div class="tile">
+      <div class="v">50.9<small>%</small></div>
+      <div class="meter" role="img" aria-label="50.9 percent, against a 50 percent mark"><i style="width:50.9%"></i><u></u></div>
+      <div class="l">flipped from the round before</div>
+      <div class="s">5,432 of 10,671</div>
+    </div>
+    <div class="tile">
+      <div class="v">51.0<small>%</small></div>
+      <div class="meter" role="img" aria-label="51.0 percent, against a 50 percent mark"><i style="width:51.0%"></i><u></u></div>
+      <div class="l">right, calling by pattern</div>
+      <div class="s">History Call, 1,793 of 3,517</div>
+    </div>
+  </div>
+  <p class="after">After three in a row, the next round matched 48.2% of the time. A streak tells you nothing.</p>
+
+  <figure class="shot narrow">
+    <a href="img/shot-histcall.webp"><img src="img/shot-histcall.webp" width="1598" height="700" loading="lazy" alt="The History Call panel reading NO 52.7 percent with the tag 'coin flip not ruled out', and a note that of 105 patterns tested, none survived."></a>
+    <figcaption>The app says it on screen: 105 patterns tested, none held up.</figcaption>
+  </figure>
+
+  <h3>Then why is ALGO right 85% of the time?</h3>
+  <p>It backs the favourite, late. By its final call that side costs about 86 cents to win a dollar. Right 85% of the time, at that price, is break-even.</p>
+
+  <div class="fig">
+    <h4>ALGO: what the market charged, and how often it won</h4>
+    <ul class="keys">
+      <li><span class="k-ring"></span>Price of the side it picked</li>
+      <li><span class="k-dot"></span>How often that side won</li>
+    </ul>
+    <div class="db">
+      <div class="db-row db-head"><span>Call made with</span><span></span><span>Price</span><span>Won</span></div>
+      <div class="db-row" tabindex="0" data-label="ALGO, 12 min left" data-won="66.3" data-price="64.4" data-wins="2,231" data-scored="3,363"><span class="lab">12 min left</span><div class="track"><span class="link" style="left:28.80%;width:3.80%"></span><span class="ring" style="left:28.80%"></span><span class="dot" style="left:32.60%"></span></div><span class="n">64.4%</span><span class="n won">66.3%</span></div>
+      <div class="db-row" tabindex="0" data-label="ALGO, 10 min left" data-won="71.0" data-price="69.1" data-wins="2,389" data-scored="3,363"><span class="lab">10 min left</span><div class="track"><span class="link" style="left:38.20%;width:3.80%"></span><span class="ring" style="left:38.20%"></span><span class="dot" style="left:42.00%"></span></div><span class="n">69.1%</span><span class="n won">71.0%</span></div>
+      <div class="db-row" tabindex="0" data-label="ALGO, 5 min left" data-won="81.2" data-price="80.8" data-wins="2,780" data-scored="3,425"><span class="lab">5 min left</span><div class="track"><span class="link" style="left:61.60%;width:0.80%"></span><span class="ring" style="left:61.60%"></span><span class="dot" style="left:62.40%"></span></div><span class="n">80.8%</span><span class="n won">81.2%</span></div>
+      <div class="db-row" tabindex="0" data-label="ALGO, final call" data-won="85.2" data-price="86.0" data-wins="2,948" data-scored="3,462"><span class="lab">Final call</span><div class="track"><span class="link" style="left:70.40%;width:1.60%"></span><span class="ring" style="left:72.00%"></span><span class="dot" style="left:70.40%"></span></div><span class="n">86.0%</span><span class="n won">85.2%</span></div>
+      <div class="db-row db-axis" aria-hidden="true"><span></span><div class="track"><span style="left:0">50%</span><span style="left:20%">60</span><span style="left:40%">70</span><span style="left:60%">80</span><span style="left:80%">90</span><span style="left:100%">100%</span></div><span></span><span></span></div>
+    </div>
+    <p class="note" style="margin:10px 0 0">13,613 calls since Aug 25, 2026. Prices are the market's own, before the spread and fees.</p>
+    <details>
+      <summary>The same check, by price</summary>
+      <div class="tbl"><table><thead><tr><th>Market price</th><th class="num">Calls</th><th class="num">Average price</th><th class="num">Won</th></tr></thead><tbody><tr><td>50 to 60%</td><td class="num">2,696</td><td class="num">55.4%</td><td class="num">56.9%</td></tr><tr><td>60 to 70%</td><td class="num">2,840</td><td class="num">65.1%</td><td class="num">65.4%</td></tr><tr><td>70 to 80%</td><td class="num">2,407</td><td class="num">75.1%</td><td class="num">77.1%</td></tr><tr><td>80 to 90%</td><td class="num">2,040</td><td class="num">85.2%</td><td class="num">84.8%</td></tr><tr><td>90 to 100%</td><td class="num">3,341</td><td class="num">95.8%</td><td class="num">96.0%</td></tr></tbody></table></div>
+      <p class="note">The early calls ran about two points ahead of the price. The spread and fees are not counted.</p>
+    </details>
+  </div>
+
+  <p class="verdict">Pick by gut, by streak or by pattern. Over 10,672 rounds it comes out a coin flip.</p>
+</section>
+
+<section id="docker">
+  <h2>On around the clock</h2>
+  <div class="flow">
+    <div><b>The market</b><span>Kalshi's public feed. Target, odds and result.</span></div>
+    <div class="core"><b>One Docker container</b><span>One Python file and one SQLite database.</span></div>
+    <div><b>Any browser</b><span>Three pages. Close them all and it keeps recording.</span></div>
+  </div>
+  <ul class="facts">
+    <li><b>No browser needed.</b> <span>The server settles each round and logs every call itself, day and night.</span></li>
+    <li><b>Nothing to install.</b> <span>Plain Python, no extra packages.</span></li>
+    <li><b>History survives.</b> <span>The database sits on a Docker volume, so restarts and updates keep it.</span></li>
+    <li><b>Gaps fill themselves.</b> <span>After a restart it pulls any missed rounds from the market's public history.</span></li>
+  </ul>
+  <div class="count">
+    <div><b>10,672</b><span>rounds on file</span></div>
+    <div><b>17,143</b><span>calls scored</span></div>
+    <div><b>113</b><span>days covered</span></div>
+  </div>
+<pre>docker build -t btc-prediction .
+docker run -d -p 80:80 -v btc-prediction-data:/data btc-prediction</pre>
+  <p class="note">Source: <a href="https://github.com/pingywon/btc-prediction">github.com/pingywon/btc-prediction</a></p>
+</section>
+
+<section id="screens">
+  <h2>More screens</h2>
+  <div class="pair">
+    <figure class="shot">
+      <a href="img/shot-studio.webp"><img src="img/shot-studio.webp" width="2880" height="3124" loading="lazy" alt="The Studio: a board of movable panels showing the live price chart, the Big Road, market gauges, History Call, results and ALGO's calls."></a>
+      <figcaption>The Studio. A drag-and-drop board: 38 panel types, 10 skins.</figcaption>
+    </figure>
+    <figure class="shot">
+      <a href="img/shot-algo.webp"><img src="img/shot-algo.webp" width="2880" height="2000" loading="lazy" alt="The ALGO Desk: ALGO's call for this round, its record beside yours, and the live price chart."></a>
+      <figcaption>The ALGO Desk. Its record next to yours.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<footer>
+  <p class="ver">BTC 15 · page v1.0.0 · app v5.4.0 · numbers as of Oct 8, 2026</p>
+  <p>For amusement only. Not financial advice. Not affiliated with Kalshi or Robinhood.</p>
+  <p><a href="https://github.com/pingywon/btc-prediction">Code on GitHub</a>, MIT licence.</p>
+</footer>
+
+</div>
+<div id="tip" role="status"></div>
+<script>
+(function(){
+  var tip=document.getElementById('tip');
+  function show(row,x,y){
+    tip.textContent='';
+    var b=document.createElement('b');b.textContent=row.dataset.won+'% won';
+    tip.appendChild(b);
+    tip.appendChild(document.createTextNode(row.dataset.label+': '+row.dataset.wins+' of '+row.dataset.scored+'. Market price '+row.dataset.price+'%.'));
+    tip.style.display='block';
+    var w=tip.offsetWidth,left=Math.min(Math.max(8,x-w/2),document.documentElement.clientWidth-w-8);
+    tip.style.left=(left+window.scrollX)+'px';
+    tip.style.top=(y+window.scrollY-tip.offsetHeight-12)+'px';
+  }
+  function hide(){tip.style.display='none'}
+  document.querySelectorAll('.db-row[tabindex]').forEach(function(row){
+    row.addEventListener('pointermove',function(e){show(row,e.clientX,e.clientY)});
+    row.addEventListener('pointerleave',hide);
+    row.addEventListener('focus',function(){var r=row.getBoundingClientRect();show(row,r.left+r.width/2,r.top)});
+    row.addEventListener('blur',hide);
+  });
+})();
+</script>
+</body>
+</html>
