@@ -5,12 +5,15 @@ prediction market (Kalshi KXBTC15M series) exactly: same strike, same result.
 
 No pip installs. Python 3.7+.
 """
+import base64
 import calendar
 import json
 import os
 import re
 import socket
 import sqlite3
+import ssl
+import struct
 import sys
 import threading
 import time
@@ -27,7 +30,7 @@ BIND = os.environ.get("BIND", "0.0.0.0")
 
 # Single source of truth for the app version. Bump here first on every release;
 # the git tag vX.Y.Z, the Dockerfile LABEL and the README line must match.
-VERSION = "4.15.0"
+VERSION = "5.4.0"
 
 FONT_DIR = os.path.join(HERE, "fonts")
 # The skins stopped being their own pages; these old URLs redirect into the
@@ -47,7 +50,13 @@ KRAKEN_HOST = "api.kraken.com"
 LOCK_BUFFER_S = 60          # betting closes this long before close_time
 ACTIVE_WINDOW_S = 12 * 3600  # a visit keeps the app "active" (full-speed polling) for this long
 ACTIVE_ROUND_POLL_S = 10
-ACTIVE_PRICE_POLL_S = 2
+ROLLOVER_WINDOW_S = 20       # this close to round close (or past it), poll Kalshi fast (BTC-20)
+ROLLOVER_POLL_S = 2
+ACTIVE_PRICE_POLL_S = 2      # REST price cadence while active (fallback when the stream is up)
+IDLE_PRICE_POLL_S = 5        # BTC-17: the price records 24/7 now; idle just polls slower
+PRICE_WS_HOST = "ws-feed.exchange.coinbase.com"  # BTC-18: streamed ticks, REST is the fallback
+PRICE_WS_IDLE_TIMEOUT_S = 15  # no ticker frame for this long -> reconnect
+PRICE_TICK_DB_MIN_S = 1.0    # the stream can fire many times/sec; throttle durable tick rows
 IDLE_CHECK_S = 5             # how often threads re-check activity state (cheap, no network call)
 IDLE_ROUND_RESYNC_S = 12 * 3600  # when idle, only re-sync with Kalshi this often (bulk backfill, not per-round)
 GAP_BACKFILL_THRESHOLD_S = 20 * 60  # rounds are 15 min; >20 min since the newest row means a hole, not just "the current round hasn't closed yet"
@@ -61,13 +70,38 @@ CALL_WINDOW_S = 120          # algo + histcall calls fire when lock_ts-120 <= no
 PRICE_STALE_S = 15           # the price poller sleeps when idle; refetch for the lean if older
 SETTLE_SCAN_WINDOW_S = 6 * 3600  # only chase pending rounds this recent (backfill owns older holes)
 ALGO_COINFLIP_EPS = 0.04     # odds closer than this are a coin flip; fall back to the live lean
-CALL_SOURCES = ("you", "algo", "histcall")
+# BTC-29: ALGO calls made EARLY ENOUGH TO ACT ON. The near-lock call (below) is accurate
+# but useless for getting a bid in, so the ALGO also calls at T-12, T-10 and T-5 before
+# close. Each is its own write-once source with its own record -- earlier = more time to
+# trade, less accuracy (7,190-round backtest: T-12 68.4%, T-10 73.8%, T-5 85.3%, lock 94%).
+# Each fires inside a bounded window so a call always means what its name says; a missed
+# window is an honest hole (its odds/price input can't be reconstructed after the fact).
+# NOTE 'algoearly' is the T-5 source, kept under its original name so its live record
+# (48-13 at the time of this change) carries forward -- the UI labels it "T-5".
+ALGO_CALL_OFFSETS = ((720, "algo12", 12), (600, "algo10", 10), (300, "algoearly", 5))
+ALGO_CALL_WINDOW_S = 60      # ...within this window each; else that round gets no call
+CALL_SOURCES = ("you", "algo12", "algo10", "algoearly", "algo", "histcall")
+COVERAGE_WINDOW = 100        # BTC-17: "called n of the last N settled rounds" window
+HC_BACKFILL_EVERY_S = 60     # BTC-17: how often to sweep for History Call holes
+HC_BACKFILL_BATCH = 200      # holes filled per sweep (deterministic, so catching up is safe)
 PICKS_MAX_BYTES = 10_000
 KV_MAX_BYTES = 200_000
 KV_KEYS = ("board", "classic_modules", "algo_modules")
 IMPORT_MAX_BYTES = 2_000_000
 IMPORT_MAX_ENTRIES = 20_000  # per source; ~70 days of rounds is ~7k
 MONTH_ABBR = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+
+
+def _f(x):
+    """Parse an external numeric that may arrive as a thousands-comma STRING.
+    Kalshi has been observed returning e.g. expiration_value='77,362.10'; plain
+    float() raises on the comma, which (inside settle_pending_once, run every 5s)
+    aborted the whole caller tick and silently stopped ALL calls. None/"" -> None."""
+    if x is None or x == "":
+        return None
+    if isinstance(x, str):
+        x = x.replace(",", "")
+    return float(x)
 
 
 def lan_ip():
@@ -139,11 +173,11 @@ def to_round_row(m):
         "open_time": open_t,
         "close_time": close_t,
         "lock_ts": close_t - LOCK_BUFFER_S,
-        "floor_strike": float(m["floor_strike"]),
+        "floor_strike": _f(m["floor_strike"]),
         "result": result if settled else None,
-        "settlement_value": float(m["expiration_value"]) if settled and m.get("expiration_value") not in (None, "") else None,
-        "kalshi_yes_price": float(m.get("yes_bid_dollars") or m.get("last_price_dollars") or 0) or None,
-        "kalshi_no_price": float(m.get("no_bid_dollars") or 0) or None,
+        "settlement_value": _f(m["expiration_value"]) if settled and m.get("expiration_value") not in (None, "") else None,
+        "kalshi_yes_price": _f(m.get("yes_bid_dollars") or m.get("last_price_dollars") or 0) or None,
+        "kalshi_no_price": _f(m.get("no_bid_dollars") or 0) or None,
     }
 
 
@@ -218,7 +252,12 @@ class DB:
                 VALUES (?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(kalshi_ticker) DO UPDATE SET
                     result=excluded.result, settlement_value=excluded.settlement_value,
-                    kalshi_yes_price=excluded.kalshi_yes_price, kalshi_no_price=excluded.kalshi_no_price
+                    -- Never let a NULL overwrite odds we already captured. A settled market has no
+                    -- bid left, so to_round_row yields None for both prices; without COALESCE the
+                    -- settle pass wiped the live odds off every round the moment it settled, which
+                    -- is why 7,475 settled rounds carry no record of what the market thought.
+                    kalshi_yes_price=COALESCE(excluded.kalshi_yes_price, rounds.kalshi_yes_price),
+                    kalshi_no_price=COALESCE(excluded.kalshi_no_price, rounds.kalshi_no_price)
             """, (r["kalshi_ticker"], r["open_time"], r["close_time"], r["lock_ts"], r["floor_strike"],
                   r["result"], r["settlement_value"], r["kalshi_yes_price"], r["kalshi_no_price"], time.time()))
 
@@ -254,6 +293,17 @@ class DB:
                                     "VALUES (?,?,?,?,?)", (ticker, source, choice, reason, ts))
             return cur.rowcount > 0
 
+    def delete_calls(self, source):
+        # BTC-16: the reset. Only 'you' is ever passed; the endpoint enforces that.
+        with self.lock, self.conn:
+            cur = self.conn.execute("DELETE FROM calls WHERE source=?", (source,))
+            return cur.rowcount
+
+    def delete_call(self, ticker, source):
+        with self.lock, self.conn:
+            cur = self.conn.execute("DELETE FROM calls WHERE kalshi_ticker=? AND source=?", (ticker, source))
+            return cur.rowcount
+
     def calls_for_round(self, ticker):
         if not ticker:
             return {}
@@ -267,6 +317,19 @@ class DB:
                    SUM(c.choice != r.result) AS losses
             FROM calls c JOIN rounds r ON r.kalshi_ticker = c.kalshi_ticker
             WHERE r.result IS NOT NULL GROUP BY c.source""")
+
+    def coverage_counts(self, window):
+        # BTC-17: "called n of the last N settled rounds" -- the proof the 24/7
+        # recording is actually recording, per source.
+        rows = self.query("""
+            SELECT c.source, COUNT(*) AS called
+            FROM calls c JOIN (SELECT kalshi_ticker FROM rounds WHERE result IS NOT NULL
+                               ORDER BY close_time DESC LIMIT ?) w
+                 ON w.kalshi_ticker = c.kalshi_ticker
+            GROUP BY c.source""", (window,))
+        n = self.query_one("SELECT COUNT(*) AS n FROM (SELECT 1 FROM rounds WHERE result IS NOT NULL "
+                           "ORDER BY close_time DESC LIMIT ?)", (window,))
+        return rows, int(n["n"] if n else 0)
 
     def recent_scored_calls(self, limit=50):
         return self.query("""
@@ -409,10 +472,14 @@ def round_engine():
     refresh_open_round()
     last_prune = time.time()
 
-    # The IDLE_CHECK_S loop below always runs so activity changes are noticed within
-    # a few seconds; actual Kalshi calls only fire when "due", at ACTIVE_ROUND_POLL_S
+    # The loop below always runs so activity changes are noticed within a couple of
+    # seconds; actual Kalshi calls only fire when "due", at ACTIVE_ROUND_POLL_S
     # while someone's watching or IDLE_ROUND_RESYNC_S (12h) while nobody is -- so a
     # long quiet stretch costs ~2 Kalshi calls/day instead of one every 15 minutes.
+    # BTC-20: near the round boundary (or while the finished round is still the
+    # pointer because Kalshi hasn't opened/blessed the next market yet) an active
+    # app polls at ROLLOVER_POLL_S so the next round appears within seconds, not
+    # most of a minute. Idle stays lazy -- caller_loop keeps the pointer fresh there.
     # Seeded to "now" (not 0) since the current round was just fetched above -- the
     # loop's first iteration shouldn't immediately treat itself as overdue and re-run
     # the just-finished startup backfill a second time.
@@ -420,6 +487,10 @@ def round_engine():
     while True:
         active = is_active()
         interval = ACTIVE_ROUND_POLL_S if active else IDLE_ROUND_RESYNC_S
+        if active:
+            cur = current_round_row()
+            if cur is None or time.time() >= cur["close_time"] - ROLLOVER_WINDOW_S:
+                interval = ROLLOVER_POLL_S
         if time.time() - last_check >= interval:
             last_check = time.time()
             refresh_open_round()
@@ -449,42 +520,162 @@ def round_engine():
                 except Exception as e:  # noqa
                     print("[round_engine] prune failed: %s" % e, file=sys.stderr)
 
-        time.sleep(IDLE_CHECK_S)
+        # 1s granularity while active so the ROLLOVER_POLL_S cadence is real; the
+        # extra wakeups are a clock check and one tiny DB read, no network.
+        time.sleep(1 if active else IDLE_CHECK_S)
 
 
 def fetch_cosmetic_price():
     try:
         d = http_get_json(COINBASE_HOST, "/products/BTC-USD/ticker")
-        return float(d["price"]), "coinbase"
+        return _f(d["price"]), "coinbase"
     except Exception:  # noqa
         pass
     d = http_get_json(KRAKEN_HOST, "/0/public/Ticker?pair=XBTUSD")
     pair = next(iter(d["result"].values()))
-    return float(pair["c"][0]), "kraken"
+    return _f(pair["c"][0]), "kraken"
+
+
+_tick_write = {"last_db": 0.0, "last_prune": 0.0}
+
+
+def record_tick(price, source, now=None):
+    """Shared by the stream and the REST poller: STATE on every call, a durable tick
+    row at most every PRICE_TICK_DB_MIN_S (the stream fires many times a second)."""
+    now = now or time.time()
+    with STATE_LOCK:
+        STATE["live_price"] = price
+        STATE["live_price_source"] = source
+        STATE["live_price_ts"] = now
+        STATE["recent_ticks"].append((now, price))
+        STATE["recent_ticks"] = STATE["recent_ticks"][-300:]
+    if now - _tick_write["last_db"] >= PRICE_TICK_DB_MIN_S:
+        _tick_write["last_db"] = now
+        db.execute("INSERT INTO ticks (ts, price, source) VALUES (?,?,?)", (now, price, source))
+        if now - _tick_write["last_prune"] > 300:
+            _tick_write["last_prune"] = now
+            db.execute("DELETE FROM ticks WHERE ts < ?", (now - TICK_RETENTION_S,))
 
 
 def price_poller():
-    last_prune = 0.0
+    # BTC-17/18: REST is the FALLBACK now, and it never sleeps for good -- the price
+    # (and therefore the ALGO's lean input and the tick history) records 24/7. While
+    # the websocket stream is delivering, this loop just watches freshness and idles.
     while True:
-        if is_active():
+        with STATE_LOCK:
+            age = time.time() - STATE["live_price_ts"]
+        if age >= ACTIVE_PRICE_POLL_S:
             try:
                 price, source = fetch_cosmetic_price()
-                now = time.time()
-                with STATE_LOCK:
-                    STATE["live_price"] = price
-                    STATE["live_price_source"] = source
-                    STATE["live_price_ts"] = now
-                    STATE["recent_ticks"].append((now, price))
-                    STATE["recent_ticks"] = STATE["recent_ticks"][-300:]
-                db.execute("INSERT INTO ticks (ts, price, source) VALUES (?,?,?)", (now, price, source))
-                if now - last_prune > 300:
-                    db.execute("DELETE FROM ticks WHERE ts < ?", (now - TICK_RETENTION_S,))
-                    last_prune = now
+                record_tick(price, source)
             except Exception as e:  # noqa
                 print("[price_poller] %s" % e, file=sys.stderr)
-            time.sleep(ACTIVE_PRICE_POLL_S)
-        else:
-            time.sleep(IDLE_CHECK_S)
+        time.sleep(ACTIVE_PRICE_POLL_S if is_active() else IDLE_PRICE_POLL_S)
+
+
+# ---------------------------------------------------------------------------
+# BTC-18: a hand-rolled RFC6455 client (this repo is deliberately pip-free) for
+# Coinbase's public ticker feed. Sub-second price instead of 2s REST polling.
+
+def _ws_connect(host, path="/"):
+    raw = socket.create_connection((host, 443), timeout=10)
+    s = ssl.create_default_context().wrap_socket(raw, server_hostname=host)
+    key = base64.b64encode(os.urandom(16)).decode()
+    s.sendall(("GET %s HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\n"
+               "Connection: Upgrade\r\nSec-WebSocket-Key: %s\r\n"
+               "Sec-WebSocket-Version: 13\r\n\r\n" % (path, host, key)).encode())
+    resp = b""
+    while b"\r\n\r\n" not in resp:
+        chunk = s.recv(4096)
+        if not chunk:
+            raise RuntimeError("ws handshake: connection closed")
+        resp += chunk
+        if len(resp) > 65536:
+            raise RuntimeError("ws handshake: oversized response")
+    if b" 101 " not in resp.split(b"\r\n", 1)[0]:
+        raise RuntimeError("ws handshake refused: %r" % resp.split(b"\r\n", 1)[0])
+    s.settimeout(PRICE_WS_IDLE_TIMEOUT_S)
+    return s
+
+
+def _ws_send(s, payload, opcode=1):
+    # Client frames MUST be masked (RFC6455 5.3).
+    head = bytes([0x80 | opcode])
+    n = len(payload)
+    if n < 126:
+        head += bytes([0x80 | n])
+    elif n < 65536:
+        head += bytes([0x80 | 126]) + struct.pack(">H", n)
+    else:
+        head += bytes([0x80 | 127]) + struct.pack(">Q", n)
+    mask = os.urandom(4)
+    s.sendall(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload)))
+
+
+def _ws_read_exact(s, n):
+    buf = b""
+    while len(buf) < n:
+        chunk = s.recv(n - len(buf))
+        if not chunk:
+            raise RuntimeError("ws: connection closed")
+        buf += chunk
+    return buf
+
+
+def _ws_recv(s):
+    """One frame -> (opcode, payload). Coinbase sends unfragmented text frames."""
+    b1, b2 = _ws_read_exact(s, 2)
+    opcode = b1 & 0x0F
+    n = b2 & 0x7F
+    if n == 126:
+        n = struct.unpack(">H", _ws_read_exact(s, 2))[0]
+    elif n == 127:
+        n = struct.unpack(">Q", _ws_read_exact(s, 8))[0]
+    if b2 & 0x80:  # masked server frame -- never happens, but read the key if so
+        mask = _ws_read_exact(s, 4)
+        data = _ws_read_exact(s, n)
+        return opcode, bytes(b ^ mask[i % 4] for i, b in enumerate(data))
+    return opcode, _ws_read_exact(s, n)
+
+
+def price_stream():
+    """Daemon: Coinbase ticker websocket -> record_tick. Any failure just falls back
+    to the REST poller (which watches live_price_ts age) until the next reconnect."""
+    backoff = 1
+    while True:
+        s = None
+        try:
+            s = _ws_connect(PRICE_WS_HOST)
+            _ws_send(s, json.dumps({"type": "subscribe", "product_ids": ["BTC-USD"],
+                                    "channels": ["ticker"]}).encode())
+            backoff = 1
+            while True:
+                opcode, payload = _ws_recv(s)
+                if opcode == 8:  # close
+                    raise RuntimeError("ws: server closed")
+                if opcode == 9:  # ping -> pong, same payload
+                    _ws_send(s, payload, opcode=10)
+                    continue
+                if opcode != 1:
+                    continue
+                try:
+                    msg = json.loads(payload)
+                except ValueError:
+                    continue
+                if msg.get("type") == "ticker" and msg.get("price"):
+                    record_tick(_f(msg["price"]), "coinbase-ws")
+                elif msg.get("type") == "error":
+                    raise RuntimeError("ws error: %s" % msg.get("message"))
+        except Exception as e:  # noqa
+            print("[price_stream] %s (retry in %ds)" % (e, backoff), file=sys.stderr)
+        finally:
+            try:
+                if s:
+                    s.close()
+            except Exception:  # noqa
+                pass
+        time.sleep(backoff)
+        backoff = min(backoff * 2, 30)
 
 
 def current_round_row():
@@ -625,8 +816,17 @@ def get_records():
         scored = wins + losses
         out[src] = {"wins": wins, "losses": losses, "scored": scored,
                     "pct": round(100.0 * wins / scored, 1) if scored else None}
+    cov_rows, cov_n = db.coverage_counts(COVERAGE_WINDOW)
+    cov = {r["source"]: int(r["called"] or 0) for r in cov_rows}
+    for src in out:
+        out[src]["coverage"] = {"called": cov.get(src, 0), "window": cov_n}
     _records_cache = (now + 5.0, out)
     return out
+
+
+def invalidate_records():
+    global _records_cache
+    _records_cache = (0.0, None)
 
 
 def settle_pending_once(now):
@@ -646,12 +846,20 @@ def settle_pending_once(now):
     by_ticker = {m["ticker"]: m for m in data.get("markets") or [] if (m.get("result") or "")}
     for p in pending:
         m = by_ticker.get(p["kalshi_ticker"])
-        if m:
+        if not m:
+            continue
+        try:
             db.upsert_round(to_round_row(m))
+        except (KeyError, TypeError, ValueError) as e:  # noqa
+            # One malformed market must never stall the caller: skip it, keep settling
+            # the rest. (A comma-formatted expiration_value once did exactly this,
+            # aborting every 5s tick and silently stopping all calls.)
+            print("[caller] skip unsettleable %s: %s" % (p["kalshi_ticker"], e), file=sys.stderr)
 
 
-def make_auto_calls(cur, now):
-    ticker = cur["kalshi_ticker"]
+def _live_lean(cur, now):
+    """The current price position vs the strike, refetching if the poller is asleep.
+    Shared by the near-lock ALGO call and the early ALGO call."""
     with STATE_LOCK:
         price, price_ts = STATE["live_price"], STATE["live_price_ts"]
     if price is None or now - price_ts > PRICE_STALE_S:
@@ -662,7 +870,12 @@ def make_auto_calls(cur, now):
                 STATE["live_price"], STATE["live_price_source"], STATE["live_price_ts"] = price, source, now
         except Exception:  # noqa
             pass  # stale or absent price -> lean may be None; the odds branch still works
-    lean = compute_lean(price, cur["floor_strike"])
+    return compute_lean(price, cur["floor_strike"])
+
+
+def make_auto_calls(cur, now):
+    ticker = cur["kalshi_ticker"]
+    lean = _live_lean(cur, now)
     algo = compute_algo_pick(cur, lean)
     if algo:
         db.insert_call_ignore(ticker, "algo", algo["choice"], algo["reason"], now)
@@ -671,6 +884,49 @@ def make_auto_calls(cur, now):
     hc = compute_hist_call([r["result"] for r in reversed(priors)])
     if hc:
         db.insert_call_ignore(ticker, "histcall", hc["choice"], hc["reason"], now)
+
+
+def make_offset_call(cur, now, source, mins):
+    """BTC-29: the same ALGO heuristic run at a fixed distance from close, logged
+    write-once under its OWN source so every offset keeps an independent record and the
+    proven near-lock 'algo' record is never touched. No backfill -- the odds/price input
+    at that instant doesn't exist after the fact (an honest hole)."""
+    lean = _live_lean(cur, now)
+    algo = compute_algo_pick(cur, lean)
+    if algo:
+        db.insert_call_ignore(cur["kalshi_ticker"], source, algo["choice"],
+                              "[Call at T-%d, %d min before close] " % (mins, mins) + algo["reason"], now)
+
+
+def backfill_hist_calls():
+    """BTC-17: a restart or Kalshi error inside the pre-lock window used to leave a
+    permanent hole in the History Call record. The call is DETERMINISTIC -- a static
+    table over the 3 settled priors -- so a missed round can be filled honestly at any
+    time. Only rounds after the first-ever live histcall are eligible: the deep past
+    stays unscored (the record means "calls made in the live era", not a simulation).
+    ALGO holes stay holes on purpose -- its input is near-lock odds, which don't
+    exist after the fact."""
+    holes = db.query("""
+        SELECT r.kalshi_ticker, r.open_time FROM rounds r
+        WHERE r.result IS NOT NULL
+          AND r.close_time > (SELECT MIN(r2.close_time) FROM calls c2
+                              JOIN rounds r2 ON r2.kalshi_ticker = c2.kalshi_ticker
+                              WHERE c2.source='histcall')
+          AND NOT EXISTS (SELECT 1 FROM calls c WHERE c.kalshi_ticker = r.kalshi_ticker
+                          AND c.source='histcall')
+        ORDER BY r.close_time ASC LIMIT ?""", (HC_BACKFILL_BATCH,))
+    filled = 0
+    for h in holes:
+        priors = db.query("SELECT result FROM rounds WHERE result IS NOT NULL AND close_time <= ? "
+                          "ORDER BY close_time DESC LIMIT 3", (h["open_time"],))
+        hc = compute_hist_call([r["result"] for r in reversed(priors)])
+        if hc and db.insert_call_ignore(h["kalshi_ticker"], "histcall", hc["choice"],
+                                        hc["reason"] + " (backfilled)", time.time()):
+            filled += 1
+    if filled:
+        invalidate_records()
+        print("[caller] backfilled %d missed History Call(s)" % filled, file=sys.stderr)
+    return filled
 
 
 def caller_tick():
@@ -682,9 +938,23 @@ def caller_tick():
         # ourselves (~1-2 Kalshi calls per 15-min round when idle).
         refresh_open_round()
         cur = current_round_row()
-    settle_pending_once(now)
+    try:
+        settle_pending_once(now)
+    except Exception as e:  # noqa
+        # Settlement is best-effort and must never skip the call windows below it.
+        print("[caller] settle failed: %s" % e, file=sys.stderr)
     if not cur or cur["close_time"] <= now:
         return
+    # BTC-29: the actionable ALGO calls at T-12 / T-10 / T-5, each inside a bounded
+    # window so a call always means what its name says. Separate sources, write-once.
+    for offset_s, source, mins in ALGO_CALL_OFFSETS:
+        start = cur["close_time"] - offset_s
+        if start <= now < start + ALGO_CALL_WINDOW_S:
+            if source not in db.calls_for_round(cur["kalshi_ticker"]):
+                if not is_active():
+                    refresh_open_round()  # snapshot odds now; the row is otherwise round-open stale
+                    cur = current_round_row() or cur
+                make_offset_call(cur, now, source, mins)
     if cur["lock_ts"] - CALL_WINDOW_S <= now < cur["lock_ts"]:
         existing = db.calls_for_round(cur["kalshi_ticker"])
         if "algo" in existing and "histcall" in existing:
@@ -702,9 +972,13 @@ def caller_loop():
     # every round, 24/7, and settlement lives here now -- single owner, never blocks.
     while STATE["catching_up"]:
         time.sleep(1)
+    last_hc_sweep = 0.0
     while True:
         try:
             caller_tick()
+            if time.time() - last_hc_sweep >= HC_BACKFILL_EVERY_S:
+                last_hc_sweep = time.time()
+                backfill_hist_calls()
         except Exception as e:  # noqa
             print("[caller] %s" % e, file=sys.stderr)
         time.sleep(CALLER_CHECK_S)
@@ -927,7 +1201,9 @@ class Handler(BaseHTTPRequestHandler):
                       "/api/picks": (self._post_picks, PICKS_MAX_BYTES),
                       "/api/board": (self._post_board, KV_MAX_BYTES + 50_000),
                       "/api/prefs": (self._post_prefs, KV_MAX_BYTES + 50_000),
-                      "/api/calls/import": (self._post_import, IMPORT_MAX_BYTES)}
+                      "/api/calls/import": (self._post_import, IMPORT_MAX_BYTES),
+                      "/api/calls/reset": (self._post_calls_reset, PICKS_MAX_BYTES),
+                      "/api/calls/edit": (self._post_calls_edit, PICKS_MAX_BYTES)}
             route = routes.get(path)
             if not route:
                 return self._send(404, b'{"error":"not found"}')
@@ -978,6 +1254,50 @@ class Handler(BaseHTTPRequestHandler):
         db.upsert_call(ticker, "you", choice, None, time.time())
         return self._send(200, self._calls_body())
 
+    def _post_calls_reset(self, body):
+        # BTC-16: wipe the owner's record back to 0-0. Only 'you' -- the ALGO and the
+        # History Call records are the app's own history and are never resettable.
+        # The kv reset-epoch stamp is what keeps a stale browser's one-time migration
+        # import from quietly re-populating the record afterwards (see _post_import).
+        touch_client()
+        if body.get("source", "you") != "you":
+            return self._send(400, b'{"error":"only the you record can be reset"}')
+        deleted = db.delete_calls("you")
+        db.kv_set("you_reset_ts", json.dumps({"ts": time.time()}))
+        invalidate_records()
+        return self._send(200, self._calls_body({"reset": True, "deleted": deleted}))
+
+    def _reset_epoch(self):
+        row = db.kv_get("you_reset_ts")
+        if not row:
+            return 0.0
+        try:
+            return float(json.loads(row["payload"]).get("ts") or 0.0)
+        except (ValueError, TypeError):
+            return 0.0
+
+    def _post_calls_edit(self, body):
+        # BTC-22: the owner can change (or clear) their OWN call on any known round,
+        # locked or settled -- they sometimes sell the position early, and the final
+        # result then misrepresents the call they actually traded on. Explicit,
+        # per-round, 'you' only; the auto-callers stay write-once.
+        touch_client()
+        ticker = body.get("ticker")
+        choice = body.get("choice")
+        if not isinstance(ticker, str) or not ticker:
+            return self._send(400, b'{"error":"ticker required"}')
+        if choice not in ("yes", "no", None):
+            return self._send(400, b'{"error":"choice must be yes, no or null"}')
+        known = db.query_one("SELECT 1 AS x FROM rounds WHERE kalshi_ticker=?", (ticker,))
+        if not known:
+            return self._send(404, b'{"error":"unknown round"}')
+        if choice is None:
+            db.delete_call(ticker, "you")
+        else:
+            db.upsert_call(ticker, "you", choice, "edited after close", time.time())
+        invalidate_records()
+        return self._send(200, self._calls_body({"edited": ticker}))
+
     def _post_board(self, body):
         payload = body.get("payload")
         if not isinstance(payload, dict):
@@ -1006,6 +1326,7 @@ class Handler(BaseHTTPRequestHandler):
         # never overwriting an existing call ('you' imports too: history is history).
         imported = {"you": 0, "algo": 0}
         skipped = 0
+        reset_epoch = self._reset_epoch()  # BTC-16: rounds from before a reset stay reset
         for source in ("you", "algo"):
             entries = body.get(source)
             if entries is None:
@@ -1027,16 +1348,20 @@ class Handler(BaseHTTPRequestHandler):
                      (float(ts) if isinstance(ts, (int, float)) and not isinstance(ts, bool) else time.time())
                 reason = e.get("reason")
                 reason = reason[:500] if isinstance(reason, str) else None
-                known = db.query_one("SELECT 1 AS x FROM rounds WHERE kalshi_ticker=?", (ticker,))
+                known = db.query_one("SELECT close_time FROM rounds WHERE kalshi_ticker=?", (ticker,))
                 if not known:
+                    skipped += 1
+                    continue
+                if source == "you" and known["close_time"] <= reset_epoch:
+                    # A browser that hasn't visited since before a reset would otherwise
+                    # re-import the record the owner deliberately wiped.
                     skipped += 1
                     continue
                 if db.insert_call_ignore(ticker, source, choice, reason, ts):
                     imported[source] += 1
                 else:
                     skipped += 1  # already on the server; write-once stands
-        global _records_cache
-        _records_cache = (0.0, None)  # imports can change history; recompute promptly
+        invalidate_records()  # imports can change history; recompute promptly
         return self._send(200, self._calls_body({"imported": imported, "skipped": skipped}))
 
     def _serve_page(self, filename):
@@ -1072,10 +1397,18 @@ class Handler(BaseHTTPRequestHandler):
         touch_client()
         cur = current_round_row()
         board_row = db.kv_get("board")
+        with STATE_LOCK:
+            live_price = STATE["live_price"]
+            live_price_source = STATE["live_price_source"]
+            live_price_ts = STATE["live_price_ts"]
+            ticks = STATE["recent_ticks"][-120:]
         payload = {"now": time.time(), "version": VERSION, "catching_up": STATE["catching_up"], "current_round": None,
-                   "last_settled": None, "live_price": STATE["live_price"],
-                   "live_price_source": STATE["live_price_source"], "lean": None,
-                   "ticks": STATE["recent_ticks"][-120:],
+                   "last_settled": None, "live_price": live_price,
+                   "live_price_source": live_price_source,
+                   # BTC-18: when the price was actually FETCHED, so the pages can show
+                   # true price age instead of "when did I last poll".
+                   "live_price_ts": live_price_ts, "lean": None,
+                   "ticks": ticks,
                    "records": get_records(),
                    "calls": db.calls_for_round(cur["kalshi_ticker"] if cur else None),
                    "board_saved_at": board_row["saved_at"] if board_row else None}
@@ -1087,7 +1420,7 @@ class Handler(BaseHTTPRequestHandler):
                 "kalshi_yes_price": cur["kalshi_yes_price"], "kalshi_no_price": cur["kalshi_no_price"],
                 "robinhood_url": robinhood_url(cur["floor_strike"], cur["open_time"]),
             }
-            payload["lean"] = compute_lean(STATE["live_price"], cur["floor_strike"])
+            payload["lean"] = compute_lean(live_price, cur["floor_strike"])
         last = last_settled_row()
         if last:
             payload["last_settled"] = {
@@ -1169,6 +1502,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     threading.Thread(target=round_engine, daemon=True).start()
     threading.Thread(target=price_poller, daemon=True).start()
+    threading.Thread(target=price_stream, daemon=True).start()
     threading.Thread(target=caller_loop, daemon=True).start()
     print("\n  BTC Prediction")
     print("  --------------")

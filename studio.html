@@ -53,6 +53,14 @@
     --r-lg: 9px;
     --r-md: 7px;
     --r-sm: 6px;
+    /* BTC-21: one fixed color per caller, in every skin (skins that redefine :root
+       leave these alone, so the marks read the same on all ten looks). */
+    --call-you: #ffd23f;
+    --call-algo: #22c3e6;
+    --call-hist: #c07ef0;
+    --callearly: #7cf6c0;
+    --call12: #f0a868;
+    --call10: #e8d55c;
   }
   :root[data-theme="light"] {
     --bg-deep: #f3f4f8;
@@ -97,7 +105,10 @@
      bring the rest back. Editing always shows the whole bar. */
   .topbar.collapsed { padding: 0.25rem 0.9rem; }
   .topbar.collapsed > *:not(.strip-keep) { display: none !important; }
-  .topbar.collapsed #dataChip { margin-right: auto; }
+  /* BTC-28: the chip used to be the only thing pushing Edit/More right in the collapsed
+     strip. The lone dot takes that job now. */
+  .topbar.collapsed #liveDot { margin-right: auto; }
+  #liveDot { flex: none; }
   .topbar.collapsed .btn { min-height: 28px; height: 28px; padding: 0 0.5rem; font-size: 0.7rem; }
   .topbar.collapsed .btn.icon { width: 28px; }
   #addBtn { display: none; }
@@ -328,6 +339,29 @@
   .acc-n { flex: 0 0 66px; font-size: 0.6rem; color: var(--dim); text-align: right; }
   .acc-foot { font-size: 0.58rem; color: var(--faint); line-height: 1.4; margin-top: 0.2rem; }
 
+  /* call log: the per-round companion to Accuracy -- who called what, and whether it landed */
+  .cl-cl { display: flex; flex-direction: column; height: 100%; overflow: hidden; gap: 0.4rem; }
+  .cl-cl-live { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; flex: 0 0 auto;
+    padding: 0.35rem 0.5rem; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-sm); }
+  .cl-cl-live-lbl { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); }
+  .cl-cl-livecell { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; }
+  .cl-cl-livecell i { font-style: normal; color: var(--dim); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-cl-pending { margin-left: auto; font-size: 0.58rem; color: var(--dim); border: 1px dashed var(--border);
+    border-radius: 999px; padding: 0.05rem 0.45rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  .cl-cl-tblwrap { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .cl-cl-tbl th, .cl-cl-tbl td { white-space: nowrap; }
+  .cl-cl-pick { font-weight: 800; font-size: 0.68rem; }
+  .cl-cl-pick.yes { color: var(--green); }
+  .cl-cl-pick.no { color: var(--red); }
+  .cl-cl-none { color: var(--dim); opacity: 0.55; }
+  .cl-cl-ok { color: var(--green); font-weight: 800; margin-left: 0.28rem; }
+  .cl-cl-bad { color: var(--red); font-weight: 800; margin-left: 0.28rem; }
+  .cl-cl-foot { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; flex: 0 0 auto;
+    font-size: 0.62rem; color: var(--soft); border-top: 1px solid var(--border); padding-top: 0.35rem; }
+  .cl-cl-foot i { font-style: normal; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .cl-cl-foot b { font-family: var(--mono); color: var(--cream); font-weight: 800; }
+  .cl-cl-scope { margin-left: auto; color: var(--faint); }
+
   /* ---------------- Classic modules ----------------
      The seven modules of / rebuilt as panels. Same labels, same numbers, same
      colour rules -- only the container is different. */
@@ -444,6 +478,7 @@
   .cl-road-icon { width: 30px; height: 30px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--amber) 18%, transparent); color: var(--amber); display: flex; align-items: center; justify-content: center; flex: none; }
   .cl-road-icon svg { width: 16px; height: 16px; }
   .cl-road-title h2 { margin: 0; font-size: 0.82rem; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cream); }
+  .cl-road-meta { font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); }
   .cl-road-title p { margin: 0; font-size: 0.58rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
   .cl-road-ctl, .cl-ledger-ctl { display: flex; align-items: center; gap: 0.5rem; }
   .cl-tf { display: inline-flex; background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; gap: 2px; flex-wrap: wrap; }
@@ -465,10 +500,33 @@
   .cl-bead .g { font-weight: 900; font-size: 0.95rem; }
   .cl-bead .t { font-weight: 700; font-size: 0.52rem; opacity: 0.85; margin-top: 1px; letter-spacing: -0.02em; font-family: var(--mono); }
   .cl-bead .d { font-weight: 900; font-size: 0.5rem; opacity: 0.92; font-family: var(--mono); }
-  .cl-badge { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface-900); }
-  .cl-badge svg { width: 11px; height: 11px; }
-  .cl-badge.hit { background: var(--amber); color: #05060a; }
-  .cl-badge.miss { background: #14161d; color: #ffffff; }
+  /* BTC-21: every caller gets a corner of the chip -- you bottom-right, ALGO
+     top-left, History Call bottom-left; fixed colors, hit = solid + check,
+     miss = dark + X. .sm shrinks the badge on mid beads; .dot is the tiny
+     colored-corner form for scaled-down roads (no glyph, hollow = miss). */
+  .bead-call { position: absolute; width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--surface-900); z-index: 1; }
+  .bead-call svg { width: 9px; height: 9px; }
+  .bead-call.you { bottom: -5px; right: -5px; }
+  .bead-call.algo { top: -5px; left: -5px; }
+  .bead-call.hist { bottom: -5px; left: -5px; }
+  .bead-call.hit { color: #05060a; }
+  .bead-call.you.hit { background: var(--call-you); }
+  .bead-call.algo.hit { background: var(--call-algo); }
+  .bead-call.hist.hit { background: var(--call-hist); }
+  .bead-call.miss { background: #14161d; }
+  .bead-call.you.miss { color: var(--call-you); border-color: var(--call-you); }
+  .bead-call.algo.miss { color: var(--call-algo); border-color: var(--call-algo); }
+  .bead-call.hist.miss { color: var(--call-hist); border-color: var(--call-hist); }
+  .bead-call.sm { width: 11px; height: 11px; }
+  .bead-call.sm svg { width: 7px; height: 7px; }
+  .bead-call.dot { width: 7px; height: 7px; border-width: 1px; }
+  .bead-call.dot svg { display: none; }
+  .bead-call.dot.you { bottom: -2px; right: -2px; }
+  .bead-call.dot.algo { top: -2px; left: -2px; }
+  .bead-call.dot.hist { bottom: -2px; left: -2px; }
+  .bead-call.dot.miss { background: transparent; }
+  .cl-road-col.sm { padding: 1px; border-width: 1.5px; border-radius: 5px; }
+  .cl-road-grid.rb .cl-bead { border-radius: 4px; }
   .cl-derived { flex: none; margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
   .cl-derived-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
   .cl-derived-head h3 { margin: 0; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--soft); font-weight: 900; }
@@ -500,6 +558,96 @@
     background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
   }
   .scrim.show { display: block; }
+
+  /* Panel description popover. Mounted on <body>, never inside the panel: .panel-body is
+     overflow:hidden and panels are absolutely positioned, so an in-panel tip gets clipped. */
+  /* Sized to sit INSIDE the title's line box: .pbtn is 26px, which would make every
+     panel header ~6px taller in view mode and shift the render box of every saved
+     board. 14px + line-height:0 keeps .panel-head exactly the height it is today. */
+  .pinfo {
+    display: inline-flex; flex: none; width: 14px; height: 14px; min-width: 14px;
+    padding: 0; margin: 0; line-height: 0; cursor: help;
+    align-items: center; justify-content: center;
+    background: transparent; border: 0; border-radius: 50%;
+    color: var(--faint); opacity: 0.6; font: inherit;
+  }
+  .pinfo:hover, .pinfo:focus-visible, .pinfo[aria-expanded="true"] { color: var(--amber); opacity: 1; }
+  .pinfo:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .pinfo svg { width: 14px; height: 14px; display: block; }
+  .pinfo[hidden] { display: none; }
+  /* A comfortable tap target that costs no layout. */
+  .pinfo::after { content: ""; position: absolute; inset: -11px; }
+  .pinfo { position: relative; }
+
+  #panelTip {
+    position: absolute; z-index: 130; display: none; max-width: 300px;
+    padding: 0.55rem 0.7rem;
+    background: var(--surface-900); border: 1px solid var(--border);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+    font-size: 0.72rem; line-height: 1.45; color: var(--soft);
+    text-transform: none; letter-spacing: 0; font-weight: 500;
+  }
+  #panelTip.show { display: block; }
+  #panelTip b { color: var(--cream); font-weight: 800; }
+
+  /* --- Call Tape --- */
+  .tape { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .tape-list { display: flex; flex-direction: column; gap: 1px; }
+  .tape-row { display: grid; grid-template-columns: auto auto auto 14px 1fr; align-items: baseline;
+    gap: 0.4rem; padding: 0.16rem 0.1rem; border-bottom: 1px solid var(--border); font-size: 0.66rem; }
+  .tape-when { font-family: var(--mono); color: var(--faint); font-size: 0.6rem; }
+  .tape-src { font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.58rem; color: var(--soft); white-space: nowrap; }
+  .tape-src.algo, .tape-src.algo12, .tape-src.algo10, .tape-src.algoearly { color: var(--call-algo, var(--blue, #6cc6ff)); }
+  .tape-src.histcall { color: var(--call-hist, #b48cff); }
+  .tape-src.you { color: var(--call-you, var(--amber)); }
+  .tape-call { font-family: var(--mono); font-weight: 800; font-size: 0.62rem; }
+  .tape-call.yes { color: var(--green); }
+  .tape-call.no { color: var(--red); }
+  .tape-mark { line-height: 0; color: var(--faint); }
+  .tape-mark svg { width: 11px; height: 11px; }
+  .tape-mark.hit { color: var(--green); }
+  .tape-mark.miss { color: var(--red); }
+  .tape-why { color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* --- Caller Race --- */
+  .race { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+  .race-list { display: flex; flex-direction: column; gap: 0.3rem; }
+  .race-row { display: grid; grid-template-columns: 5.2rem 1fr auto auto auto; align-items: center;
+    gap: 0.45rem; font-size: 0.68rem; }
+  .race-name { font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase;
+    font-size: 0.58rem; color: var(--soft); white-space: nowrap; }
+  .race-bar { height: 8px; background: var(--surface-850); border-radius: 4px; overflow: hidden; }
+  .race-bar i { display: block; height: 100%; border-radius: 4px; background: var(--green); }
+  .race-bar i.dn { background: var(--red); }
+  .race-pct { font-family: var(--mono); font-size: 0.78rem; color: var(--cream); min-width: 2.4rem; text-align: right; }
+  .race-wl { font-family: var(--mono); font-size: 0.62rem; color: var(--faint); min-width: 3.4rem; text-align: right; }
+  .race-cov { font-family: var(--mono); font-size: 0.58rem; color: var(--dim); min-width: 3rem; text-align: right; }
+
+  /* --- Feed Health --- */
+  .feed { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; overflow: hidden; }
+  .feed-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+  .feed-src { font-family: var(--mono); font-size: 0.72rem; font-weight: 800; color: var(--soft); }
+  .feed-src.ws { color: var(--green); }
+  .feed-src.rest { color: var(--amber); }
+  .feed-age { font-family: var(--mono); font-size: 1.1rem; font-weight: 800; }
+  .feed-age.ok { color: var(--green); }
+  .feed-age.warm { color: var(--amber); }
+  .feed-age.bad { color: var(--red); }
+  .feed-lbl { font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
+  /* .panel-body svg sets height:100%; this needs two classes to outrank it. */
+  .feed .feed-spark { width: 100%; height: 26px; margin-top: 0.25rem; flex: none; }
+
+  /* --- Edge Now --- */
+  .edge { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; }
+  .edge-pair { display: flex; gap: 0.75rem; }
+  .edge-cell { flex: 1 1 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .edge-cell b { font-family: var(--mono); font-size: 1.35rem; color: var(--cream); line-height: 1; }
+  .edge-lbl { font-size: 0.54rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); font-weight: 800; }
+  .edge-gap { font-family: var(--mono); font-size: 1.05rem; font-weight: 800; }
+  .edge-gap.yes { color: var(--green); }
+  .edge-gap.no { color: var(--red); }
+  .edge-gap.agree { color: var(--dim); }
+  .edge-lbl2 { font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); font-weight: 700; }
 
   .sheet {
     position: fixed; z-index: 110; display: none; flex-direction: column;
@@ -534,6 +682,8 @@
     background: var(--surface-850); border: 1px solid var(--border); border-radius: var(--r-lg);
     color: var(--soft); font-size: 0.72rem; font-weight: 600;
   }
+  /* [hidden] alone loses to the display rule above -- the filter needs this to bite */
+  .viz-card[hidden], .viz-grid[hidden], .group-label[hidden] { display: none !important; }
   .viz-card:hover { border-color: var(--amber); color: var(--amber); background: var(--surface-800); }
   .viz-card.sel { border-color: var(--amber); color: var(--amber); }
   .viz-card svg { width: 100%; height: 44px; }
@@ -1051,6 +1201,22 @@
   .rd-row:last-child { border-bottom: none; }
   .rd-row span { color: var(--dim); font-weight: 700; }
   .rd-row b { color: var(--soft); font-weight: 800; }
+  .rd-row span i { font-style: normal; color: var(--faint); font-weight: 600; font-size: 0.72em; }
+  /* BTC-23: header that opens the grouped block of predictions */
+  .rd-sep { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px solid var(--border);
+            font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--faint); font-weight: 800; }
+  /* BTC-22: change-your-call buttons in the round sheet. */
+  .rd-edit { display: flex; gap: 0.4rem; }
+  .rd-btn {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em;
+    text-transform: uppercase; cursor: pointer; padding: 0.35rem 0.7rem;
+    border-radius: var(--r-sm); border: 1px solid var(--ctl-border);
+    background: transparent; color: var(--soft);
+  }
+  .rd-btn.yes:hover { color: var(--green); border-color: var(--green); }
+  .rd-btn.no:hover { color: var(--red); border-color: var(--red); }
+  .rd-btn.clear:hover { color: var(--amber); border-color: var(--amber); }
   .rd-row b.yes { color: var(--green); }
   .rd-row b.no { color: var(--red); }
   .rd-row b.hit { color: var(--amber); }
@@ -1153,6 +1319,44 @@
   .arr-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
   .arr-name { font-weight: 800; color: var(--cream); }
   .arr-desc { font-size: 0.72rem; color: var(--dim); font-weight: 600; }
+  .arr-row.current { background: color-mix(in srgb, var(--amber) 8%, transparent); }
+  .arr-badge { font-size: 0.56rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--amber); border: 1px solid var(--amber); border-radius: 999px; padding: 0.05rem 0.4rem; align-self: flex-start; }
+  /* a mini-map of the board, so you can see the shape before you commit to it */
+  .arr-thumb { position: relative; flex: 0 0 72px; width: 72px; height: 46px; border-radius: 4px;
+    background: var(--surface-800); border: 1px solid var(--border); overflow: hidden; }
+  .arr-thumb i { position: absolute; box-sizing: border-box; border-radius: 1px;
+    background: color-mix(in srgb, var(--amber) 55%, transparent);
+    border: 1px solid var(--surface-900); }
+  .arr-thumb.blank { display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; letter-spacing: 0.08em; color: var(--dim); font-style: normal; }
+
+  /* empty board: never leave a blank canvas with no way forward */
+  /* the grid collapses to zero height with no panels, so give the prompt its own box */
+  /* BTC-28: the version footer, ported from Classic rather than restyled a third time. */
+  footer.page-foot { padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
+  .foot-bar { width: 44px; height: 3px; background: var(--amber); border-radius: 999px; opacity: 0.35; }
+  .foot-version { font-size: 0.62rem; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .foot-version.stale { color: var(--red); }
+
+  #grid.is-empty { min-height: 340px; }
+  .board-empty { position: absolute; inset: 0; min-height: 340px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.5rem; text-align: center; padding: 2rem; }
+  .board-empty h2 { margin: 0; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream); }
+  .board-empty p { margin: 0; max-width: 30rem; font-size: 0.8rem; color: var(--dim); line-height: 1.5; }
+
+  /* panel picker: 30+ panels is too many to scan, so let people type */
+  .picker-search { position: sticky; top: 0; z-index: 2; background: var(--surface-900);
+    padding: 0 0 0.6rem; margin-bottom: 0.2rem; }
+  .picker-search input { width: 100%; }
+  .picker-none { color: var(--dim); font-size: 0.8rem; padding: 0.6rem 0; }
+
+  /* the collapsed strip keeps the viewing controls -- range and bucket are not editing tools */
+  .topbar.collapsed .seg-label { font-size: 0.55rem; }
+  .topbar.collapsed .seg .tbtn { min-height: 24px; height: 24px; padding: 0 0.4rem; font-size: 0.65rem; }
+  .tb-x { display: none; }
+  .topbar.collapsed .tb-x { display: inline; margin-left: 0.3rem; }
+  .topbar.collapsed #tbExpand { width: auto; padding: 0 0.5rem; }
 </style>
 </head>
 <body>
@@ -1172,25 +1376,33 @@
     </div>
   </div>
 
-  <span class="seg-label">Range</span>
-  <div class="seg" id="rangeSeg"></div>
+  <span class="seg-label strip-keep">Range</span>
+  <div class="seg strip-keep" id="rangeSeg"></div>
 
-  <span class="seg-label">Bucket</span>
-  <div class="seg" id="bucketSeg"></div>
+  <span class="seg-label strip-keep">Bucket</span>
+  <div class="seg strip-keep" id="bucketSeg"></div>
 
   <div class="spacer"></div>
 
-  <div class="chip strip-keep" id="dataChip"><span class="dot" id="liveDot"></span><span id="dataText">loading…</span></div>
+  <!-- BTC-28: the status TEXT lives in the footer now; only the live dot stays up here,
+       so a connection problem is still visible without scrolling a tall board. -->
+  <span class="dot strip-keep" id="liveDot" title="Live data"></span>
 
   <button class="btn" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Add panel</button>
   <button class="btn strip-keep" id="editBtn" title="Toggle edit mode (move + resize)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span id="editLabel">Edit</span></button>
   <button class="btn" id="designBtn" title="Skin, arrangement, saves and panels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.6 1.5-1.4 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.4 1.6-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="17.5" cy="11.5" r="1"/></svg>Design</button>
-  <button class="btn icon strip-keep" id="tbExpand" title="Show / hide the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button class="btn icon strip-keep" id="tbExpand" title="Show / hide the toolbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg><span class="tb-x">More</span></button>
 </div>
 
 <div class="canvas-wrap">
   <div id="grid"><div class="ghost" id="ghost"></div></div>
 </div>
+
+<!-- BTC-28: the running version at the BOTTOM, like Classic and the ALGO Desk. Sits
+     outside .canvas-wrap so the absolutely-positioned grid (and .board-empty) can't
+     overlap it. #dataText carries price / rounds / depth / version, and the connection
+     warning too — the live dot up top mirrors that state. -->
+<footer class="page-foot"><div class="foot-bar"></div><div class="foot-version" id="dataText">loading…</div></footer>
 
 <div class="scrim" id="scrim"></div>
 
@@ -1277,6 +1489,7 @@
       <p class="hint">Add panels from the toolbar while editing. Start over, or carry a board around as JSON.</p>
       <div class="d-row">
         <button class="btn" id="resetClassicBtn" title="Put every module back exactly where Classic has it">Reset to Classic</button>
+        <button class="btn" id="resetCallsBtn" title="Wipe YOUR call record back to 0-0 — the ALGO and History Call records are untouched">Reset Your Calls</button>
         <button class="btn" id="jsonBtn" title="Export / import dashboard JSON">Export / Import JSON</button>
       </div>
     </div>
@@ -1658,6 +1871,111 @@ function buildColumns(rounds, cap) {
   }
   return columns;
 }
+/* BTC-19: size the road to the window instead of throwing history away -- pick the
+   largest bead size whose columns ALL fit the box (wrapping into rows). >=36px keeps
+   the full Y/time/delta bead, 22-35px keeps just the letter, below that it's a plain
+   colored chip. data-trim stays on the grid as a safety net for estimate error only. */
+const ROAD_LADDER = [44, 38, 32, 27, 23, 19, 16, 13, 11, 9, 8, 7, 6];
+
+/* One column's geometry at bead size s: everything both the fitter (how small must we
+   go to fit this box?) and the auto-sizer (how big must the box be?) need. */
+function roadGeom(s, cap) {
+  const full = s >= 36;
+  const beadH = full ? s + 4 : s;
+  const g1 = s >= 22 ? 4 : Math.max(2, Math.round(s / 6));          // gap inside a column
+  const g2 = s >= 22 ? 12 : Math.max(3, Math.round(s / 4));         // row gap
+  const g3 = s >= 22 ? 8 : Math.max(2, Math.round(s / 6));          // column gap
+  const pad = s >= 22 ? 10 : 5;                                      // col padding+border
+  return { s, full, beadH, g1, g2, g3, pad, colH: cap * beadH + (cap - 1) * g1 + pad };
+}
+function roadPerRow(g, availW) { return Math.max(1, Math.floor((availW + g.g3) / (g.s + g.pad + g.g3))); }
+
+function roadFit(nCols, cap, availW, availH) {
+  for (const s of ROAD_LADDER) {
+    const geo = roadGeom(s, cap);
+    const full = geo.full, g1 = geo.g1, g2 = geo.g2, g3 = geo.g3, colH = geo.colH;
+    // BTC-30: a size only counts if a WHOLE column fits the height. The old
+    // Math.max(1, rows) asserted one row fit even when the column overhung the
+    // panel -- the grid was then emitted at that size and fitTrim deleted every
+    // column trying to make it fit, leaving "Enlarge this panel to see more".
+    if (colH > availH) continue;
+    const rows = Math.floor((availH + g2) / (colH + g2));
+    const perRow = roadPerRow(geo, availW);
+    if (rows * perRow >= nCols) return { size: s, g1, g2, g3, full, mid: s >= 22 && !full, fits: true };
+  }
+  return { size: 6, g1: 2, g2: 3, g3: 2, full: false, mid: false, fits: false };
+}
+
+/* BTC-31, the other direction: how TALL must the box be for this road? Aims at the
+   smallest bead that still shows its Y/N letter, and only steps below that when even
+   that would need more room than the panel is allowed to take. */
+const FIT_MIN_BEAD = 22;
+function roadNeedH(nCols, cap, availW, maxH) {
+  let start = 0;
+  for (let i = 0; i < ROAD_LADDER.length; i++) if (ROAD_LADDER[i] >= FIT_MIN_BEAD) start = i;
+  for (let i = start; i < ROAD_LADDER.length; i++) {
+    const geo = roadGeom(ROAD_LADDER[i], cap);
+    const rows = Math.max(1, Math.ceil(nCols / roadPerRow(geo, availW)));
+    const needH = rows * geo.colH + (rows - 1) * geo.g2;
+    if (needH <= maxH || i === ROAD_LADDER.length - 1) return { size: geo.s, needH: Math.min(needH, maxH) };
+  }
+  return null;
+}
+
+/* BTC-30: a panel that scales its content has to guess the box before it has one
+   (the road subtracted a hard-coded 78px of header and 96px of Big Eye Boy, and
+   measured 262px against a real 317px -- a whole step down the bead ladder). A viz
+   can declare `fitSel`; renderPanelBody then measures that element's real content
+   box after the first pass and renders once more with the truth. The box comes from
+   flex leftovers, never from the content, so the second measurement matches and the
+   pass settles immediately. */
+const FITBOX = {};
+function measureBox(body, sel) {
+  const el = body.querySelector(sel);
+  if (!el) return null;
+  const cs = getComputedStyle(el);
+  const w = el.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+  const h = el.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+  return w > 4 && h > 4 ? { w, h } : null;
+}
+
+/* BTC-21: the three callers' corner marks for one bead. Full badges down to 22px,
+   tiny color dots to 12px, nothing below that (the round modal still tells all). */
+/* One display name per call source, used by the tape and the race. */
+const CALL_LABEL = { you: "You", algo12: "ALGO T-12", algo10: "ALGO T-10", algoearly: "ALGO T-5",
+                     algo: "ALGO final", histcall: "History" };
+/* Server call reasons are written as prose for one-at-a-time reading. In a dense tape the
+   boilerplate is noise: the row already says who called and which way, so keep the numbers
+   and drop the sentence around them. Anything that does not match is left untouched, and
+   the row's title carries the reason verbatim. */
+function stripTag(t) {
+  return String(t)
+    .replace(/^\s*\[[^\]]*\]\s*/, "")                              // "[Call at T-10, ...]"
+    .replace(/Kalshi.s own market prices (YES|NO) higher\s*[—-]\s*/i, "")
+    .replace(/\s*on real order-book pricing\.?/i, "")
+    .replace(/\s*\(coin flip not ruled out\)\.?/i, "")
+    .replace(/history leans (YES|NO) /i, "")
+    .replace(/\s*past rounds\.?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+const CALL_MARKS = [["you", "you", "You"], ["algo", "algo", "ALGO"], ["histcall", "hist", "History Call"]];
+function callMarksHtml(r, size) {
+  if (size < 12) return "";
+  const c = callsOf(r);
+  const dot = size < 22, sm = size >= 22 && size < 36;
+  let out = "";
+  for (const [key, cls, label] of CALL_MARKS) {
+    const choice = c[key];
+    if (!choice) continue;
+    const hit = choice === r.result;
+    out += '<span class="bead-call ' + cls + (dot ? " dot" : sm ? " sm" : "") + " " + (hit ? "hit" : "miss")
+      + '" title="' + label + " called " + choice.toUpperCase() + " — " + (hit ? "hit" : "miss") + '">'
+      + (dot ? "" : hit ? ICON_CHECK : ICON_X) + "</span>";
+  }
+  return out;
+}
+
 function computeBigEyeBoy(columns) {
   const marks = [];
   for (let c = 1; c < columns.length; c++) {
@@ -1684,8 +2002,8 @@ function computeBigEyeBoy(columns) {
 const WINDOW_LABELS = { 0.5: "30 Minutes", 1: "Hour", 2: "2 Hours", 3: "3 Hours", 6: "6 Hours", 8: "8 Hours", 12: "12 Hours", 24: "24 Hours", 168: "7 Days" };
 const TF_CHOICES = [[0.5, "30M"], [1, "1H"], [2, "2H"], [3, "3H"], [6, "6H"], [8, "8H"], [12, "12H"], [24, "24H"], [168, "7D"]];
 const HIST_TYPES = { results: 1, roadhistory: 1, spreadledger: 1, confidence: 1,
-                     scorecard: 1, streakladder: 1, volclock: 1, margin: 1 };
-const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1 };
+                     scorecard: 1, streakladder: 1, volclock: 1, margin: 1, calllog: 1 };
+const LIVE_TYPES = { countdown: 1, livepick: 1, histcall: 1, scorecard: 1, patterntable: 1, confidence: 1, gauges: 1, spreadnow: 1, roundcard: 1, leanbar: 1, pick: 1, algocall: 1, calllog: 1 };
 
 function panelHours(p) { return num(p.options.hours, 24); }
 function histWindowsNeeded() {
@@ -1695,16 +2013,29 @@ function histWindowsNeeded() {
 }
 function histFor(p) { return DATA.hist[panelHours(p)] || null; }
 const histLoading = {};
+const histWaiting = {};
 function loadHist(hours, then) {
-  if (histLoading[hours]) return;
+  // A load already in flight must not swallow this callback: the periodic refresh asks
+  // for the same windows, so a click that lands mid-flight used to be told nothing ever
+  // happened. Queue instead of dropping.
+  if (histLoading[hours]) {
+    if (then) (histWaiting[hours] = histWaiting[hours] || []).push(then);
+    return;
+  }
   histLoading[hours] = true;
+  const drain = () => {
+    const q = histWaiting[hours] || [];
+    histWaiting[hours] = [];
+    for (const f of q) f();
+  };
   getJSON("/api/history?hours=" + hours)
     .then(d => {
       DATA.hist[hours] = { rounds: d.rounds || [], tallies: d.tallies || {}, at: Date.now() };
       histLoading[hours] = false;
       if (then) then();
+      drain();
     })
-    .catch(() => { histLoading[hours] = false; });
+    .catch(() => { histLoading[hours] = false; histWaiting[hours] = []; });
 }
 
 /* Classic's chart: fixed 600x130 box stretched to fit, strokes kept crisp. */
@@ -1804,6 +2135,7 @@ function loadTrackTicks(p, round) {
 
 /* --- gauge ------------------------------------------------------------- */
 defViz("gauge", {
+  desc: "One number against its range, with the threshold band shaded.",
   label: "Gauge", group: "Single value", accepts: ["scalar"],
   icon: '<path d="M6 34a16 16 0 0 1 32 0" fill="none" stroke="currentColor" stroke-width="3.5" opacity=".3"/><path d="M6 34a16 16 0 0 1 9-14.4" fill="none" stroke="currentColor" stroke-width="3.5"/><circle cx="22" cy="34" r="2.5" fill="currentColor"/>',
   defaults: { showThresholdBand: true, showMinMax: true },
@@ -1844,6 +2176,7 @@ defViz("gauge", {
 
 /* --- bar gauge --------------------------------------------------------- */
 defViz("bargauge", {
+  desc: "Every value in a profile as its own bar \u2014 weekday or hour-of-day at a glance.",
   label: "Bar gauge", group: "Single value", accepts: ["scalar", "profile"],
   icon: '<rect x="5" y="9"  width="30" height="6" rx="2" fill="currentColor"/><rect x="5" y="19" width="20" height="6" rx="2" fill="currentColor" opacity=".65"/><rect x="5" y="29" width="34" height="6" rx="2" fill="currentColor" opacity=".4"/>',
   defaults: { display: "gradient", orientation: "horizontal" },
@@ -1893,6 +2226,7 @@ defViz("bargauge", {
 
 /* --- stat -------------------------------------------------------------- */
 defViz("stat", {
+  desc: "One big number, with an optional sparkline of where it has been.",
   label: "Stat", group: "Single value", accepts: ["scalar"],
   icon: '<text x="22" y="26" text-anchor="middle" fill="currentColor" font-size="16" font-weight="700" font-family="monospace">42</text><path d="M6 36l7-5 6 3 8-7 9 4" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".5"/>',
   defaults: { colorMode: "value", sparkline: true },
@@ -1939,6 +2273,7 @@ defViz("stat", {
 
 /* --- time series ------------------------------------------------------- */
 defViz("timeseries", {
+  desc: "A metric plotted over the board's range.",
   label: "Time series", group: "Over time", accepts: ["series", "ticks"],
   icon: '<path d="M5 32l8-9 7 5 7-14 10 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>',
   defaults: { fill: true, showPoints: false, lineWidth: 2, showThresholdLines: true },
@@ -1998,6 +2333,7 @@ defViz("timeseries", {
 
 /* --- bar chart --------------------------------------------------------- */
 defViz("bars", {
+  desc: "One bar per bucket over the board's range.",
   label: "Bar chart", group: "Over time", accepts: ["series"],
   icon: '<rect x="6"  y="20" width="6" height="18" fill="currentColor"/><rect x="16" y="12" width="6" height="26" fill="currentColor" opacity=".75"/><rect x="26" y="25" width="6" height="13" fill="currentColor" opacity=".55"/><rect x="36" y="8"  width="6" height="30" fill="currentColor" opacity=".4"/>',
   defaults: {},
@@ -2038,6 +2374,7 @@ defViz("bars", {
 
 /* --- candlestick ------------------------------------------------------- */
 defViz("candlestick", {
+  desc: "Open, high, low and close of the settlement price in each bucket.",
   label: "Candlestick", group: "Over time", accepts: ["ohlc"],
   icon: '<line x1="12" y1="6"  x2="12" y2="38" stroke="currentColor" stroke-width="2"/><rect x="8"  y="14" width="8" height="16" fill="currentColor"/><line x1="30" y1="10" x2="30" y2="36" stroke="currentColor" stroke-width="2" opacity=".6"/><rect x="26" y="18" width="8" height="12" fill="currentColor" opacity=".6"/>',
   defaults: {},
@@ -2080,6 +2417,7 @@ defViz("candlestick", {
 
 /* --- heatmap ----------------------------------------------------------- */
 defViz("heatmap", {
+  desc: "A profile as coloured cells \u2014 darker means a higher YES rate.",
   label: "Heatmap", group: "Distribution", accepts: ["profile"],
   icon: '<rect x="5"  y="10" width="10" height="10" fill="currentColor" opacity=".9"/><rect x="17" y="10" width="10" height="10" fill="currentColor" opacity=".45"/><rect x="29" y="10" width="10" height="10" fill="currentColor" opacity=".7"/><rect x="5"  y="22" width="10" height="10" fill="currentColor" opacity=".35"/><rect x="17" y="22" width="10" height="10" fill="currentColor" opacity=".85"/><rect x="29" y="22" width="10" height="10" fill="currentColor" opacity=".55"/>',
   defaults: {},
@@ -2116,6 +2454,7 @@ defViz("heatmap", {
 
 /* --- histogram --------------------------------------------------------- */
 defViz("histogram", {
+  desc: "How often each move size happened. The middle is a round that barely moved.",
   label: "Histogram", group: "Distribution", accepts: ["rounds"],
   icon: '<rect x="4"  y="30" width="6" height="8"  fill="currentColor" opacity=".4"/><rect x="12" y="22" width="6" height="16" fill="currentColor" opacity=".65"/><rect x="20" y="10" width="6" height="28" fill="currentColor"/><rect x="28" y="20" width="6" height="18" fill="currentColor" opacity=".65"/><rect x="36" y="31" width="6" height="7"  fill="currentColor" opacity=".4"/>',
   defaults: { bins: 21, clip: 2 },
@@ -2161,6 +2500,7 @@ defViz("histogram", {
 
 /* --- donut ------------------------------------------------------------- */
 defViz("donut", {
+  desc: "YES against NO across every round in range.",
   label: "Donut", group: "Distribution", accepts: ["rounds", "scalar"],
   icon: '<circle cx="22" cy="22" r="14" fill="none" stroke="currentColor" stroke-width="7" opacity=".3"/><path d="M22 8a14 14 0 0 1 12.1 21" fill="none" stroke="currentColor" stroke-width="7"/>',
   defaults: {},
@@ -2189,6 +2529,7 @@ defViz("donut", {
 
 /* --- state timeline ---------------------------------------------------- */
 defViz("statetimeline", {
+  desc: "Every round in range as one ribbon, newest on the right.",
   label: "State timeline", group: "Rounds", accepts: ["rounds"],
   icon: '<rect x="4"  y="16" width="12" height="12" rx="2" fill="currentColor"/><rect x="18" y="16" width="8"  height="12" rx="2" fill="currentColor" opacity=".4"/><rect x="28" y="16" width="14" height="12" rx="2" fill="currentColor" opacity=".7"/>',
   defaults: { rows: 1 },
@@ -2209,14 +2550,17 @@ defViz("statetimeline", {
 
 /* --- big road ---------------------------------------------------------- */
 defViz("bigroad", {
+  desc: p => "Baccarat's Big Road: each column is a run of the same result, and a new column starts when it flips. " + (num(p.options.hours, 0) === 0 ? "Follows the board's range." : "Pinned to its own " + num(p.options.hours, 0) + "-hour window."),
   label: "Big Road", group: "Rounds", accepts: ["rounds"],
   icon: '<circle cx="10" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="10" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="22" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".55"/><circle cx="34" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/><circle cx="34" cy="24" r="5" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>',
-  defaults: { maxRows: 6, hours: 6 },
+  defaults: { maxRows: 6, hours: 0 },
+  fitSel: ".road",
   render(p, D, w, h) {
     let rounds = D.rounds || [];
-    // Own window, independent of the board's range -- the road is about the recent
-    // run of streaks, not the whole 68 days.
-    const hrs = num(p.options.hours, 6);
+    // BTC-19: hours 0 (the default now) = follow the board's range, so setting the
+    // board to 7d actually shows 7 days here. A positive hours still pins its own
+    // window for anyone who prefers the old behaviour.
+    const hrs = num(p.options.hours, 0);
     if (hrs > 0 && D.state) {
       const cut = D.state.now - hrs * 3600;
       const win = rounds.filter(r => r.close_time >= cut);
@@ -2224,7 +2568,6 @@ defViz("bigroad", {
     }
     if (!rounds.length) return empty("No rounds in range");
     const maxRows = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, 6))));
-    const size = Math.max(8, Math.min(26, Math.floor((h - 8) / maxRows) - 3));
     const cols = [];
     let cur = null;
     for (const r of rounds) {
@@ -2234,13 +2577,16 @@ defViz("bigroad", {
       }
       cur.items.push(r);
     }
-    const fit = Math.max(1, Math.floor((w - 6) / (size + 3)));
-    const shown = cols.slice(-fit);
-    let html = '<div class="road">';
-    for (const c of shown) {
-      html += '<div class="road-col">';
+    // Beads scale until every column fits (wrapping into rows) -- nothing is sliced off.
+    const box = FITBOX[p.id];   // BTC-30: the real box once we've had one
+    const f = roadFit(cols.length, maxRows,
+      box ? box.w : Math.max(40, w - 8),
+      box ? box.h : Math.max(30, h - 8));
+    let html = '<div class="road" style="flex-wrap:wrap;align-content:flex-start;gap:' + f.g2 + "px " + f.g3 + 'px" data-trim="first">';
+    for (const c of cols) {
+      html += '<div class="road-col" style="gap:' + f.g1 + 'px">';
       for (const it of c.items) {
-        html += '<div class="bead ' + (it.result === "yes" ? "y" : "n") + '" style="width:' + size + 'px;height:' + size + 'px" title="'
+        html += '<div class="bead ' + (it.result === "yes" ? "y" : "n") + '" style="width:' + f.size + "px;height:" + f.size + 'px" title="'
           + esc(new Date(it.close_time * 1000).toLocaleString()) + " — " + esc(it.result.toUpperCase()) + '"></div>';
       }
       html += "</div>";
@@ -2251,6 +2597,7 @@ defViz("bigroad", {
 
 /* --- table ------------------------------------------------------------- */
 defViz("table", {
+  desc: "The raw rounds: target, settlement, move and result.",
   label: "Table", group: "Rounds", accepts: ["rounds"],
   icon: '<rect x="5" y="9" width="34" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="5" y1="17" x2="39" y2="17" stroke="currentColor" stroke-width="2.5"/><line x1="17" y1="9" x2="17" y2="35" stroke="currentColor" stroke-width="2"/>',
   defaults: { limit: 40 },
@@ -2274,6 +2621,7 @@ defViz("table", {
 
 /* --- countdown --------------------------------------------------------- */
 defViz("countdown", {
+  desc: "Time left in the round, and whether betting is still open.",
   label: "Countdown", group: "Live", accepts: ["scalar"],
   icon: '<circle cx="22" cy="23" r="14" fill="none" stroke="currentColor" stroke-width="3"/><path d="M22 15v8l6 4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
   defaults: { showRange: true },
@@ -2309,6 +2657,7 @@ defViz("countdown", {
    The dashed line is the strike; the track is green while price is above it and
    red while below -- the same rule that decides the round. */
 defViz("pricetrack", {
+  desc: "Price against the target for a single round. Prev steps back through settled rounds \u2014 ticks are kept for 3 hours, so about 12 rounds.",
   label: "Price vs Target", group: "Live", accepts: ["ticks"],
   icon: '<line x1="5" y1="26" x2="39" y2="26" stroke="currentColor" stroke-width="2" stroke-dasharray="4,3" opacity=".8"/><path d="M5 34l7-5 5 3" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 32l6-12 5 6 6-9" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { showFill: false, showNav: true, lineWidth: 2.5 },
@@ -2340,7 +2689,6 @@ defViz("pricetrack", {
         + '<button class="tbtn' + (st.offset === 0 ? " on" : "") + '" data-track="live">Live</button>'
         + '<button class="tbtn" data-track="next"' + (st.offset <= 0 ? " disabled" : "") + '>Next &#9654;</button>'
         + '<span style="flex:1 1 auto"></span>'
-        + '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--faint)">DASHED = TARGET</span>'
         + "</div>";
     }
 
@@ -2416,6 +2764,7 @@ defViz("pricetrack", {
 
 /* --- lean bar ----------------------------------------------------------- */
 defViz("leanbar", {
+  desc: "Which way the live price leans against the target, right now.",
   label: "Lean bar", group: "Live", accepts: ["scalar"],
   icon: '<rect x="4" y="17" width="18" height="10" rx="2" fill="currentColor" opacity=".45"/><rect x="22" y="17" width="14" height="10" rx="2" fill="currentColor"/><line x1="22" y1="10" x2="22" y2="34" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { fullTilt: 300, showScale: true },
@@ -2460,6 +2809,7 @@ defViz("leanbar", {
 
 /* --- personal pick ------------------------------------------------------ */
 defViz("pick", {
+  desc: "Your call on the round in play, and your record. You can change it until the round locks.",
   label: "Your call", group: "Live", accepts: ["scalar"],
   icon: '<path d="M9 22l7 7 14-15" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
   defaults: { showRecord: true, showLast: true },
@@ -2516,8 +2866,90 @@ defViz("pick", {
   }
 });
 
+/* --- ALGO call, this round (BTC-24) --------------------------------------
+   The server's ALGO fires inside the 120s pre-lock window (3:00 -> 1:00 before
+   close) and its call rides /api/state.calls as SCALLS.algo. This is the live view
+   of it: PENDING with a countdown to the window, then the call the moment it lands,
+   with the reason, the History Call and your own call underneath. */
+/* BTC-29: the ALGO's call points, newest last. [source, label, sub, secs-before-close,
+   colour token]. The near-lock 'algo' fires on lock_ts-120, not a close offset. */
+const ALGO_CALL_ROWS = [
+  ["algo12", "T-12", "", 720, "call12"],
+  ["algo10", "T-10", "", 600, "call10"],
+  ["algoearly", "T-5", "", 300, "callearly"],
+  ["algo", "FINAL", "near lock", 0, "blue"]
+];
+
+defViz("algocall", {
+  desc: "What the ALGO called at each point before close \u2014 T-12, T-10, T-5 and the near-lock final. Each is written once and never revised.",
+  label: "ALGO call", group: "Live", accepts: ["scalar"],
+  icon: '<circle cx="22" cy="22" r="12" fill="none" stroke="currentColor" stroke-width="3.5"/><path d="M22 10V5M22 39v-5M10 22H5M39 22h-5" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="22" r="4" fill="currentColor"/>',
+  defaults: { showReason: true, showOthers: true, showRecord: true },
+  render(p, D, w, h) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const cr = s.current_round;
+    const mono = "font-family:var(--mono);font-size:0.66rem;";
+    let html = '<div style="display:flex;flex-direction:column;height:100%;gap:6px;justify-content:center">';
+    html += '<div style="font-size:0.55rem;letter-spacing:0.12em;color:var(--faint);font-weight:700">ALGO CALLS — THIS ROUND</div>';
+    if (!cr) {
+      html += '<div class="stat-sub">Waiting for the next round…</div>';
+      return html + "</div>";
+    }
+    // BTC-29: four calls down the round -- T-12, T-10, T-5 (all early enough to actually
+    // get a bid in) and the near-lock FINAL. Each fires write-once server-side and keeps
+    // its own record. The reason line shows the newest call that has landed.
+    const big = Math.max(16, Math.min(34, h * 0.15));
+    const callRow = (label, sub, call, fireLeft, col) => {
+      let line;
+      if (call && call.choice) {
+        const yes = call.choice === "yes";
+        line = '<span style="font-family:var(--mono);font-weight:800;line-height:1;font-size:' + big.toFixed(0) + 'px;color:var(--' + (yes ? "green" : "red") + ')">' + (yes ? "YES" : "NO") + "</span>"
+          + '<span style="' + mono + 'color:var(--dim)">' + (call.ts ? "@ " + esc(fmtHHMM(call.ts)) : "") + "</span>";
+      } else if (fireLeft > 0) {
+        line = '<span style="font-family:var(--mono);font-weight:800;font-size:' + Math.max(12, big * 0.5).toFixed(0) + 'px;color:var(--amber)">PENDING</span>'
+          + '<span style="' + mono + 'color:var(--dim)">in ' + esc(fmtClock(fireLeft)) + "</span>";
+      } else {
+        line = '<span style="' + mono + 'color:var(--faint)">no call</span>';
+      }
+      return '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'
+        + '<span style="flex:0 0 auto;font-size:0.56rem;letter-spacing:0.06em;color:var(--' + col + ');font-weight:800;width:104px">' + label
+        + '<br><span style="color:var(--dim);font-weight:600;letter-spacing:0">' + sub + "</span></span>"
+        + line + "</div>";
+    };
+    for (const [key, label, sub, secs, col] of ALGO_CALL_ROWS) {
+      const fireLeft = (key === "algo" ? (cr.lock_ts - 120) : (cr.close_time - secs)) - s.now;
+      html += callRow(label, sub, SCALLS[key], fireLeft, col);
+    }
+    if (p.options.showReason !== false) {
+      let shown = null;
+      for (const [key] of ALGO_CALL_ROWS) if (SCALLS[key] && SCALLS[key].reason) shown = SCALLS[key];
+      if (shown) html += '<div style="font-size:0.66rem;color:var(--soft);line-height:1.3">' + esc(shown.reason) + "</div>";
+    }
+    if (p.options.showOthers !== false) {
+      const one = (label, c) => '<span><span style="color:var(--faint)">' + label + "</span> <b style=\"color:"
+        + (c && c.choice ? "var(--" + (c.choice === "yes" ? "green" : "red") + ")" : "var(--dim)") + '">' + (c && c.choice ? c.choice.toUpperCase() : "—") + "</b></span>";
+      html += '<div style="' + mono + 'display:flex;gap:14px;flex-wrap:wrap">' + one("You", SCALLS.you) + one("History Call", SCALLS.histcall) + "</div>";
+    }
+    if (p.options.showRecord !== false) {
+      const recRow = (label, rec, col) => {
+        rec = rec || { wins: 0, losses: 0 };
+        const tot = rec.wins + rec.losses;
+        const pct = tot ? Math.round((rec.wins / tot) * 100) : null;
+        return '<span><span style="font-size:0.52rem;letter-spacing:0.08em;color:var(--faint);font-weight:700">' + label + '</span> '
+          + '<b style="font-family:var(--mono);color:var(--' + col + ')">' + rec.wins + "-" + rec.losses + "</b>"
+          + (pct === null ? "" : '<span style="' + mono + 'color:var(--dim)"> ' + pct + "%</span>") + "</span>";
+      };
+      html += '<div style="' + mono + 'display:flex;gap:12px;flex-wrap:wrap;margin-top:2px">'
+        + ALGO_CALL_ROWS.map(([key, label, , , col]) => recRow(label, SREC && SREC[key], col)).join("") + "</div>";
+    }
+    return html + "</div>";
+  }
+});
+
 /* --- round card --------------------------------------------------------- */
 defViz("roundcard", {
+  desc: "The round in play: live price, target, and time left.",
   label: "Round card", group: "Live", accepts: ["scalar"],
   icon: '<rect x="4" y="8" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="4" y1="20" x2="40" y2="20" stroke="currentColor" stroke-width="2"/><line x1="22" y1="20" x2="22" y2="36" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -2566,6 +2998,7 @@ defViz("roundcard", {
 
 /* --- Live Price & Pick --------------------------------------------------- */
 defViz("livepick", {
+  desc: "Classic's main module \u2014 live price, the target, this round's chart and your call in one.",
   label: "Live Price & Pick", group: "Classic", accepts: ["ticks"], noMetric: true,
   icon: '<text x="6" y="19" fill="currentColor" font-size="13" font-weight="800" font-family="monospace">$79k</text><line x1="6" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3,2" opacity=".7"/><path d="M6 34l6-6 5 3 6-9 5 5 6-3" fill="none" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { showNav: true, lineWidth: 2.5 },
@@ -2615,7 +3048,7 @@ defViz("livepick", {
     html += '<div class="cl-range"><span>' + (round
       ? esc(fmtHHMM(round.open) + "–" + fmtHHMM(round.close) + " · TARGET " + fmtUSD(round.strike))
         + (round.result ? ' · <b style="color:var(--' + (round.result === "yes" ? "green" : "red") + ')">' + esc(round.result.toUpperCase()) + "</b>" : "")
-      : "") + "</span><span>DASHED LINE = TARGET</span></div>";
+      : "") + "</span></div>";
 
     let chart;
     if (!round) chart = '<div class="empty">' + (st.offset > 0 ? "No settled round that far back" : "Waiting for the next round…") + "</div>";
@@ -2640,6 +3073,7 @@ defViz("livepick", {
 
 /* --- Round Confidence ---------------------------------------------------- */
 defViz("confidence", {
+  desc: "An estimate of how this round resolves, blending Kalshi's order book with how far recent rounds have moved. An estimate only, not advice.",
   label: "Round Confidence", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<text x="5" y="20" fill="currentColor" font-size="13" font-weight="900" font-family="monospace">YES</text><text x="26" y="20" fill="currentColor" font-size="11" font-weight="700" font-family="monospace" opacity=".7">69%</text><rect x="5" y="28" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="30" cy="30" r="3.5" fill="currentColor"/>',
   defaults: { hours: 24 },
@@ -2657,7 +3091,7 @@ defViz("confidence", {
     html += '<div class="cl-track"><div class="cl-track-mid"></div><div class="cl-track-marker" style="left:' + (c.pYes * 100).toFixed(1) + '%"></div></div>';
     html += '<div class="cl-scale"><span>Certain no</span><span>Neutral</span><span>Certain yes</span></div>';
     html += '<div class="cl-reasons">' + c.reasons.map(r => '<div class="cl-reason"><span class="k">' + esc(r.k) + '</span><span class="v">' + esc(r.v) + "</span></div>").join("") + "</div>";
-    html += '<div class="cl-disclaimer">Estimate only, from live market pricing and recent round history. Not advice.</div>';
+    html += '<div class="cl-disclaimer">Estimate only. Not advice.</div>';
     return html + "</div>";
   }
 });
@@ -2687,6 +3121,7 @@ const HC_STUDY = { rounds: 6682, days: 70.7, base: 0.4988,
                    hypotheses: 105, survivors: 0, oos: 0.5112 };
 
 defViz("histcall", {
+  desc: () => "A static lookup over " + HC_STUDY.rounds + " settled rounds: how often YES followed each three-round pattern. Of " + HC_STUDY.hypotheses + " patterns tested, " + HC_STUDY.survivors + " survived correction. This is what history did, not a forecast.",
   label: "History Call", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<path d="M6 30l8-9 7 6 9-13" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="14" cy="21" r="2.5" fill="currentColor"/><circle cx="21" cy="27" r="2.5" fill="currentColor"/><text x="24" y="17" fill="currentColor" font-size="10" font-weight="800" font-family="monospace">?</text>',
   defaults: {},
@@ -2726,9 +3161,7 @@ defViz("histcall", {
         + '<div class="cl-hc-row"><span>Out-of-sample accuracy</span><b>'
           + (HC_STUDY.oos * 100).toFixed(1) + "%</b></div>"
       + "</div>"
-      + '<div class="cl-hc-note">Static lookup over ' + HC_STUDY.rounds + " settled rounds. Of "
-        + HC_STUDY.hypotheses + " patterns tested, " + HC_STUDY.survivors
-        + " survived correction. This is what history did, not a forecast.</div>"
+      + '<div class="cl-hc-note">' + HC_STUDY.rounds + " rounds · " + HC_STUDY.survivors + "/" + HC_STUDY.hypotheses + " survived</div>"
       + "</div>";
   }
 });
@@ -2747,6 +3180,7 @@ function wilson95(k, n) {
 
 /* --- Your Scorecard ----------------------------------------------------- */
 defViz("scorecard", {
+  desc: p => "Your calls, scored: record, streaks, and whether you are ahead of a coin flip." + windowNote(p),
   label: "Your Scorecard", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="7" width="32" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 20l5 5 11-11" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { hours: 24 },
@@ -2795,7 +3229,7 @@ defViz("scorecard", {
           + (total ? pct(lo) + " – " + pct(hi) : "—") + "</b></div>"
         + '<div class="cl-sc-row"><span>Current run</span><b class="' + (runKind ? "ok" : "bad") + '">'
           + (run ? run + (runKind ? " correct" : " wrong") : "—") + "</b></div>"
-        + '<div class="cl-sc-row"><span>Best run (this window)</span><b>' + (best || "—") + "</b></div>"
+        + '<div class="cl-sc-row"><span>Best run</span><b>' + (best || "—") + "</b></div>"
         + '<div class="cl-sc-row"><span>Called in last ' + hrs + "h</span><b>" + graded.length
           + " of " + rounds.length + "</b></div>"
       + "</div></div>";
@@ -2804,31 +3238,124 @@ defViz("scorecard", {
 
 /* --- Accuracy: every caller's record, at a glance ----------------------- */
 defViz("accuracy", {
+  desc: "Every caller's record, logged on the server each round and scored when it settles. \"n/N called\" is how many of the last N settled rounds that caller actually called. 50% is a coin flip \u2014 the history study found no real edge, so this is the live test.",
   label: "Accuracy", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<path d="M8 36V22M18 36V12M28 36V18M38 36V8" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>',
   defaults: {},
   render(p, D, w, h) {
     if (!SREC) return empty("Waiting for the server\u2026");
-    const rows = [["you", "You", "amber"], ["algo", "ALGO", "blue"], ["histcall", "History Call", "violet"]];
-    let html = '<div class="acc">';
+    const rows = [["you", "You", "amber"], ["algo12", "ALGO T-12", "call12"], ["algo10", "ALGO T-10", "call10"],
+                  ["algoearly", "ALGO T-5", "callearly"], ["algo", "ALGO final", "blue"], ["histcall", "History Call", "violet"]];
+    let html = '<div class="acc" data-trim="last">';
     for (const [key, label, col] of rows) {
       const r = SREC[key] || { wins: 0, losses: 0, scored: 0, pct: null };
       const pct = r.pct;
+      // BTC-17: coverage = "called n of the last N settled rounds" -- the visible
+      // proof the 24/7 recorder is actually recording.
+      const cov = r.coverage && r.coverage.window
+        ? r.coverage.called + "/" + r.coverage.window + " called" : "";
       html += '<div class="acc-row">'
         + '<span class="acc-name">' + label + "</span>"
         + '<span class="acc-rec">' + r.wins + "-" + r.losses + "</span>"
         + '<div class="acc-barwrap"><div class="acc-bar" style="width:' + (pct === null ? 0 : Math.max(2, Math.min(100, pct))) + '%;background:var(--' + col + ')"></div><div class="acc-mid"></div></div>'
         + '<span class="acc-pct">' + (pct === null ? "\u2014" : pct.toFixed(1) + "%") + "</span>"
-        + '<span class="acc-n">' + r.scored + " scored</span>"
+        + '<span class="acc-n">' + r.scored + " scored" + (cov ? " \u00b7 " + cov : "") + "</span>"
         + "</div>";
     }
-    html += '<div class="acc-foot">Every call is logged on the server, every round, and scored when it settles. 50% is a coin flip \u2014 the history study found no real edge; this is the live test.</div>';
     return html + "</div>";
+  }
+});
+
+/* --- Call Log -----------------------------------------------------------
+   The per-round companion to Accuracy. Accuracy answers "how often are they
+   right"; this answers "what did they actually say, and did it land". Calls are
+   only on the server from v4.15.0 onward, so rounds older than that carry none
+   -- by default the list hides those rather than showing a wall of dashes. */
+defViz("calllog", {
+  desc: p => "Round by round, what each caller said and whether it was right." + windowNote(p),
+  label: "Call Log", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="7" width="34" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M11 17.5l3 3 5.5-6.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.5 28l6 6M17.5 28l-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="30" x2="34" y2="30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+  defaults: { hours: 24, onlyCalled: true, showYou: true },
+  render(p, D) {
+    const hrs = panelHours(p);
+    const hist = histFor(p);
+    if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return empty("Loading call log…"); }
+
+    const srcs = [["algo", "ALGO"], ["histcall", "History"]];
+    if (p.options.showYou !== false) srcs.push(["you", "You"]);
+
+    // newest first; a round is "called" once any shown source logged a pick
+    let rows = (hist.rounds || []).slice().reverse();
+    if (p.options.onlyCalled !== false) rows = rows.filter(r => srcs.some(sc => callsOf(r)[sc[0]]));
+
+    // tally exactly what is in this window, so the footer always matches the list
+    const tally = {};
+    for (const sc of srcs) tally[sc[0]] = { w: 0, l: 0 };
+    for (const r of rows) {
+      const cs = callsOf(r);
+      for (const sc of srcs) {
+        const c = cs[sc[0]];
+        if (!c || !r.result) continue;
+        if (c === r.result) tally[sc[0]].w++; else tally[sc[0]].l++;
+      }
+    }
+
+    const cell = c => c ? '<span class="cl-cl-pick ' + c + '">' + c.toUpperCase() + "</span>"
+                        : '<span class="cl-cl-none">—</span>';
+    const mark = (c, res) => (!c || !res) ? ""
+      : (c === res ? '<span class="cl-cl-ok">✓</span>' : '<span class="cl-cl-bad">✗</span>');
+
+    let html = '<div class="cl-cl">';
+
+    // the round in play: picks are locked in but cannot be scored yet
+    const cr = D.state && D.state.current_round;
+    if (cr) {
+      html += '<div class="cl-cl-live"><span class="cl-cl-live-lbl">This round · closes '
+        + esc(fmtHHMM(cr.close_time)) + "</span>";
+      for (const sc of srcs) {
+        html += '<span class="cl-cl-livecell"><i>' + sc[1] + "</i>"
+          + cell((SCALLS[sc[0]] || {}).choice) + "</span>";
+      }
+      html += '<span class="cl-cl-pending">' + (D.state.now >= cr.lock_ts ? "locked" : "open") + "</span></div>";
+    }
+
+    if (!rows.length) {
+      return html + '<div class="empty">No logged calls in this window yet — the server only started '
+        + "recording every round at v4.15.0.</div></div>";
+    }
+
+    let s2 = '<div class="cl-cl-tblwrap" data-trim="last" data-trim-list="tbody">'
+      + '<table class="tbl cl-cl-tbl"><thead><tr><th>Closed</th><th>Result</th>';
+    for (const sc of srcs) s2 += "<th>" + sc[1] + "</th>";
+    s2 += "</tr></thead><tbody>";
+    for (const r of rows) {
+      const cs = callsOf(r);
+      s2 += "<tr><td>" + esc(fmtDateShort(r.close_time) + " " + fmtHHMM(r.close_time)) + "</td>"
+        + '<td class="' + (r.result === "yes" ? "yes" : "no") + '">' + esc(String(r.result || "").toUpperCase()) + "</td>";
+      for (const sc of srcs) s2 += '<td>' + cell(cs[sc[0]]) + mark(cs[sc[0]], r.result) + "</td>";
+      s2 += "</tr>";
+    }
+    s2 += "</tbody></table></div>";
+
+    let foot = '<div class="cl-cl-foot">';
+    for (const sc of srcs) {
+      const t = tally[sc[0]], n = t.w + t.l;
+      foot += "<span><i>" + sc[1] + "</i> <b>" + t.w + "-" + t.l + "</b>"
+        + (n ? " · " + (t.w / n * 100).toFixed(0) + "%" : " · —") + "</span>";
+    }
+    // Count rounds that actually carry a call, not rows on screen: the table is trimmed to
+    // whatever fits, and with "only called" off most rows have nothing logged at all.
+    const logged = rows.reduce((n, r) => n + (srcs.some(sc => callsOf(r)[sc[0]]) ? 1 : 0), 0);
+    foot += '<span class="cl-cl-scope">' + logged + " logged round" + (logged === 1 ? "" : "s")
+      + " · last " + esc(WINDOW_LABELS[hrs] || hrs + "H") + " · newest shown</span></div>";
+
+    return html + s2 + foot + "</div>";
   }
 });
 
 /* --- Streak Ladder ------------------------------------------------------ */
 defViz("streakladder", {
+  desc: p => "How often runs of each length happen. The bar is what was observed, the tick is what a coin flip would give." + windowNote(p),
   label: "Streak Ladder", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="28" width="6" height="9" fill="currentColor"/><rect x="15" y="22" width="6" height="15" fill="currentColor" opacity=".8"/><rect x="24" y="16" width="6" height="21" fill="currentColor" opacity=".6"/><rect x="33" y="10" width="6" height="27" fill="currentColor" opacity=".4"/>',
   defaults: { hours: 168 },
@@ -2868,13 +3395,14 @@ defViz("streakladder", {
         + '<span class="cl-sl-v">' + obs + "</span></div>";
     }
     return '<div class="cl-sl">' + bars
-      + '<div class="cl-sl-note">' + total + " runs in " + hrs + "h · bar = observed, tick = a coin flip's expectation"
+      + '<div class="cl-sl-note">' + total + " runs in " + hrs + "h"
       + (liveRun ? " · live run " + liveRun : "") + "</div></div>";
   }
 });
 
 /* --- Volatility Clock --------------------------------------------------- */
 defViz("volclock", {
+  desc: p => "Median move size by hour of day. Size clusters even though direction does not." + windowNote(p),
   label: "Volatility Clock", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<circle cx="22" cy="22" r="15" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M22 12v10l7 5" fill="none" stroke="currentColor" stroke-width="3"/>',
   defaults: { hours: 168 },
@@ -2908,13 +3436,14 @@ defViz("volclock", {
     }
     const overall = med(rs.map(r => Math.abs(r.delta)));
     return '<div class="cl-vc"><div class="cl-vc-grid">' + bars + "</div>"
-      + '<div class="cl-vc-note">Median move by hour · overall $' + overall.toFixed(0)
-      + " · " + rs.length + " rounds / " + hrs + "h · size clusters even though direction does not</div></div>";
+      + '<div class="cl-vc-note">median $' + overall.toFixed(0)
+      + " · " + rs.length + " rounds / " + hrs + "h</div></div>";
   }
 });
 
 /* --- Settlement Margin -------------------------------------------------- */
 defViz("margin", {
+  desc: p => "How close rounds finish to the strike. Anything inside $25 was a coin flip in all but name." + windowNote(p),
   label: "Settlement Margin", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="5" y="18" width="34" height="8" rx="4" fill="currentColor" opacity=".25"/><rect x="5" y="18" width="12" height="8" rx="4" fill="currentColor"/><path d="M22 12v20" stroke="currentColor" stroke-width="2.5"/>',
   defaults: { hours: 24 },
@@ -2950,13 +3479,14 @@ defViz("margin", {
         + '<span class="cl-mg-lab">median distance from target</span></div>'
       + '<div class="cl-mg-seg">' + seg + "</div>"
       + '<div class="cl-mg-rows">' + rows + "</div>"
-      + '<div class="cl-mg-note">' + (within25 * 100).toFixed(0) + "% of the last " + rs.length
-      + " rounds finished within $25 of the strike — those were coin flips in all but name</div></div>";
+      + '<div class="cl-mg-note">' + (within25 * 100).toFixed(0) + "% within $25 · " + rs.length
+      + " rounds</div></div>";
   }
 });
 
 /* --- Pattern Table ------------------------------------------------------ */
 defViz("patterntable", {
+  desc: "All eight three-round patterns with their historical YES rate and 95% interval. Every interval spans 50%, so none is distinguishable from a coin flip.",
   label: "Pattern Table", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="6" y="9" width="32" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M6 18h32M17 9v26" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -2986,11 +3516,12 @@ defViz("patterntable", {
         + "<span>95% CI</span><span>n</span><span>Lean</span></div>"
       + rows
       + '<div class="cl-pt-note">' + (live ? "Live pattern " + live.split("").join(" ") + " highlighted. " : "")
-      + "Every interval spans 50%, so none of these eight is distinguishable from a coin flip.</div></div>";
+      + "</div></div>";
   }
 });
 
 defViz("spreadnow", {
+  desc: "Live distance between price and the target, with a link to the market.",
   label: "Current Spread", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="16" width="22" height="12" rx="6" fill="currentColor" opacity=".25"/><text x="9" y="25" fill="currentColor" font-size="9" font-weight="800" font-family="monospace">+$45</text><path d="M32 25l3-3 3 3M35 22v6" fill="none" stroke="currentColor" stroke-width="2"/>',
   defaults: {},
@@ -3008,6 +3539,7 @@ defViz("spreadnow", {
 
 /* --- Market Gauges ------------------------------------------------------- */
 defViz("gauges", {
+  desc: "Three live reads: which way price leans, Kalshi's real order-book odds, and how far through the round we are.",
   label: "Market Gauges", group: "Classic", accepts: ["scalar"], noMetric: true,
   icon: '<rect x="5" y="11" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><circle cx="26" cy="13" r="3.5" fill="currentColor"/><rect x="5" y="21" width="20" height="4" rx="2" fill="currentColor"/><rect x="25" y="21" width="14" height="4" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="31" width="34" height="4" rx="2" fill="currentColor" opacity=".3"/><rect x="5" y="31" width="14" height="4" rx="2" fill="currentColor" opacity=".8"/>',
   defaults: {},
@@ -3022,7 +3554,7 @@ defViz("gauges", {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span>'
         + '<span class="cl-lean-status" style="color:' + col + '"><span class="cl-lean-dot" style="background:' + col + '"></span>' + lean.direction.toUpperCase() + " BIAS</span></div>"
         + '<div class="cl-gtrack"><div class="cl-chip ' + lean.direction + '" style="left:' + pos.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">Instant price delta strength: ' + lean.strength.toFixed(2) + "</span></div>";
+        + '<span class="cl-gsub">strength ' + lean.strength.toFixed(2) + "</span></div>";
     } else {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Market Lean</span><span class="cl-lean-status" style="color:var(--dim)">—</span></div>'
         + '<div class="cl-gtrack"></div><span class="cl-gsub">reading the table…</span></div>';
@@ -3033,9 +3565,9 @@ defViz("gauges", {
       const noPct = Math.max(0, Math.min(100, noPrice * 100));
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">' + Math.round(yesPct) + "% YES / " + Math.round(noPct) + "% NO</span></div>"
         + '<div class="cl-odds"><div class="y" style="width:' + yesPct.toFixed(1) + '%"></div><div class="n" style="width:' + noPct.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+        + "</div>";
     } else {
-      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">—</span></div><div class="cl-odds"></div><span class="cl-gsub">real order-book pricing, not a vibe read</span></div>';
+      g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Kalshi Market Odds</span><span class="cl-gsub">—</span></div><div class="cl-odds"></div></div>';
     }
     if (cr) {
       const secLeft = Math.max(0, cr.close_time - s.now);
@@ -3044,7 +3576,7 @@ defViz("gauges", {
       const locked = s.now >= cr.lock_ts;
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">' + esc(fmtMS(secLeft)) + " remaining</span></div>"
         + '<div class="cl-rail' + (locked ? " urgent" : "") + '"><div style="width:' + pct.toFixed(1) + '%"></div></div>'
-        + '<span class="cl-gsub">Closes in ' + Math.round(secLeft) + " seconds</span></div>";
+        + "</div>";
     } else {
       g += '<div class="cl-gauge"><div class="cl-gauge-head"><span class="cl-gauge-title">Round Progress</span><span class="cl-gsub">—</span></div><div class="cl-rail"><div style="width:0%"></div></div><span class="cl-gsub">&nbsp;</span></div>';
     }
@@ -3054,6 +3586,7 @@ defViz("gauges", {
 
 /* --- Results Sidebar ----------------------------------------------------- */
 defViz("results", {
+  desc: p => "The window's scoreboard \u2014 YES/NO counts, streaks, chop rate and the last result." + windowNote(p),
   label: "Results Sidebar", group: "Classic", accepts: ["scalar", "rounds"], noMetric: true,
   icon: '<rect x="5" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/><rect x="24" y="8" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="5" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".45"/><rect x="24" y="24" width="15" height="12" rx="2" fill="currentColor" opacity=".8"/>',
   defaults: { hours: 24 },
@@ -3066,7 +3599,7 @@ defViz("results", {
     const nowSec = s ? s.now : Date.now() / 1000;
     const yes = t.yes || 0, no = t.no || 0;
     let html = '<div class="cl-results">';
-    html += '<div class="cl-win-head"><span class="cl-win-label">Results — Last ' + esc(WINDOW_LABELS[hrs] || hrs + "H") + "</span>"
+    html += '<div class="cl-win-head"><span class="cl-win-label">Last ' + esc(WINDOW_LABELS[hrs] || hrs + "H") + "</span>"
       + '<span class="cl-win-range">' + esc(fmtDateTime(nowSec - hrs * 3600) + " to " + fmtDateTime(nowSec)) + "</span></div>";
     const tile = (label, val, cls, lead) => '<div class="cl-tile' + (lead ? " leading " + lead : "") + '">'
       + (lead ? '<span class="cl-leading">LEADING</span>' : "")
@@ -3100,37 +3633,62 @@ defViz("results", {
 
 /* --- Big Road History ---------------------------------------------------- */
 defViz("roadhistory", {
+  desc: p => "Baccarat's Big Road. Each vertical column is a run of consecutive YES or NO results; a ringed column is a dragon tail. " + "Corner marks show what each caller said, and Big Eye Boy underneath marks whether each step repeated the pattern before it or broke it. " + "Beads shrink until the whole window fits \u2014 nothing is dropped." + windowNote(p),
   label: "Big Road History", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<rect x="4" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="4" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="15" y="6" width="9" height="9" rx="2" fill="currentColor" opacity=".5"/><rect x="26" y="6" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="17" width="9" height="9" rx="2" fill="currentColor"/><rect x="26" y="28" width="9" height="9" rx="2" fill="currentColor"/>',
   defaults: { hours: 6, maxRows: 6, showEye: true, linkWindows: true },
-  render(p, D) {
+  fitSel: ".cl-road-grid",
+  // BTC-31: the road never overflows -- it shrinks its beads instead -- so it has to
+  // say outright how much height this window wants rather than be measured.
+  needH(p, D, box, maxH) {
+    const hist = histFor(p);
+    if (!hist || !hist.rounds.length) return 0;
+    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
+    const plan = roadNeedH(buildColumns(hist.rounds, cap).length, cap, box.w, maxH);
+    return plan ? plan.needH : 0;
+  },
+  render(p, D, w, h) {
     const hrs = panelHours(p);
     const hist = histFor(p);
+    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
+    const rounds = hist ? hist.rounds : [];
+    const columns = hist ? buildColumns(rounds, cap) : [];
     let html = '<div class="cl-road">';
     html += '<div class="cl-road-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_ROAD + "</div>"
-      + "<div><h2>Big Road History</h2><p>Vertical columns represent consecutive YES/NO streaks</p></div></div>"
+      + '<span class="cl-road-meta">' + (hist ? esc(rounds.length + " rounds · " + columns.length + " runs") : "") + "</span></div>"
       + '<div class="cl-road-ctl">' + tfBar(hrs) + '<button class="cl-refresh" data-refresh title="Refresh now">' + ICON_REFRESH + "</button></div></div>";
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
-    const rounds = hist.rounds;
-    const cap = Math.max(3, Math.min(10, Math.round(num(p.options.maxRows, COLUMN_CAP))));
-    const columns = buildColumns(rounds, cap);
     if (!rounds.length) {
       html += '<div class="empty">No settled rounds in this window yet</div>';
     } else {
-      let grid = '<div class="cl-road-grid" data-trim="first">';
+      // BTC-19: beads scale down until the WHOLE loaded window fits -- 7 days shows
+      // all 7 days, not the trailing sliver that happened to fit 44px beads.
+      const eyeOn = p.options.showEye !== false;
+      const box = FITBOX[p.id];   // BTC-30: the real grid box once we've had one
+      const f = roadFit(columns.length, cap,
+        box ? box.w : Math.max(60, w - 12),
+        box ? box.h : Math.max(40, h - 78 - (eyeOn ? 96 : 0)));
+      const beadH = f.full ? f.size + 4 : f.size;
+      // data-fits=0 means no size on the ladder shows the whole window in this box --
+      // the honest "this panel is too small for this range" signal.
+      let grid = '<div class="cl-road-grid' + (f.full ? "" : " rb") + '" data-trim="first" data-fits="'
+        + (f.fits ? 1 : 0) + '" style="gap:' + f.g2 + "px " + f.g3 + 'px">';
       for (const col of columns) {
-        grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + '">';
+        grid += '<div class="cl-road-col' + (col.length >= cap ? " dragon" : "") + (f.full ? "" : " sm") + '" style="gap:' + f.g1 + 'px">';
         for (const r of col) {
           const hasD = r.delta !== null && r.delta !== undefined;
           const sign = hasD && r.delta >= 0 ? "+" : "-";
           const mine = callsOf(r).you;
-          const hit = mine && mine === r.result;
-          grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
+          grid += '<div class="cl-bead ' + r.result + '" data-round="' + esc(r.kalshi_ticker) + '" style="width:' + f.size + "px;height:" + beadH + 'px" title="' + esc(fmtDateShort(r.close_time - 900) + ", " + fmtHHMM(r.close_time - 900) + "–" + fmtHHMM(r.close_time)
               + (hasD ? " · " + sign + "$" + Math.abs(r.delta).toFixed(2) : "") + (mine ? " · your call " + mine.toUpperCase() : "")) + '">'
-            + '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
-            + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
-            + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
-            + (mine ? '<span class="cl-badge ' + (hit ? "hit" : "miss") + '">' + (hit ? ICON_CHECK : ICON_X) + "</span>" : "")
+            + (f.full
+              ? '<span class="g">' + (r.result === "yes" ? "Y" : "N") + "</span>"
+                + '<span class="t">' + fmtHHMM(r.close_time) + "</span>"
+                + '<span class="d">' + (hasD ? sign + Math.round(Math.abs(r.delta)) : "—") + "</span>"
+              : f.mid
+              ? '<span class="g" style="font-size:' + Math.max(9, Math.round(f.size * 0.5)) + 'px">' + (r.result === "yes" ? "Y" : "N") + "</span>"
+              : "")
+            + callMarksHtml(r, f.size)
             + "</div>";
         }
         grid += "</div>";
@@ -3140,7 +3698,7 @@ defViz("roadhistory", {
     if (p.options.showEye !== false) {
       const marks = computeBigEyeBoy(columns);
       html += '<div class="cl-derived"><div class="cl-derived-head"><h3>Big Eye Boy</h3>'
-        + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break (Chaotic)</span><span><span class="cl-dbead repeat"></span>Repeat (Predictable)</span></div></div>'
+        + '<div class="cl-legend"><span><span class="cl-dbead break"></span>Break</span><span><span class="cl-dbead repeat"></span>Repeat</span></div></div>'
         + '<div class="cl-derived-grid" data-trim="first">' + marks.map(m => '<span class="cl-dbead ' + (m ? "repeat" : "break") + '"></span>').join("") + "</div></div>";
     }
     return html + "</div>";
@@ -3149,6 +3707,7 @@ defViz("roadhistory", {
 
 /* --- Round-to-Round Spread ----------------------------------------------- */
 defViz("spreadledger", {
+  desc: p => "How far price moved during each settled round, green up and red down." + windowNote(p),
   label: "Round-to-Round Spread", group: "Classic", accepts: ["rounds"], noMetric: true,
   icon: '<line x1="22" y1="6" x2="22" y2="38" stroke="currentColor" stroke-width="1.5" opacity=".4"/><rect x="22" y="8" width="12" height="5" rx="2" fill="currentColor"/><rect x="14" y="16" width="8" height="5" rx="2" fill="currentColor" opacity=".55"/><rect x="22" y="24" width="15" height="5" rx="2" fill="currentColor"/><rect x="8" y="32" width="14" height="5" rx="2" fill="currentColor" opacity=".55"/>',
   defaults: { hours: 24, compact: true },
@@ -3158,7 +3717,7 @@ defViz("spreadledger", {
     const withDelta = hist ? hist.rounds.filter(r => r.delta !== null && r.delta !== undefined) : [];
     let html = '<div class="cl-ledger">';
     html += '<div class="cl-ledger-head"><div class="cl-road-title"><div class="cl-road-icon">' + ICON_SPREAD + "</div>"
-      + "<div><h2>Round-to-Round Spread</h2><p>How much price moved during each settled round · green up, red down</p></div></div>"
+      + "</div>"
       + '<div class="cl-ledger-ctl"><button class="cl-tf-btn solo" data-spreadsize>' + (p.options.compact !== false ? "Compact" : "Expanded") + "</button>"
       + '<span class="cl-range-lbl">' + (hist ? esc("Last " + (WINDOW_LABELS[hrs] || hrs + "H") + " · " + withDelta.length + " rounds recorded") : "") + "</span></div></div>";
     if (!hist) { loadHist(hrs, () => renderPanelBody(p)); return html + '<div class="empty">Loading…</div></div>'; }
@@ -3177,8 +3736,136 @@ defViz("spreadledger", {
   }
 });
 
+
+/* --- Call Tape ----------------------------------------------------------- */
+/* Every other view shows WHAT a caller said. /api/calls is the only endpoint that keeps
+   WHY, and when -- and nothing in the app fetched it until now. */
+defViz("calltape", {
+  desc: "The last 50 calls in the order they were made, with the reason each caller gave at the time. Nowhere else keeps a past call's reasoning.",
+  label: "Call Tape", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<rect x="5" y="8" width="34" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="16" x2="26" y2="16" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="22" x2="32" y2="22" stroke="currentColor" stroke-width="2"/><line x1="10" y1="28" x2="22" y2="28" stroke="currentColor" stroke-width="2"/>',
+  defaults: { limit: 24, showReason: true },
+  render(p, D) {
+    const tape = D.tape || [];
+    if (!tape.length) return empty("Waiting for the call tape…");
+    const lim = Math.max(4, Math.round(num(p.options.limit, 24)));
+    const rows = tape.slice(0, lim);
+    let out = '<div class="tape" data-trim="last" data-trim-list=".tape-list"><div class="tape-list">';
+    for (const c of rows) {
+      const label = CALL_LABEL[c.source] || c.source;
+      const hit = c.win === true, miss = c.win === false;
+      out += '<div class="tape-row">'
+        + '<span class="tape-when">' + esc(fmtHHMM(c.ts)) + "</span>"
+        + '<span class="tape-src ' + esc(c.source) + '">' + esc(label) + "</span>"
+        + '<span class="tape-call ' + (c.choice === "yes" ? "yes" : "no") + '">' + esc(String(c.choice).toUpperCase()) + "</span>"
+        + '<span class="tape-mark ' + (hit ? "hit" : miss ? "miss" : "") + '">' + (hit ? ICON_CHECK : miss ? ICON_X : "·") + "</span>"
+        + (p.options.showReason === false ? "" : '<span class="tape-why" title="' + esc(c.reason || "") + '">' + esc(stripTag(c.reason || "")) + "</span>")
+        + "</div>";
+    }
+    return out + "</div></div>";
+  }
+});
+
+/* --- Caller Race --------------------------------------------------------- */
+/* The four ALGO offsets each keep an independent record, and until now nothing put them
+   side by side -- so "does calling 12 minutes early cost accuracy?" had no answer. */
+defViz("callerrace", {
+  desc: p => "Every caller side by side: record, hit rate, and how many of the last hundred rounds each one actually called. The ALGO rows are the same engine at four different distances from the close." + windowNote(p),
+  label: "Caller Race", group: "Rounds", accepts: ["scalar", "rounds"], noMetric: true,
+  icon: '<line x1="6" y1="12" x2="34" y2="12" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><line x1="6" y1="22" x2="26" y2="22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" opacity=".7"/><line x1="6" y1="32" x2="18" y2="32" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" opacity=".45"/>',
+  defaults: { hours: 24, showCoverage: true },
+  render(p, D) {
+    const rec = SREC || {};
+    const order = ["algo12", "algo10", "algoearly", "algo", "histcall", "you"];
+    const rows = order.filter(k => rec[k]);
+    if (!rows.length) return empty("Waiting for the server…");
+    let best = 0;
+    for (const k of rows) { const r = rec[k]; if (r.scored) best = Math.max(best, (r.wins / r.scored) * 100); }
+    let out = '<div class="race" data-trim="last" data-trim-list=".race-list"><div class="race-list">';
+    for (const k of rows) {
+      const r = rec[k], scored = r.scored || 0;
+      const pct = scored ? (r.wins / scored) * 100 : 0;
+      const cov = r.coverage || {};
+      out += '<div class="race-row">'
+        + '<span class="race-name">' + esc(CALL_LABEL[k] || k) + "</span>"
+        + '<span class="race-bar"><i style="width:' + (best ? (pct / best) * 100 : 0).toFixed(1) + '%" class="' + (pct >= 50 ? "up" : "dn") + '"></i></span>'
+        + '<b class="race-pct">' + (scored ? pct.toFixed(0) + "%" : "—") + "</b>"
+        + '<span class="race-wl">' + (r.wins || 0) + "-" + (r.losses || 0) + "</span>"
+        + (p.options.showCoverage === false ? "" : '<span class="race-cov">' + (cov.called || 0) + "/" + (cov.window || 0) + "</span>")
+        + "</div>";
+    }
+    return out + "</div></div>";
+  }
+});
+
+/* --- Feed Health --------------------------------------------------------- */
+/* live_price_source was carried in every /api/state payload and read by nothing. */
+defViz("feed", {
+  desc: "Where the live price is coming from and how stale it is. The websocket stream is the fast path; a REST source or a rising age means it fell back.",
+  label: "Feed Health", group: "Live", accepts: ["scalar"], noMetric: true,
+  icon: '<path d="M8 26a14 14 0 0 1 28 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M14 28a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity=".6"/><circle cx="22" cy="30" r="3" fill="currentColor"/>',
+  defaults: { showTicks: true },
+  render(p, D) {
+    const s = D.state;
+    if (!s) return empty("Loading…");
+    const src = s.live_price_source || "unknown";
+    const ws = /ws|stream/i.test(src);
+    const age = s.live_price_ts ? Math.max(0, s.now - s.live_price_ts) : null;
+    const bad = age === null || age > 15;
+    const warm = !bad && age > 5;
+    let out = '<div class="feed">'
+      + '<div class="feed-top"><span class="feed-src ' + (ws ? "ws" : "rest") + '">' + esc(src) + "</span>"
+      + '<span class="feed-age ' + (bad ? "bad" : warm ? "warm" : "ok") + '">' + (age === null ? "—" : age.toFixed(1) + "s") + "</span></div>"
+      + '<div class="feed-lbl">' + (ws ? "streaming" : "polling") + " · price age</div>";
+    if (p.options.showTicks !== false) {
+      const t = (s.ticks || []).slice(-40);
+      if (t.length > 1) {
+        const lo = Math.min.apply(null, t.map(x => x[1])), hi = Math.max.apply(null, t.map(x => x[1]));
+        const rng = (hi - lo) || 1;
+        let d = "";
+        t.forEach((x, i) => {
+          d += (i ? "L" : "M") + ((i / (t.length - 1)) * 100).toFixed(2) + "," + (26 - ((x[1] - lo) / rng) * 22).toFixed(2);
+        });
+        out += '<svg class="feed-spark" viewBox="0 0 100 28" preserveAspectRatio="none"><path d="' + d + '" fill="none" stroke="var(--amber)" stroke-width="1.4" vector-effect="non-scaling-stroke"/></svg>';
+      }
+    }
+    return out + "</div>";
+  }
+});
+
+/* --- Edge Now ------------------------------------------------------------ */
+/* Kalshi's implied probability and our own confidence both existed live and were never
+   put next to each other. The gap is the only honest "do we disagree?" number. */
+defViz("edge", {
+  desc: "Kalshi's implied probability against this app's own confidence for the round in play. The gap is where the model disagrees with the market — it is a read, not a signal.",
+  label: "Edge Now", group: "Live", accepts: ["scalar"], noMetric: true,
+  defaults: {},
+  icon: '<path d="M8 32 L18 20 L26 26 L36 12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="12" r="3.5" fill="currentColor"/>',
+  render(p, D) {
+    const s = D.state;
+    const cr = s && s.current_round;
+    if (!cr) return empty("Waiting for the next round…");
+    if (cr.kalshi_yes_price === null || cr.kalshi_yes_price === undefined) return empty("No market odds for this round yet");
+    const mkt = Math.max(0, Math.min(100, cr.kalshi_yes_price * 100));
+    const conf = computeConfidence(s, D.rounds || []);
+    if (!conf) return empty("Not enough history to form a view");
+    const ours = conf.pct;
+    const gap = ours - mkt;
+    const side = Math.abs(gap) < 2 ? "agree" : gap > 0 ? "yes" : "no";
+    return '<div class="edge">'
+      + '<div class="edge-pair">'
+        + '<div class="edge-cell"><span class="edge-lbl">market</span><b>' + mkt.toFixed(0) + "%</b></div>"
+        + '<div class="edge-cell"><span class="edge-lbl">us</span><b>' + ours.toFixed(0) + "%</b></div>"
+      + "</div>"
+      + '<div class="edge-gap ' + side + '">' + (gap >= 0 ? "+" : "") + gap.toFixed(0) + " pts</div>"
+      + '<div class="edge-lbl2">' + (side === "agree" ? "in line with the book" : "leaning " + side.toUpperCase() + " of the book") + "</div>"
+      + "</div>";
+  }
+});
+
 /* --- text -------------------------------------------------------------- */
 defViz("text", {
+  desc: "A free-text note. Double-click the panel header to edit it.",
   label: "Note", group: "Other", accepts: ["scalar", "series", "rounds", "ohlc", "profile", "ticks"],
   icon: '<line x1="8" y1="13" x2="36" y2="13" stroke="currentColor" stroke-width="3"/><line x1="8" y1="22" x2="36" y2="22" stroke="currentColor" stroke-width="3" opacity=".6"/><line x1="8" y1="31" x2="26" y2="31" stroke="currentColor" stroke-width="3" opacity=".35"/>',
   defaults: { body: "Double-click the panel header to edit this note." },
@@ -3194,10 +3881,27 @@ function empty(msg) { return '<div class="empty">' + esc(msg) + "</div>"; }
 
 function uid() { return "p" + Math.random().toString(36).slice(2, 9); }
 
+/* The natural size of each panel type, in grid units. Shared by the picker's Add and by
+   the Everything board so the two can never drift apart. */
+const PANEL_SIZE_DEFAULT = { w: 12, h: 7 };
+const PANEL_SIZE = {
+  stat: { w: 6, h: 4 }, gauge: { w: 5, h: 5 }, bargauge: { w: 8, h: 5 },
+  countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
+  statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
+  heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
+  pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
+  pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
+  livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
+  gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 },
+  spreadledger: { w: 24, h: 10 }, calllog: { w: 24, h: 12 },
+  calltape: { w: 24, h: 10 }, callerrace: { w: 12, h: 7 }, feed: { w: 6, h: 5 }, edge: { w: 6, h: 5 }
+};
+
 function mkPanel(type, metric, gridPos, title, opts, fc) {
   const v = VIZ[type];
   return {
-    id: uid(), type: type, metric: metric, title: title || (METRICS[metric] ? METRICS[metric].label : v.label),
+    id: uid(), type: type, metric: metric,
+    title: title || ((v.noMetric || !METRICS[metric]) ? v.label : METRICS[metric].label),
     gridPos: gridPos,
     options: Object.assign({}, v.defaults || {}, opts || {}),
     fieldConfig: Object.assign({
@@ -3266,7 +3970,8 @@ function defaultDashboard() {
       mkPanel("spreadnow", "distance", { x: 0, y: 25, w: 14, h: 3 }, "Current Spread"),
       mkPanel("gauges", "live_price", { x: 0, y: 28, w: 14, h: 5 }, "Market Gauges"),
       mkPanel("roadhistory", "results", { x: 0, y: 33, w: 24, h: 13 }, "Big Road History"),
-      mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread")
+      mkPanel("spreadledger", "deltas", { x: 0, y: 46, w: 24, h: 10 }, "Round-to-Round Spread"),
+      mkPanel("calllog", "results", { x: 0, y: 56, w: 24, h: 12 }, "Call Log")
     ]
   };
 }
@@ -3276,6 +3981,12 @@ function defaultDashboard() {
    Price already draws the chart and the timer; Lean Bar and Current Spread
    because Market Gauges already shows lean and distance; Round Confidence
    because History Call is already a call, read from the other direction. */
+/* A deliberately empty board. renderAll() paints an empty-state prompt when a board
+   has no panels, so this is a starting point rather than a dead end. */
+function boardBlank() {
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: [] };
+}
+
 function solariDesk() {
   return {
     version: 2,
@@ -3299,7 +4010,7 @@ function solariDesk() {
 /* ============================ state ============================ */
 
 let DASH = null;
-let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day", hist: {} };
+let DATA = { state: null, buckets: [], sum: null, rounds: [], ticks: [], bucket: "day", hist: {}, tape: [] };
 let editing = false;
 let timer = null, lastFetch = 0;
 
@@ -3491,6 +4202,7 @@ function layout() {
 let drag = null;
 
 function onPointerDown(e, p, mode) {
+  hideTip();
   if (!editing || isNarrow()) return;
   if (e.button !== undefined && e.button !== 0) return;
   e.preventDefault();
@@ -3588,7 +4300,12 @@ function onPointerUp() {
   compact();
   layout();
   save();
-  if (mode === "resize") renderPanelBody(p);
+  if (mode === "resize") {
+    // BTC-31: a size set by hand wins. Stop auto-fitting this panel so a later window
+    // change does not undo the owner -- the panel options switch it back on.
+    if (HIST_TYPES[p.type]) { p.options.fitH = false; p.options.fitBaseH = p.gridPos.h; }
+    renderPanelBody(p);
+  }
 }
 
 /* ============================ rendering ============================ */
@@ -3607,10 +4324,103 @@ function renderAll() {
     if (!el) { el = buildPanel(p); gridEl.appendChild(el); }
     const t = el.querySelector(".panel-title");
     if (t) t.textContent = p.title;
+    const inf = el.querySelector(".pinfo");           // type can change under us via the picker
+    if (inf) inf.hidden = !descOf(p);
   }
   layout();
+  renderEmptyState();
   for (const p of DASH.panels) renderPanelBody(p);
 }
+
+/* A board with no panels used to be a blank canvas with no way forward -- and in view
+   mode the Add panel button is not even on screen. Give it a door. */
+function renderEmptyState() {
+  let el = document.getElementById("boardEmpty");
+  // BTC-28: .board-empty is absolutely positioned inside a grid that collapses to zero
+  // height when there are no panels, so without this the empty card overhangs (and hides)
+  // the version footer below it. Reserve the height on the grid itself.
+  gridEl.classList.toggle("is-empty", !DASH.panels.length);
+  if (DASH.panels.length) { if (el) el.remove(); return; }
+  if (el) return;
+  el = document.createElement("div");
+  el.id = "boardEmpty";
+  el.className = "board-empty";
+  el.innerHTML = '<h2>Empty board</h2>'
+    + "<p>Nothing on it yet. Add the modules you want one at a time, or open Design and pick "
+    + "a ready-made board to start from.</p>";
+  const add = document.createElement("button");
+  add.className = "btn primary";
+  add.textContent = "Add your first panel";
+  add.addEventListener("click", () => openPicker(null));
+  const dsn = document.createElement("button");
+  dsn.className = "btn";
+  dsn.textContent = "Open Design";
+  dsn.addEventListener("click", () => { const b = document.getElementById("designBtn"); if (b) b.click(); });
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:0.5rem;margin-top:0.3rem";
+  row.appendChild(add); row.appendChild(dsn);
+  el.appendChild(row);
+  gridEl.appendChild(el);
+}
+
+const ICON_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5v.6"/></svg>';
+
+/* A panel says what it is here, not in its body -- the numbers get the space back.
+   `desc` may be a string or (p, D) => string for the few that need live context. */
+/* Panels do not print their window any more, so the tooltip says which one it is reading. */
+function windowNote(p) {
+  const h = panelHours(p);
+  return " Reading the last " + (WINDOW_LABELS[h] || h + " hours").toLowerCase() + ".";
+}
+
+function descOf(p) {
+  const v = VIZ[p.type];
+  if (!v || !v.desc) return "";
+  try { return typeof v.desc === "function" ? v.desc(p, DATA) : v.desc; }
+  catch (e) { return typeof v.desc === "string" ? v.desc : ""; }
+}
+
+let tipEl = null, tipOwner = null, tipPinned = false;
+function tipNode() {
+  if (!tipEl) {
+    tipEl = document.createElement("div");
+    tipEl.id = "panelTip";
+    tipEl.setAttribute("role", "tooltip");
+    document.body.appendChild(tipEl);
+  }
+  return tipEl;
+}
+function showTip(btn, p) {
+  const text = descOf(p);
+  if (!text) return;
+  const t = tipNode();
+  t.innerHTML = "<b>" + esc(p.title || VIZ[p.type].label) + "</b><br>" + esc(text);
+  t.classList.add("show");
+  btn.setAttribute("aria-expanded", "true");
+  tipOwner = btn;
+  // measure first, then place: flip to stay inside the viewport
+  const r = btn.getBoundingClientRect(), box = t.getBoundingClientRect();
+  let left = Math.min(r.right - box.width, window.innerWidth - box.width - 8);
+  let top = r.bottom + 6;
+  if (top + box.height > window.innerHeight - 8) top = Math.max(8, r.top - box.height - 6);
+  // document.body carries no transform, so viewport + scroll is exact
+  t.style.left = (Math.max(8, left) + window.scrollX) + "px";
+  t.style.top = (top + window.scrollY) + "px";
+}
+function hideTip() {
+  if (!tipEl) return;
+  tipEl.classList.remove("show");
+  if (tipOwner) tipOwner.setAttribute("aria-expanded", "false");
+  tipOwner = null; tipPinned = false;
+}
+function toggleTip(btn, p) {
+  if (tipOwner === btn && tipPinned) { hideTip(); return; }
+  showTip(btn, p);
+  tipPinned = true;          // a deliberate open survives the pointer leaving
+}
+window.addEventListener("keydown", e => { if (e.key === "Escape") hideTip(); });
+window.addEventListener("resize", hideTip);
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".pinfo")) hideTip(); });
 
 function buildPanel(p) {
   const el = document.createElement("div");
@@ -3619,6 +4429,8 @@ function buildPanel(p) {
   el.innerHTML =
     '<div class="panel-head">'
       + '<div class="panel-title"></div>'
+      + '<button class="pbtn pinfo" data-act="info" aria-expanded="false" aria-label="What this panel shows">'
+        + ICON_INFO + "</button>"
       + '<div class="panel-acts">'
         + '<button class="pbtn" data-act="edit" title="Panel options">' + ICON_EDIT + "</button>"
         + '<button class="pbtn" data-act="dup" title="Duplicate">' + ICON_COPY + "</button>"
@@ -3638,6 +4450,16 @@ function buildPanel(p) {
     openEditor(p);
   });
   el.querySelector(".resize-grip").addEventListener("pointerdown", e => onPointerDown(e, p, "resize"));
+  const infoBtn = el.querySelector(".pinfo");
+  infoBtn.addEventListener("pointerdown", e => e.stopPropagation());   // never start a drag
+  infoBtn.addEventListener("dblclick", e => e.stopPropagation());      // never open the editor
+  infoBtn.addEventListener("click", e => { e.stopPropagation(); toggleTip(infoBtn, p); });   // tap / Enter / Space
+  // Decide per event, not from a page-level media query: matchMedia("(hover: none)")
+  // is wrong in headless and on hybrid touch/mouse machines. A real mouse says so.
+  infoBtn.addEventListener("pointerenter", e => { if (e.pointerType !== "touch" && !tipPinned) showTip(infoBtn, p); });
+  infoBtn.addEventListener("pointerleave", e => { if (e.pointerType !== "touch" && !tipPinned) hideTip(); });
+  infoBtn.addEventListener("focus", () => showTip(infoBtn, p));
+  infoBtn.addEventListener("blur", () => hideTip());
   el.querySelector('[data-act="edit"]').addEventListener("click", () => openEditor(p));
   el.querySelector('[data-act="dup"]').addEventListener("click", () => duplicatePanel(p));
   el.querySelector('[data-act="del"]').addEventListener("click", () => removePanel(p));
@@ -3650,13 +4472,22 @@ function buildPanel(p) {
    (data-trim-list names an inner list to remove from, e.g. a table's tbody). Lists that
    render newest-first trim from the end; the road grid renders oldest-first and trims
    from the front. */
-function fitTrim(body) {
+/* BTC-31: how many pixels of content the last render could NOT show, per panel. This
+   is the honest "this panel is too short for its window" number, measured before the
+   trimming rather than guessed afterwards. */
+const FITNEED = {};
+
+function fitTrim(body, p) {
+  let need = 0;
   body.querySelectorAll("[data-trim]").forEach(el => {
     const list = el.dataset.trimList ? el.querySelector(el.dataset.trimList) : el;
     if (!list) return;
+    need = Math.max(need, el.scrollHeight - el.clientHeight);
     const fromEnd = el.dataset.trim === "last";
     let guard = 0;
-    while (guard++ < 400 && list.children.length > 0 && el.scrollHeight > el.clientHeight + 1) {
+    // 2000: a 7-day road is ~330 columns and the guard must never bail mid-trim
+    // (a bailed loop leaves the OLDEST content clipped and looks like data loss).
+    while (guard++ < 2000 && list.children.length > 0 && el.scrollHeight > el.clientHeight + 1) {
       list.removeChild(fromEnd ? list.lastElementChild : list.firstElementChild);
     }
     if (!list.children.length) {
@@ -3665,6 +4496,7 @@ function fitTrim(body) {
       el.removeAttribute("data-trim");
     }
   });
+  if (p) FITNEED[p.id] = need;
 }
 
 function renderPanelBody(p) {
@@ -3677,7 +4509,14 @@ function renderPanelBody(p) {
   if (w < 2 || h < 2) return;
   try {
     body.innerHTML = v.render(p, DATA, w, h);
-    fitTrim(body);
+    if (v.fitSel) {
+      const box = measureBox(body, v.fitSel), prev = FITBOX[p.id];
+      if (box && (!prev || Math.abs(prev.w - box.w) > 1 || Math.abs(prev.h - box.h) > 1)) {
+        FITBOX[p.id] = box;
+        body.innerHTML = v.render(p, DATA, w, h);   // again, now against the real box
+      }
+    }
+    fitTrim(body, p);
   } catch (err) {
     body.innerHTML = empty("Panel error");
     if (window.console) console.error("panel " + p.id + " (" + p.type + ")", err);
@@ -3685,6 +4524,67 @@ function renderPanelBody(p) {
 }
 
 function renderBodies() { for (const p of DASH.panels) renderPanelBody(p); }
+
+/* ===================== BTC-31: fit the panel to the range =====================
+   Pick 7D and the panel gets taller until the week is actually on screen, instead of
+   the week being shrunk or trimmed into whatever box the panel happened to have. Runs
+   ONLY when the window changes -- never on a plain re-render, or it would fight the
+   owner every second. A panel resized by hand opts out until it is switched back on.  */
+
+// Never grow past roughly one screenful: a 7-day road would otherwise swallow the board.
+function fitMaxRows() {
+  return Math.max(10, Math.min(30, Math.floor((window.innerHeight - 160) / ROW_H)));
+}
+
+function autoFitPanel(p) {
+  if (!HIST_TYPES[p.type] || p.options.fitH === false) return false;
+  if (isNarrow()) return false;                       // the narrow layout stacks; h is ignored
+  const el = document.getElementById(p.id);
+  const body = el && el.querySelector(".panel-body");
+  if (!body) return false;
+
+  // The owner's own size is the floor -- a smaller range hands the room back, but we
+  // never shrink a panel below what they chose.
+  if (p.options.fitBaseH === undefined) p.options.fitBaseH = p.gridPos.h;
+  const base = Math.max(3, Math.round(num(p.options.fitBaseH, p.gridPos.h)));
+  const maxRows = Math.max(base, fitMaxRows());
+  const before = p.gridPos.h;
+  const v = VIZ[p.type];
+
+  p.gridPos.h = base;
+  layout(); renderPanelBody(p);
+
+  for (let i = 0; i < 8 && p.gridPos.h < maxRows; i++) {
+    let deficit;
+    if (v.needH) {
+      const box = measureBox(body, v.fitSel);
+      if (!box) break;
+      // what it could still claim if it grew all the way to the cap
+      const room = box.h + (maxRows - p.gridPos.h) * ROW_H;
+      deficit = v.needH(p, DATA, box, room) - box.h;
+    } else {
+      deficit = FITNEED[p.id] || 0;                   // pixels fitTrim had to cut
+    }
+    if (!(deficit > 1)) break;
+    p.gridPos.h = Math.min(maxRows, p.gridPos.h + Math.max(1, Math.ceil(deficit / ROW_H)));
+    layout(); renderPanelBody(p);
+  }
+  return p.gridPos.h !== before;
+}
+
+/* Fit a set of panels, then settle the board ONCE -- growth has to push neighbours
+   down through the normal path rather than overlapping them, and it saves like any
+   other resize. */
+function autoFitPanels(list) {
+  const moved = [];
+  for (const p of list) if (autoFitPanel(p)) moved.push(p);
+  if (!moved.length) return;
+  for (const p of moved) resolveCollisions(p);
+  compact();
+  layout();
+  for (const p of moved) renderPanelBody(p);
+  save();
+}
 
 /* Prev/Live/Next inside a price-track panel. Delegated, since panel bodies are
    replaced wholesale on every render. */
@@ -3709,9 +4609,11 @@ gridEl.addEventListener("click", e => {
     const targets = p0.options.linkWindows === false ? [p0] : DASH.panels.filter(q => HIST_TYPES[q.type]);
     for (const q of targets) q.options.hours = hrs;
     save();
-    const go = () => { for (const q of targets) renderPanelBody(q); };
-    if (DATA.hist[hrs]) go(); else loadHist(hrs, go);
-    go();
+    const paint = () => { for (const q of targets) renderPanelBody(q); };
+    // BTC-31: only fit once the window's data is actually here -- fitting the
+    // "Loading…" placeholder would size the panel to nothing.
+    const done = () => { paint(); autoFitPanels(targets); };
+    if (DATA.hist[hrs]) done(); else { paint(); loadHist(hrs, done); }
     return;
   }
   if (e.target.closest("[data-refresh]") && p0) {
@@ -3748,17 +4650,7 @@ gridEl.addEventListener("click", e => {
 
 function addPanel(type, metric) {
   const maxY = DASH.panels.length ? Math.max.apply(null, DASH.panels.map(p => p.gridPos.y + p.gridPos.h)) : 0;
-  const sizes = {
-    stat: { w: 6, h: 4 }, gauge: { w: 5, h: 5 }, bargauge: { w: 8, h: 5 },
-    countdown: { w: 4, h: 5 }, donut: { w: 8, h: 6 }, text: { w: 6, h: 4 },
-    statetimeline: { w: 24, h: 3 }, bigroad: { w: 14, h: 7 }, table: { w: 10, h: 7 },
-    heatmap: { w: 12, h: 6 }, histogram: { w: 12, h: 6 },
-    pricetrack: { w: 14, h: 7 }, leanbar: { w: 12, h: 3 }, roundcard: { w: 10, h: 6 },
-    pick: { w: 7, h: 6 }, accuracy: { w: 12, h: 6 },
-    livepick: { w: 14, h: 17 }, confidence: { w: 14, h: 8 }, spreadnow: { w: 14, h: 3 },
-    gauges: { w: 14, h: 5 }, results: { w: 10, h: 14 }, roadhistory: { w: 24, h: 13 }, spreadledger: { w: 24, h: 10 }
-  };
-  const sz = sizes[type] || { w: 12, h: 7 };
+  const sz = PANEL_SIZE[type] || PANEL_SIZE_DEFAULT;
   const p = mkPanel(type, metric, { x: 0, y: maxY, w: sz.w, h: sz.h });
   DASH.panels.push(p);
   resolveCollisions(p); compact();
@@ -3790,6 +4682,7 @@ function removePanel(p) {
 const scrim = document.getElementById("scrim");
 
 function openSheet(id) {
+  hideTip();
   scrim.classList.add("show");
   document.getElementById(id).classList.add("show");
 }
@@ -3830,7 +4723,28 @@ function openPicker(panel) {
     html += "</div>";
   });
   const body = document.getElementById("pickerBody");
-  body.innerHTML = html;
+  // 30+ panels is more than anyone can scan; let people type instead of hunt
+  body.innerHTML = '<div class="picker-search"><input id="pickerFilter" type="search" autocomplete="off" '
+    + 'placeholder="Filter panels\u2026"></div>' + html + '<div class="picker-none" id="pickerNone" hidden>No panel matches that.</div>';
+  const filter = document.getElementById("pickerFilter");
+  filter.addEventListener("input", () => {
+    const q = filter.value.trim().toLowerCase();
+    let shown = 0;
+    body.querySelectorAll(".viz-card").forEach(c => {
+      const hit = !q || (c.textContent || "").toLowerCase().indexOf(q) >= 0;
+      c.hidden = !hit;
+      if (hit) shown++;
+    });
+    // hide a group heading once everything under it is filtered out
+    body.querySelectorAll(".viz-grid").forEach(g => {
+      const any = !!g.querySelector(".viz-card:not([hidden])");
+      g.hidden = !any;
+      const lbl = g.previousElementSibling;
+      if (lbl && lbl.classList.contains("group-label")) lbl.hidden = !any;
+    });
+    document.getElementById("pickerNone").hidden = shown > 0;
+  });
+  setTimeout(() => { try { filter.focus(); } catch (e) { /* ignore */ } }, 60);
   body.querySelectorAll("[data-viz]").forEach(card => {
     card.addEventListener("click", () => {
       const type = card.getAttribute("data-viz");
@@ -3933,6 +4847,12 @@ function openEditor(p) {
     html += chk("o_showLast", "Show how the last call went", p.options.showLast !== false);
     html += '<p class="hint">Calls are stored in this browser only and shared with every other page — a pick made here shows up on Classic, The Board and the rest.</p>';
   }
+  if (p.type === "algocall") {
+    html += chk("o_showReason", "Show the ALGO’s reasoning", p.options.showReason !== false);
+    html += chk("o_showOthers", "Show your call and the History Call too", p.options.showOthers !== false);
+    html += chk("o_showRecord", "Show the ALGO’s win/loss record", p.options.showRecord !== false);
+    html += '<p class="hint">The ALGO calls on the server between 3:00 and 1:00 before the round closes, whether or not a browser is open.</p>';
+  }
   if (p.type === "table") {
     html += '<div class="field"><label>Rows</label><input id="o_limit" type="number" min="5" max="500" value="' + num(p.options.limit, 40) + '"></div>';
   }
@@ -3946,6 +4866,8 @@ function openEditor(p) {
     html += '<div class="field"><label>Window</label><select id="o_hours">'
       + TF_CHOICES.map(c => '<option value="' + c[0] + '"' + (panelHours(p) === c[0] ? " selected" : "") + ">Last " + esc(WINDOW_LABELS[c[0]]) + "</option>").join("")
       + "</select></div>";
+    html += chk("o_fitH", "Grow to fit the window", p.options.fitH !== false);
+    html += '<p class="hint">The panel resizes itself when you change the window, so a longer range gets the room it needs instead of shrinking the content. Dragging the corner turns this off for this panel.</p>';
   }
   if (p.type === "roadhistory") {
     html += '<div class="field"><label>Rows before wrapping</label><input id="o_maxRows" type="number" min="3" max="10" value="' + num(p.options.maxRows, 6) + '"></div>';
@@ -3954,6 +4876,11 @@ function openEditor(p) {
   }
   if (p.type === "spreadledger") {
     html += chk("o_compact", "Compact list", p.options.compact !== false);
+  }
+  if (p.type === "calllog") {
+    html += chk("o_onlyCalled", "Only show rounds that carry a logged call", p.options.onlyCalled !== false);
+    html += chk("o_showYou", "Include your own calls", p.options.showYou !== false);
+    html += '<p class="hint">The server has logged the ALGO and History Call every round since v4.15.0; rounds older than that have nothing to show.</p>';
   }
   if (p.type === "livepick") {
     html += chk("o_showNav", "Show Prev / Live / Next", p.options.showNav !== false);
@@ -4027,12 +4954,17 @@ function openEditor(p) {
   }));
   bind("o_hours", () => {
     p.options.hours = Number($("o_hours").value); save();
-    if (DATA.hist[p.options.hours]) renderPanelBody(p); else loadHist(p.options.hours, () => renderPanelBody(p));
-    renderPanelBody(p);
+    const done = () => { renderPanelBody(p); autoFitPanels([p]); };
+    if (DATA.hist[p.options.hours]) done(); else { renderPanelBody(p); loadHist(p.options.hours, done); }
+  });
+  bind("o_fitH", () => {
+    p.options.fitH = $("o_fitH").checked;
+    if (p.options.fitH) { p.options.fitBaseH = undefined; autoFitPanels([p]); }   // this size becomes the floor
+    save();
   });
   ["o_sparkline", "o_showThresholdBand", "o_showMinMax", "o_fill", "o_showPoints", "o_showThresholdLines",
-   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast",
-   "o_showEye", "o_linkWindows", "o_compact"].forEach(id =>
+   "o_showFill", "o_showNav", "o_showScale", "o_showRange", "o_showRecord", "o_showLast", "o_showReason", "o_showOthers",
+   "o_showEye", "o_linkWindows", "o_compact", "o_onlyCalled", "o_showYou"].forEach(id =>
     bind(id, () => { p.options[id.slice(2)] = $(id).checked; renderPanelBody(p); save(); }));
   ["o_lineWidth", "o_bins", "o_clip", "o_maxRows", "o_limit", "o_fullTilt", "o_hours"].forEach(id =>
     bindIn(id, () => { p.options[id.slice(2)] = $(id).value; renderPanelBody(p); save(); }));
@@ -4252,6 +5184,7 @@ function needsRounds() {
       || p.type === "patterntable";  // both page back through them
   });
 }
+function needsTape() { return DASH.panels.some(p => p.type === "calltape"); }
 function needsTicks() {
   return DASH.panels.some(p => {
     const m = METRICS[p.metric];
@@ -4278,8 +5211,12 @@ async function fetchData(full) {
       ? getJSON("/api/history?hours=" + (days ? days * 24 : 24 * 400) + "&limit=1200")
       : Promise.resolve(null));
     jobs.push(needsTicks() ? getJSON("/api/ticks?since=" + (Date.now() / 1000 - 3 * 3600)) : Promise.resolve(null));
+    // /api/calls is the ONLY place a past call's reason and its timestamp survive --
+    // /api/history carries the choice and nothing else.
+    jobs.push(needsTape() ? getJSON("/api/calls") : Promise.resolve(null));
 
-    const [st, se, hi, tk] = await Promise.all(jobs);
+    const [st, se, hi, tk, cl] = await Promise.all(jobs);
+    if (cl) DATA.tape = cl.recent || [];
     DATA.state = st;
     if (st && st.records) SREC = st.records;
     SCALLS = (st && st.calls) || {};
@@ -4295,11 +5232,18 @@ async function fetchData(full) {
     lastFetch = Date.now();
     resolveTracks();
     dot.classList.remove("stale");
+    dot.title = "Live data";
+    document.getElementById("dataText").classList.remove("stale");
     updateChip();
     renderBodies();
   } catch (e) {
+    // BTC-28: the warning now lives in the footer, so mirror it on the toolbar dot (and
+    // colour the footer) rather than letting it scroll out of sight on a tall board.
     dot.classList.add("stale");
-    document.getElementById("dataText").textContent = "connection interrupted — retrying";
+    const dt = document.getElementById("dataText");
+    dt.textContent = "connection interrupted — retrying";
+    dt.classList.add("stale");
+    dot.title = "Connection interrupted — retrying";
   } finally {
     fetching = false;
   }
@@ -4311,6 +5255,9 @@ function updateChip() {
   const price = DATA.state && DATA.state.live_price;
   const parts = [];
   if (price) parts.push("BTC " + fmtNum(price, "usd", 0));
+  // BTC-18: surface a genuinely stale price instead of silently showing an old number.
+  const pts = DATA.state && DATA.state.live_price_ts;
+  if (price && pts && DATA.state.now - pts > 15) parts.push("price " + Math.round(DATA.state.now - pts) + "s old");
   parts.push(s.rounds.toLocaleString() + " rounds");
   parts.push(s.span_days.toFixed(1) + "d deep");
   const v = DATA.state && DATA.state.version;
@@ -4318,9 +5265,34 @@ function updateChip() {
   document.getElementById("dataText").innerHTML = parts.map(esc).join(" &middot; ");
 }
 
+/* BTC-18/20: a light 2s poll of /api/state alone -- price, round pointer, records --
+   so the Studio tracks near-live between the 10s full refreshes. Board-follow and
+   the history windows stay on the full fetch. */
+async function fetchState() {
+  if (fetching) return;
+  try {
+    const st = await getJSON("/api/state");
+    DATA.state = st;
+    if (st && st.records) SREC = st.records;
+    SCALLS = (st && st.calls) || {};
+    updateChip();
+    for (const p of DASH.panels) {
+      if (LIVE_TYPES[p.type] || p.type === "accuracy") renderPanelBody(p);
+    }
+  } catch (e) { /* the full fetch cycle owns the error UI */ }
+}
+
 /* countdown/live panels want a tick even between fetches */
+let lastBurstMs = 0;
 function localTick() {
   if (DATA.state) DATA.state.now += 1;
+  // BTC-20: across the round boundary, hit the server at ~1s until it hands over
+  // the next round instead of waiting out the poll interval.
+  const cr = DATA.state && DATA.state.current_round;
+  if (DATA.state && (!cr || DATA.state.now >= cr.close_time) && Date.now() - lastBurstMs > 1000) {
+    lastBurstMs = Date.now();
+    fetchState();
+  }
   for (const p of DASH.panels) {
     if (LIVE_TYPES[p.type] || (METRICS[p.metric] && METRICS[p.metric].group === "Live")) renderPanelBody(p);
   }
@@ -4329,6 +5301,24 @@ function localTick() {
 /* --- Reset to Classic, as a toolbar action rather than buried in the JSON sheet --- */
 document.getElementById("resetClassicBtn").addEventListener("click",
   () => loadBoard(defaultDashboard(), "Classic board \u2014 same modules, same places"));
+
+/* BTC-16: wipe the personal record server-side. The server stamps a reset epoch so
+   a stale browser's one-time migration can't quietly re-import the wiped picks. */
+document.getElementById("resetCallsBtn").addEventListener("click", async () => {
+  if (!confirm("Reset YOUR call record to 0-0?\n\nOnly your calls are wiped \u2014 the ALGO and History Call records are untouched. This cannot be undone.")) return;
+  try {
+    const r = await fetch("/api/calls/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    if (d.records) SREC = d.records;
+    SCALLS = d.current || {};
+    DATA.hist = {};  // every cached window still carries your old call marks
+    toast("Your call record is reset");
+    fetchData(true);
+  } catch (err) {
+    toast("Could not reset the record");
+  }
+});
 
 /* --- Big Road bead -> round detail ------------------------------------
    Classic pops a detail card on a bead; the Studio's road was display-only.
@@ -4368,15 +5358,55 @@ document.addEventListener("click", e => {
   if (hasD)
     html += '<div class="rd-row"><span>Distance from target</span><b>'
       + (r.delta >= 0 ? "+" : "-") + money(Math.abs(r.delta)) + "</b></div>";
-  if (c.algo) html += '<div class="rd-row"><span>ALGO called</span><b class="' + (c.algo === r.result ? "hit" : "miss") + '">' + c.algo.toUpperCase() + "</b></div>";
-  if (c.histcall) html += '<div class="rd-row"><span>History Call</span><b class="' + (c.histcall === r.result ? "hit" : "miss") + '">' + c.histcall.toUpperCase() + "</b></div>";
+  // BTC-23: every prediction in ONE consecutive block, always in the same order and
+  // always present ("no call" when empty) -- your call first, then the ALGO down the
+  // round, then the History Call. Price rows above, record + edit below.
+  html += '<div class="rd-sep">The calls</div>';
   html += '<div class="rd-row"><span>Your call</span><b class="' + (mine ? (hit ? "hit" : "miss") : "") + '">'
     + (mine ? mine.toUpperCase() + " \u00b7 " + (hit ? "won" : "lost") : "no call") + "</b></div>";
+  for (const [key, label, sub] of ALGO_CALL_ROWS) {
+    const v = c[key];
+    html += '<div class="rd-row"><span>ALGO ' + label + ' <i>' + sub + "</i></span><b class=\""
+      + (v ? (v === r.result ? "hit" : "miss") : "") + '">' + (v ? v.toUpperCase() : "no call") + "</b></div>";
+  }
+  html += '<div class="rd-row"><span>History Call</span><b class="' + (c.histcall ? (c.histcall === r.result ? "hit" : "miss") : "") + '">'
+    + (c.histcall ? c.histcall.toUpperCase() : "no call") + "</b></div>";
   const recNow = (SREC && SREC.you) || { wins: 0, losses: 0 };
   html += '<div class="rd-row"><span>Your record</span><b>' + recNow.wins + "W \u2013 " + recNow.losses + "L</b></div>";
+  // BTC-22: correct (or log) your own call on a finished round -- the owner sometimes
+  // sells before close, and the settled result then misrepresents the call they traded.
+  html += '<div class="rd-row"><span>' + (mine ? "Change your call" : "Log your call") + "</span><b class=\"rd-edit\">"
+    + '<button class="rd-btn yes" data-edit-call="yes" data-edit-ticker="' + esc(r.kalshi_ticker) + '">Yes</button>'
+    + '<button class="rd-btn no" data-edit-call="no" data-edit-ticker="' + esc(r.kalshi_ticker) + '">No</button>'
+    + (mine ? '<button class="rd-btn clear" data-edit-call="clear" data-edit-ticker="' + esc(r.kalshi_ticker) + '">Clear</button>' : "")
+    + "</b></div>";
 
   document.getElementById("roundBody").innerHTML = html;
   openSheet("roundSheet");
+});
+
+/* BTC-22: the edit buttons in the round sheet. The server owns the record; on
+   success every cached window is refetched so the corner marks follow the edit. */
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-edit-call]");
+  if (!btn) return;
+  const choice = btn.getAttribute("data-edit-call");
+  try {
+    const resp = await fetch("/api/calls/edit", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: btn.getAttribute("data-edit-ticker"),
+                             choice: choice === "clear" ? null : choice })
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const d = await resp.json();
+    if (d.records) SREC = d.records;
+    DATA.hist = {};  // stale call marks live in every cached window
+    closeSheets();
+    toast(choice === "clear" ? "Call cleared" : "Call set to " + choice.toUpperCase());
+    fetchData(true);
+  } catch (err) {
+    toast("Could not update the call");
+  }
 });
 
 /* ============================ arrangements ============================
@@ -4429,6 +5459,93 @@ function boardWall() {
   ] };
 }
 
+/* ===================== the Everything board =====================
+   The opposite of Blank: every panel type the Studio has, once each. Generated from the
+   VIZ registry rather than hand-listed, so a type added later appears here for free --
+   anything not named in EVERYTHING_ORDER is appended rather than silently dropped.
+
+   Two option overrides keep a 38-panel board from fighting itself:
+     linkWindows:false -- roadhistory is the only viz that draws a timeframe bar, and by
+       default one click rewrites `hours` on EVERY windowed panel on the board at once.
+     fitH:false -- the BTC-31 auto-grow would otherwise let nine windowed panels each
+       grow toward fitMaxRows() (up to 30 rows) off a single click and shove the rest of
+       the board down. The road degrades by shrinking beads instead, which is the better
+       failure. Both are per-panel options, so the editor can switch them back on. */
+const EVERYTHING_ORDER = [
+  // now
+  "roundcard", "countdown", "feed", "edge",
+  "leanbar", "spreadnow",
+  // the round in play, and what everyone called
+  "livepick", "pick", "algocall", "gauges",
+  "confidence", "histcall",
+  // roads and rounds
+  "roadhistory", "statetimeline", "bigroad", "results", "table",
+  // the logs and the records
+  "calllog", "calltape", "callerrace", "accuracy", "scorecard",
+  // what the history says
+  "streakladder", "spreadledger", "patterntable", "margin", "volclock",
+  // generic charts
+  "candlestick", "donut", "timeseries", "bars", "heatmap", "histogram",
+  "gauge", "bargauge", "stat", "text"
+];
+
+/* Panels that need something other than the defaults on THIS board. */
+const EVERYTHING_OPTS = {
+  roadhistory:  { hours: 6, linkWindows: false, fitH: false },
+  results:      { hours: 24, fitH: false },
+  spreadledger: { hours: 24, fitH: false },
+  confidence:   { hours: 24, fitH: false },
+  scorecard:    { hours: 24, fitH: false },
+  streakladder: { hours: 168, fitH: false },
+  volclock:     { hours: 168, fitH: false },
+  margin:       { hours: 24, fitH: false },
+  // 12h, not 24: calllog is in LIVE_TYPES, so it rebuilds its whole table every second
+  // and fitTrim then removes rows one at a time with a layout read per row.
+  calllog:      { hours: 12, fitH: false, onlyCalled: true },
+  callerrace:   { hours: 24 },
+  bigroad:      { hours: 0 },          // follows the board range, next to the road's own 6h
+  pricetrack:   { showFill: true },
+  text:         { body: "Everything board — every panel type, once. Hover the ⓘ in any panel header to read what that panel does." }
+};
+
+/* Metric per type. The picker's own choice (metricsFor(type)[0]) is the default, but a
+   panel whose metric is in the Live group re-renders every second, so the generic charts
+   are deliberately pointed at window/series metrics instead. */
+const EVERYTHING_METRIC = {
+  timeseries: "s_yes_rate", bars: "s_volatility", candlestick: "ohlc",
+  heatmap: "by_hour", bargauge: "by_dow", histogram: "deltas",
+  gauge: "yes_rate", stat: "rounds", donut: "results", table: "results",
+  statetimeline: "results", bigroad: "results"
+};
+
+function boardEverything() {
+  const seen = {}, panels = [];
+  const order = EVERYTHING_ORDER.filter(t => VIZ[t]);
+  for (const t of Object.keys(VIZ)) if (order.indexOf(t) < 0) order.push(t);   // never drop a new type
+  let x = 0, y = 0, rowH = 0, rowFrom = 0;
+  // Give whatever columns are left over to the last panel in the row, so the board has a
+  // straight right edge instead of a ragged one.
+  const closeRow = () => {
+    if (panels.length > rowFrom && x < COLS) panels[panels.length - 1].gridPos.w += COLS - x;
+    rowFrom = panels.length;
+  };
+  for (const type of order) {
+    if (seen[type]) continue;
+    seen[type] = 1;
+    const sz = PANEL_SIZE[type] || PANEL_SIZE_DEFAULT;
+    const w = Math.min(COLS, sz.w);
+    if (x + w > COLS) { closeRow(); y += rowH; x = 0; rowH = 0; }
+    const metric = EVERYTHING_METRIC[type] || metricsFor(type)[0];
+    // Title from the VIZ, never the metric: mkPanel's default would name five different
+    // panels "Live BTC price", which is useless on a board that is a tour of the panels.
+    panels.push(mkPanel(type, metric, { x: x, y: y, w: w, h: sz.h }, VIZ[type].label, EVERYTHING_OPTS[type]));
+    x += w;
+    rowH = Math.max(rowH, sz.h);
+  }
+  closeRow();
+  return { version: 2, range: "24h", bucket: "round", refresh: 10, panels: panels };
+}
+
 const ARRANGEMENTS = [
   { id: "classic", name: "Classic", desc: "The fixed page's seven modules, module for module.", make: defaultDashboard },
   { id: "player", name: "Player", desc: "Your own play: the round, your scorecard, the history call, the road.", make: boardPlayer },
@@ -4437,31 +5554,60 @@ const ARRANGEMENTS = [
   { id: "wall", name: "Wall", desc: "Big-screen glance: this round, the clock, your record, the road.", make: boardWall },
   { id: "minimal", name: "Minimal", desc: "Just the round and the Big Road, full width.", make: boardMinimal },
   { id: "solari", name: "Solari desk", desc: "Six non-repeating modules, and the split-flap skin to go with them.", make: solariDesk, skin: "solari" },
-  { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset }
+  { id: "analytics", name: "Analytics", desc: "The original chart-led board.", make: analyticsPreset },
+  { id: "everything", name: "Everything", desc: "Every panel the Studio has, once each — the opposite of Blank. A tour rather than a desk, and a long one: best on a big screen.", make: boardEverything },
+  { id: "blank", name: "Blank", desc: "Nothing on the board. Start empty and add only the modules you want.", make: boardBlank }
 ];
+
+/* A mini-map of a board's panel rectangles -- seeing the shape beats reading a sentence. */
+function boardThumb(dash) {
+  const ps = (dash && dash.panels) || [];
+  if (!ps.length) return '<div class="arr-thumb blank">EMPTY</div>';
+  const maxY = Math.max.apply(null, ps.map(x => x.gridPos.y + x.gridPos.h).concat([1]));
+  // A 46px-tall thumb over ~180 grid rows draws every panel at well under a pixel, and
+  // 38 bordered rectangles collapse into a grey smear that says less than the number does.
+  if (maxY > 90) return '<div class="arr-thumb blank">' + ps.length + " PANELS</div>";
+  let out = '<div class="arr-thumb">';
+  for (const q of ps) {
+    const g = q.gridPos;
+    out += '<i style="left:' + (g.x / 24 * 100).toFixed(2) + "%;top:" + (g.y / maxY * 100).toFixed(2)
+      + "%;width:" + (g.w / 24 * 100).toFixed(2) + "%;height:" + (g.h / maxY * 100).toFixed(2) + '%"></i>';
+  }
+  return out + "</div>";
+}
 
 function renderArrangements() {
   const wrap = document.getElementById("arrangeList");
   wrap.innerHTML = "";
   for (const a of ARRANGEMENTS) {
+    const current = DASH && DASH.arrangement === a.id;
     const row = document.createElement("div");
-    row.className = "arr-row";
+    row.className = "arr-row" + (current ? " current" : "");
+    const holder = document.createElement("div");
+    holder.innerHTML = boardThumb(a.make());
     const txt = document.createElement("div");
     txt.className = "arr-txt";
     const n = document.createElement("span"); n.className = "arr-name"; n.textContent = a.name;
     const d = document.createElement("span"); d.className = "arr-desc"; d.textContent = a.desc;
     txt.appendChild(n); txt.appendChild(d);
+    if (current) {
+      const b = document.createElement("span"); b.className = "arr-badge"; b.textContent = "current";
+      txt.appendChild(b);
+    }
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.textContent = "Use";
+    btn.textContent = current ? "Reset" : "Use";
     btn.addEventListener("click", () => {
       if (a.skin) {
         applySkin(a.skin);
         try { localStorage.setItem(LS_SKIN, a.skin); } catch (e) { /* ignore */ }
       }
-      loadBoard(a.make(), a.name + " arrangement");
+      const board = a.make();
+      board.arrangement = a.id;        // remembered so this list can show which one you are on
+      loadBoard(board, a.name + " arrangement");
+      renderArrangements();
     });
-    row.appendChild(txt); row.appendChild(btn);
+    row.appendChild(holder.firstChild); row.appendChild(txt); row.appendChild(btn);
     wrap.appendChild(row);
   }
 }
@@ -4621,6 +5767,7 @@ async function boot() {
   migrateLocalCalls();
 
   timer = setInterval(fetchData, 10000);
+  setInterval(fetchState, 2000);  // BTC-18: near-live price between full refreshes
   setInterval(localTick, 1000);
 
   let rt = null;
